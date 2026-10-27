@@ -77,8 +77,18 @@ second-brain check "$DEMO_DIR/wiki" --now '2026-10-27T00:00:00+00:00'
 ```
 
 `check`의 예상 결과는 `invalid: []`, `warnings: []`, `stale: []`, `concepts: 1`이다.
-새 리비전의 기본 상태는 `draft`, 검토 수준은 `unverified`다. 두 번째 글을 저장하면
-첫 파일은 그대로 남고 `index.md`가 두 번째 파일을 가리킨다.
+새 리비전의 기본 상태는 `draft`, 검토 수준은 `unverified`다. 합성 본문과 원문을 직접
+비교한 뒤 검토했다는 선언을 기록한다.
+
+```sh
+second-brain review "$DEMO_DIR/wiki" garden --revision r000001 \
+  --actor human:demo --evidence sources/garden-note/content.raw
+second-brain show "$DEMO_DIR/wiki" garden --format json
+```
+
+본문이 같은 `r000002`가 만들어지고 `human-reviewed` 선언이 표시된다. `r000001`은 그대로 남고
+상태는 `draft`를 유지한다. CLI는 사실이나 `human:demo`의 신원을 확인하지 않는다.
+이어서 본문을 수정하면 다시 `unverified`인 새 리비전이 만들어진다.
 
 ```sh
 second-brain curate "$DEMO_DIR/wiki" garden \
@@ -87,7 +97,7 @@ second-brain search "$DEMO_DIR/wiki" '물주기'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
-명령의 기본 출력은 JSON이다. 검색과 읽기 전용 열람 명령은 `--format text`도 받는다. `second-brain --help`와 `second-brain curate --help`로 옵션을 확인한다.
+세 리비전은 모두 남고 인덱스는 본문을 수정한 `r000003`을 가리킨다. 명령의 기본 출력은 JSON이다. 검색과 읽기 전용 열람 명령은 `--format text`도 받는다. `second-brain --help`, `second-brain curate --help`, `second-brain review --help`로 옵션을 확인한다.
 `--actor`는 실행 주체를 명시하는 입력이며 로그인 인증이나 신원 증명이 아니다.
 
 ## 저장된 지식 확인하기
@@ -99,14 +109,14 @@ second-brain check "$DEMO_DIR/wiki"
 YAML 메타데이터를 확인한다. Markdown 미리보기가 있는 편집기를 쓰면 보기 편하고,
 일반 텍스트 편집기로 읽어도 된다. 현재 버전에는 자체 그래픽 뷰어가 없다.
 
-위 예제를 끝낸 뒤 다음 명령으로 현재 링크, 두 번째 노트 버전과 원문 수집 기록을 확인한다.
+위 예제를 끝낸 뒤 다음 명령으로 현재 링크, 이전 노트 버전과 원문 수집 기록을 확인한다.
 
 ```sh
 second-brain list "$DEMO_DIR/wiki" --format text
 second-brain show "$DEMO_DIR/wiki" garden --format text
 second-brain show "$DEMO_DIR/wiki" garden --revision r000001 --format json
 second-brain history "$DEMO_DIR/wiki" garden --format text
-second-brain diff "$DEMO_DIR/wiki" garden r000001 r000002 --format text
+second-brain diff "$DEMO_DIR/wiki" garden r000001 r000003 --format text
 second-brain search "$DEMO_DIR/wiki" '물주기' --current-only --status draft \
   --freshness unknown --format text
 second-brain search "$DEMO_DIR/wiki" '물주기' --status draft --freshness fresh \
@@ -150,6 +160,7 @@ second-brain check "$DEMO_DIR/wiki"
 | `init BUNDLE` | 새 경로나 빈 디렉터리에 `index.md`를 만든다. 비어 있지 않으면 거부한다. |
 | `capture BUNDLE FILE --id ID --actor ACTOR --resource ORIGIN` | 원문 바이트와 출처, 수집 주체, 시간, SHA-256을 보존한다. ID 재사용을 거부한다. |
 | `curate BUNDLE ID --body FILE --source SOURCE_ID --actor ACTOR` | 준비한 UTF-8 본문을 새 개념 리비전으로 저장한다. `--source`는 반복할 수 있다. |
+| `review BUNDLE ID --revision rNNNNNN --actor ACTOR --evidence RESOURCE` | 현재 본문을 유지한 새 리비전에 검토 선언을 덧붙인다. |
 | `search BUNDLE QUERY` | 모든 개념 리비전의 제목과 본문을 단어로 검색한다. |
 | `list BUNDLE` | 모든 CLI 리비전 요약을 경로순으로 표시한다. |
 | `show BUNDLE ID [--revision rNNNNNN]` | 현재 리비전 또는 지정한 리비전의 본문을 읽는다. |
@@ -159,7 +170,8 @@ second-brain check "$DEMO_DIR/wiki"
 
 ID는 영문 소문자나 숫자로 시작하는 1~64자의 영문 소문자, 숫자, 하이픈이다.
 `curate`는 `--type`, `--title`, `--status`, `--stale-after`도 받는다.
-원문을 직접 해석하거나 준비한 글의 사실을 확인하지 않는다. `verified`는 추가하지 않는다.
+`curate`는 원문을 직접 해석하거나 준비한 글의 사실을 확인하지 않는다.
+명시적 `review`만 `verified`를 덧붙이며 형식 검사는 검토 기록을 만들지 않는다.
 본문의 상대 링크는 준비 파일 위치가 아닌 최종 리비전 위치를 기준으로 쓴다.
 
 ```text
@@ -171,6 +183,7 @@ wiki/
   concepts/garden/
     r000001.md
     r000002.md
+    r000003.md
 ```
 
 원문은 확장자나 인코딩에 관계없이 바이트 그대로 저장한다. 줄바꿈과 BOM도 바꾸지 않는다.
@@ -193,6 +206,24 @@ YAML 매핑의 문자열이 아닌 키는 출력할 때만 문자열로 바꾸�
 변환한 키가 충돌하거나 값이 순환하면 데이터를 버리지 않고 명시적 오류를 반환한다.
 읽기 명령의 실행 오류는 JSON 모드에서 stderr의 `{"error": "..."}`, 텍스트 모드에서
 `second-brain:` 메시지로 출력한다. 인자 문법 오류는 argparse의 텍스트 진단을 사용한다.
+
+`review`는 잠금 안에서 인덱스가 가리키는 정확한 현재 리비전만 받으며 과거 대상은 거부한다.
+actor는 `human:ID`, `process:ID`, `PRODUCER/VERSION` 중 하나다. 구성요소는 비어 있지 않아야 하며
+공백, 제어 문자, 콜론, 슬래시나 역슬래시를 포함할 수 없다. 이는 신원 인증이 아닌 선언이다.
+기록 시 CLI가 관측한 UTC 오프셋 포함 시각을 사용하며 과거 검토 시각은 입력할 수 없다.
+근거는 호스트가 있는 절대 HTTP(S) URL 또는 번들 루트 기준으로 실제 존재하는 비어 있지 않은
+일반 파일이다. 로컬 경로의 앞 `/`는 생략할 수 있고 파일명 공백은 허용한다.
+URL 자격 증명, 잘못된 포트·escape·공백, 다른 scheme, 로컬 query·fragment, 경로 순회,
+역슬래시, 앱 디렉터리와 심볼릭 링크는 거부한다. URL에 접속하거나 근거를 실행하지 않는다.
+근거 참조는 선언이며 진실의 증거가 아니다.
+
+새 이벤트는 표준 OKF `by`/`at`와 프로젝트 확장 `x-second-brain-target` 및
+`x-second-brain-evidence`를 사용한다. 대상에는 `resource`와 전체 파일 바이트의 SHA-256,
+근거에는 `resource`와 로컬 파일일 때만 SHA-256을 기록한다. 해시는 바이트를 식별하며 신원을
+인증하지 않는다. 원본 파일 바이트는 유지한다. 새 파일의 본문, 알 수 없는 YAML 키와 원래
+생성 기록을 포함한 메타데이터 값도 유지하되 YAML 서식은 달라질 수 있다.
+기존 검토 매핑이나 목록은 항목을 보존한 목록이 된다. 상태는 바꾸지 않으며 이후 `curate`는
+검토 기록을 물려받지 않는다. 상세 규칙과 실패 한계는 한영 [검토 규칙](docs/review-contract.md)을 참고한다.
 
 검색은 Unicode `\w+` 토큰을 `casefold`한 뒤 모든 검색어가 정확히 있는 문서를 찾는다.
 점수는 중복을 제거한 검색어의 출현 횟수 합이며, 점수 내림차순과 경로 오름차순으로 정렬한다.
