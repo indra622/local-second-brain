@@ -271,9 +271,32 @@ These detailed documents are currently in Korean.
 
 ## Agent workflow and scope
 
-Give your chosen agent the [portable workflow](workflows/AGENT-WORKFLOW.md), use the
-[body template](templates/concept-body.md), or inspect the [synthetic bundle](examples/bundle/index.md).
-These supporting documents are currently in Korean. Keep instructions and templates outside the knowledge bundle.
+Start with the [portable agent guide and task template](docs/agent-kit.md), then give your
+chosen agent the [English workflow](workflows/AGENT-WORKFLOW.md) and
+[body template](templates/concept-body.md). Each has a Korean counterpart.
+The older [synthetic bundle](examples/bundle/index.md) remains in Korean.
+Keep instructions and templates outside the knowledge bundle.
+
+Run a separate synthetic reuse demo from this checkout with the environment active.
+The output goes under the quick start's temporary `DEMO_DIR`, separate from its `wiki`:
+
+```sh
+python examples/knowledge_reuse.py --output "$DEMO_DIR/reuse-demo"
+second-brain show "$DEMO_DIR/reuse-demo/wiki" lantern --format text
+second-brain history "$DEMO_DIR/reuse-demo/wiki" lantern --format text
+```
+
+This asserts an empty lookup, source capture, a prepared note, later-task recall/reuse,
+revised source/content, current selection, preserved bytes and history/comparison.
+Inspect `reuse-before.json`, `reuse-after.json`, `transcript.json` and `summary.json` under
+`reuse-demo`. The [guide](docs/agent-kit.md#run-the-synthetic-reuse-demo) explains every artifact.
+The demo uses prewritten English synthetic notes and deterministic CLI orchestration,
+not LLM synthesis or a factual verifier. Its `process:synthetic-demo` review is a demo
+declaration, not authenticated or human review; the later edit is `unverified`.
+Real Claude, Codex and Grok integrations were not tested. No model, vendor, account or
+API key is required. The CLI runs offline; external agents follow their own policies
+and need separate authorization for external data transfer. Examples and docs are
+source-checkout resources, not a published standalone package.
 
 CLI writes use an exclusive lock and refuse to overwrite existing sources or revisions.
 Only the marked current-version block in the root index is managed; surrounding human text stays intact.
@@ -288,11 +311,12 @@ No PyPI package release is available. Install from the source checkout.
 
 ```sh
 python -m unittest discover -s tests -v
-python -m compileall -q src tests
+python -m compileall -q src tests examples
 python -m pip check
 ```
 
 Run `python tests/verify_quickstart.py` to execute the shell blocks of both READMEs in
 separate temporary project copies and fresh virtual environments.
-The verification checks installation, source-byte preservation, revision history, and the documented viewing commands.
+The verification checks installation, source-byte preservation, revision history, the documented viewing commands,
+and the separate reuse demo outputs.
 Obsidian GUI steps are documented from official help, not independently tested.
