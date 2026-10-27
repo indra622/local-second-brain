@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-second-brain"
+version = "0.1.0"
+description = "A local, agent-independent second brain with source provenance, freshness signals, and knowledge revisions"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Operating System :: MacOS :: MacOS X",
+  "Programming Language :: Python :: 3",
+]
+dependencies = ["PyYAML>=6.0,<7"]
+
+[project.scripts]
+second-brain = "local_knowledge_wiki.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

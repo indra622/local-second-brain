@@ -1,0 +1,11 @@
+{
+  "id": "garden-note",
+  "original_name": "garden-note.txt",
+  "resource": "synthetic:garden-note",
+  "captured": {
+    "by": "human:synthetic-example",
+    "at": "2026-10-27T00:00:00+00:00"
+  },
+  "sha256": "dd5f4cf6b2ed6d0948813c0d26a28fa783420322c9f4f0f9c305979ec822d97d",
+  "bytes": 201
+}
