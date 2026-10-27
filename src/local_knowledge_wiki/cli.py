@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 import yaml
 
 from .format import inspect_bundle, nonempty, timestamp, validate
-from .reading import browse, current_paths, human, read_note
+from .reading import browse, current_paths, human, json_compatible, read_note
 from .storage import (Store, WikiError, capture, current_index, identifier, init,
                       read_input, render_entries)
 
@@ -155,6 +155,7 @@ def main(argv=None):
         else:
             with Store(args.bundle) as store:
                 result = inspect_bundle(store, now)
+        result = json_compatible(result)
         if getattr(args, 'format', None) == 'text':
             print(human(result))
         else:

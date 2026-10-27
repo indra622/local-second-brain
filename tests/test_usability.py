@@ -120,8 +120,32 @@ class UsabilityTests(unittest.TestCase):
         self.assertIn('UTF-8', self.cli('show', self.bundle, 'garden')['metadata_errors'][0])
         self.assertTrue(self.cli('check', self.bundle, code=1)['invalid'])
         path.write_text('---\ntype: Concept\n2026-01-01: extension\n---\ngarden')
-        for mode in ('json', 'text'):
-            self.assertNotIn('Traceback', self.cli('show', self.bundle, 'garden', '--format', mode, code=2))
+        self.assertEqual(self.cli('show', self.bundle, 'garden')['metadata']['2026-01-01'], 'extension')
+        self.assertIn('extension', self.cli('show', self.bundle, 'garden', '--format', 'text', text=True))
+
+    def test_yaml_extension_keys_are_serialized_without_changing_notes(self):
+        path = self.bundle / 'concepts/garden/r000002.md'
+        content = path.read_text().replace('type: Concept',
+            'type: Concept\ndaily:\n  2026-01-01: note\n  nested:\n    - {2026-01-02: retained}')
+        content = content.replace('  by: test/1', '  by: test/1\n  2026-01-03: generation-extension')
+        path.write_text(content)
+        before = path.read_bytes()
+        note = self.cli('show', self.bundle, 'garden')
+        self.assertEqual(note['metadata']['daily']['2026-01-01'], 'note')
+        self.assertEqual(note['metadata']['daily']['nested'][0]['2026-01-02'], 'retained')
+        self.assertEqual(note['generated']['2026-01-03'], 'generation-extension')
+        self.assertIn('2026-01-01', self.cli('show', self.bundle, 'garden', '--format', 'text', text=True))
+        for command in ('list', 'history', 'diff', 'search'):
+            args = {'list': [], 'history': ['garden'],
+                    'diff': ['garden', 'r000001', 'r000002'], 'search': ['garden']}[command]
+            self.assertTrue(self.cli(command, self.bundle, *args))
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(self.cli('check', self.bundle)['invalid'], [])
+        path.write_text('---\ntype: Concept\nextra: {1: numeric, "1": string}\n---\ngarden')
+        self.assertIn('collide', self.cli('show', self.bundle, 'garden', code=2))
+        self.assertEqual(path.read_text(), '---\ntype: Concept\nextra: {1: numeric, "1": string}\n---\ngarden')
+        path.write_text('---\ntype: Concept\nextra: &cycle [*cycle]\n---\ngarden')
+        self.assertIn('Cyclic', self.cli('show', self.bundle, 'garden', code=2))
 
     def test_freshness_uses_only_deadline_even_with_unrelated_errors(self):
         path = self.bundle / 'concepts/garden/r000002.md'

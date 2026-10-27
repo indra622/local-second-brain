@@ -83,6 +83,29 @@ def browse(store, command, now, concept_id=None, revision=None, before=None, aft
     return {"before": notes[0], "after": notes[1], "diff": diff}
 
 
+def json_compatible(value, active=None):
+    """Normalize YAML mapping keys for output without changing stored documents."""
+    if not isinstance(value, (dict, list)):
+        return value
+    active = set() if active is None else active
+    identity = id(value)
+    if identity in active:
+        raise WikiError("Cyclic YAML metadata cannot be represented as JSON")
+    active.add(identity)
+    try:
+        if isinstance(value, list):
+            return [json_compatible(item, active) for item in value]
+        output = {}
+        for key, item in value.items():
+            key = key if isinstance(key, str) else str(key)
+            if key in output:
+                raise WikiError("Metadata keys collide when converted to JSON")
+            output[key] = json_compatible(item, active)
+        return output
+    finally:
+        active.remove(identity)
+
+
 def human(result):
     if isinstance(result, dict) and "diff" in result:
         return result["diff"] or "No differences."

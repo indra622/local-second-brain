@@ -199,6 +199,8 @@ Imported generic OKF notes remain readable through search/check and a text edito
 infer revision history for them. Missing concepts/revisions and unsafe paths return exit `2`.
 Malformed note metadata is reported in `metadata_errors` (text mode labels each error); browsing still
 returns available content. Invalid UTF-8 is reported with an empty body. Diff refuses invalid notes.
+Non-string YAML mapping keys are converted to strings in output only. Stored notes are unchanged.
+Mappings with colliding converted keys or cyclic values return a deliberate error instead of losing data.
 Read-command operational errors are a JSON `{"error": "..."}` object on stderr in JSON mode, or a
 `second-brain:` message in text mode. Argument syntax errors use argparse's text diagnostic.
 
