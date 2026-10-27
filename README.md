@@ -87,7 +87,8 @@ second-brain search "$DEMO_DIR/wiki" '물주기'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
-Both revisions remain on disk. The index points to the second one. Commands return JSON.
+Both revisions remain on disk. The index points to the second one. Commands default to JSON.
+Search and the read-only browsing commands also accept `--format text`.
 Use `second-brain --help` or `second-brain curate --help` for options.
 
 ## View your knowledge
@@ -99,18 +100,25 @@ Start with `index.md`: it links to the current revision of each concept. Open th
 to read its body and YAML metadata. Use an editor with Markdown preview if you prefer formatted text;
 a plain text editor also works. This version has no built-in graphical viewer.
 
-After the quick start above, these commands show the current links, the second note revision,
-and the captured source record:
+After the quick start above, read the current body, browse earlier revisions, compare changes,
+and inspect the captured source record:
 
 ```sh
-cat "$DEMO_DIR/wiki/index.md"
-cat "$DEMO_DIR/wiki/concepts/garden/r000002.md"
+second-brain list "$DEMO_DIR/wiki" --format text
+second-brain show "$DEMO_DIR/wiki" garden --format text
+second-brain show "$DEMO_DIR/wiki" garden --revision r000001 --format json
+second-brain history "$DEMO_DIR/wiki" garden --format text
+second-brain diff "$DEMO_DIR/wiki" garden r000001 r000002 --format text
+second-brain search "$DEMO_DIR/wiki" '물주기' --current-only --status draft \
+  --freshness unknown --format text
+second-brain search "$DEMO_DIR/wiki" '물주기' --status draft --freshness fresh \
+  --now '2026-10-27T00:00:00+00:00' --format json
 python -m json.tool "$DEMO_DIR/wiki/sources/garden-note/provenance.json"
 second-brain search "$DEMO_DIR/wiki" '물주기'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
-`search` returns paths and metadata, not the full note text. Read the returned path in your editor.
+`search` returns paths, metadata, and short body snippets. Use `show` for the full body.
 `current: true` marks the indexed revision. Older revisions are kept for comparison.
 `content.raw` preserves source bytes, so open it as text only when you know it is a text source;
 it can also contain binary data. `provenance.json` records its origin, capture time, actor, and hash.
@@ -129,8 +137,9 @@ If you open another terminal, activate `.venv` again and set the path to your kn
 5. Use the terminal for `search`, `check`, and new revisions. Reading a note in Obsidian does not verify its content.
 
 No community plugin, Sync subscription, or Publish service is required. Obsidian creates its own `.obsidian`
-settings folder. It is not a knowledge source. The current checker does not exclude application folders:
-additional Markdown files in plugin/config folders can be scanned, so start without community plugins.
+settings folder. Search, check, and revision traversal skip entries named exactly `.obsidian` or `.git`
+at every depth, including symlinks with those names, without following or changing them. Other hidden
+knowledge files and folders are scanned. Ordinary knowledge symlinks are still rejected.
 To preserve revision history, prepare edits in a separate file and run `curate`, rather than editing an old revision in place.
 
 These instructions follow the [official Obsidian folder-as-vault guide](https://help.obsidian.md/vault).
@@ -153,6 +162,10 @@ There is no background learning loop or built-in LLM synthesis.
 | `capture BUNDLE FILE --id ID --actor ACTOR --resource ORIGIN` | Preserve source bytes, origin, actor, capture time, and SHA-256. Refuse reused source IDs. |
 | `curate BUNDLE ID --body FILE --source SOURCE_ID --actor ACTOR` | Store a prepared UTF-8 body as a new revision. Repeat `--source` for multiple sources. |
 | `search BUNDLE QUERY` | Search titles and bodies across all concept revisions. |
+| `list BUNDLE` | List all CLI revision summaries, sorted by path. |
+| `show BUNDLE ID [--revision rNNNNNN]` | Read the indexed current revision, or an explicit revision. |
+| `history BUNDLE ID` | List revision summaries from oldest to newest. |
+| `diff BUNDLE ID BEFORE AFTER` | Compare two explicit revisions, including metadata and body. |
 | `check BUNDLE` | Check the supported metadata subset and report links and freshness. |
 
 IDs are 1–64 lowercase ASCII letters, digits, or hyphens, starting with a letter or digit.
@@ -175,18 +188,45 @@ Sources retain their encoding, BOM, and line endings. Even Markdown sources are 
 `.raw`, separate from concept documents. There is no source-text search, PDF extraction,
 or encoding detection. Prepared bodies and concept documents must be UTF-8.
 
+`list`, `show`, `history`, and `diff` are read-only. They use CLI files at
+`concepts/ID/r000001.md` through `r999999.md`. Revision arguments must be exactly `rNNNNNN`;
+IDs follow the same rules as `curate`. `show` never guesses the current revision from the highest number.
+If the current index is unavailable, use `--revision`. Summaries include the current marker, lifecycle,
+trust, freshness, and metadata errors. `show` also includes the full body and metadata.
+`diff` emits a unified diff of the complete stored Markdown, including metadata, with three context lines;
+equal revisions produce an empty JSON `diff` or `No differences.` in text mode.
+Imported generic OKF notes remain readable through search/check and a text editor; these commands do not
+infer revision history for them. Missing concepts/revisions and unsafe paths return exit `2`.
+Malformed note metadata is reported in `metadata_errors` (text mode labels each error); browsing still
+returns available content. Invalid UTF-8 is reported with an empty body. Diff refuses invalid notes.
+Non-string YAML mapping keys are converted to strings in output only. Stored notes are unchanged.
+Mappings with colliding converted keys or cyclic values return a deliberate error instead of losing data.
+Read-command operational errors are a JSON `{"error": "..."}` object on stderr in JSON mode, or a
+`second-brain:` message in text mode. Argument syntax errors use argparse's text diagnostic.
+
 ## Search and trust signals
 
 Search uses exact Unicode `\w+` tokens after `casefold`. All query words must match.
 Scores sum occurrences of distinct query words; ties sort by path. There is no semantic,
-substring, or morphological search. Older revisions remain searchable.
+substring, or morphological search. Older revisions remain searchable by default; existing JSON keys
+and scoring are retained. `snippet` adds the first 160 Unicode characters of the body after whitespace
+is collapsed (the final character is `…` when truncated). `title` is also included.
+
+Use `--current-only` to require an indexed current revision; unknown current status is excluded.
+`--status draft|stable|deprecated` filters lifecycle status and excludes invalid metadata. An omitted
+status on an otherwise valid OKF note means `stable`, as before. `--freshness fresh|stale|unknown`
+uses only `stale_after`: fresh means a valid deadline later than `--now`, stale means that deadline
+has been reached, and unknown means an absent or invalid deadline, including one without a UTC offset.
+Unrelated metadata errors remain visible but do not change freshness. Filters combine with AND and
+apply to individual revisions; a matching older revision is never substituted for the current one.
+Use `--now` for reproducible evaluation and `--format text` for readable Unicode output.
 
 Each result includes `current`, `status`, `trust`, `stale`, generation and verification records,
 and metadata errors. `current: null` means the CLI cannot identify a current-version index.
 `stale: null` means no usable expiry date is available. Review tiers interpret stored records;
 they do not prove that a reviewer checked the facts or that their identity is authentic.
 
-`check` scans Markdown files and recognizes reserved `index.md` and `log.md` files.
+`check` scans Markdown files outside `.obsidian` and `.git` and recognizes reserved `index.md` and `log.md` files.
 Broken links and stale documents are separate from metadata errors:
 
 - Exit `0`: no metadata errors; link warnings or stale notes may still be present.
