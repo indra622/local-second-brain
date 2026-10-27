@@ -296,6 +296,25 @@ python -m pip check
 ```
 
 `python tests/verify_quickstart.py`는 두 README의 셸 블록을 각각 임시 프로젝트 복사본과 새 venv에서 그대로 실행한다.
-검증 항목은 설치, 원문 바이트 보존, 이전 버전 유지, 문서의 열람 명령과 별도 재사용 예제 결과다.
+이 소스 작업 절차는 의도적으로 체크아웃의 예제를 사용한다. 검증 항목은 설치, 원문 바이트 보존, 이전 버전 유지, 문서의 열람 명령과 별도 재사용 예제 결과다.
 
 Obsidian 화면 절차는 공식 도움말 기준이며 실제 GUI 조작은 독립 검증하지 않았다.
+
+체크아웃에서 `python scripts/verify_wheel.py`를 실행하면 `pip wheel`로 프로젝트 wheel을
+빌드하고, 시스템 패키지를 포함하지 않는 새 venv에 wheel과 의존성을 설치한다.
+체크아웃 밖에서 `PYTHONPATH`를 비운 채 패키지가 해당 venv에서 import되는지 확인하고,
+init, capture, curate, search, check, review와 네 가지 열람 명령을 실행한다.
+원문과 이전 리비전의 바이트 보존도 확인한다. 입력은 체크아웃 예제와 별개로 만든 합성
+임시 파일이며 HOME과 pip 캐시 쓰기는 임시 디렉터리 안에 둔다. 설치 시 빌드 도구와
+의존성을 다운로드할 수 있지만 CLI는 실행 중 외부 API를 호출하지 않는다.
+종료 시 임시 검사 결과를 삭제하며 패키지를 배포하지 않는다.
+
+[CI](.github/workflows/ci.yml)는 pull request와 `main` push에 실행하도록 설정했다.
+`macos-latest`, `ubuntu-latest`에서 각각 Python 3.11과 3.14를 사용한다.
+네 작업 모두 전체 unittest와 wheel 검사를 실행하며, 두 README 소스 작업 절차는
+macOS/Python 3.14에서만 실행한다. 권한은 contents 읽기 전용이며 공식 액션을 커밋 SHA로
+고정하고 체크아웃 인증 정보를 유지하지 않는다. 예약 실행이나 자동 배포는 없다.
+
+macOS/Python 3.14.6 로컬 검증에서 단위 테스트 50개, 독립 wheel 검사, 두 README 작업 절차,
+컴파일과 `pip check`가 통과했다. 호스팅된 Actions 작업의 실제 결과는 아직 확인하지 않았다.
+Linux와 최소 Python 버전(3.11)은 검증 대기 상태이며, 행렬 설정만으로 지원을 입증하지 않는다.

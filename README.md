@@ -317,6 +317,29 @@ python -m pip check
 
 Run `python tests/verify_quickstart.py` to execute the shell blocks of both READMEs in
 separate temporary project copies and fresh virtual environments.
-The verification checks installation, source-byte preservation, revision history, the documented viewing commands,
+These source workflows intentionally use the checkout examples. The verification checks
+installation, source-byte preservation, revision history, the documented viewing commands,
 and the separate reuse demo outputs.
 Obsidian GUI steps are documented from official help, not independently tested.
+
+Run `python scripts/verify_wheel.py` from the checkout to build the project wheel with
+`pip wheel`, install it and its dependencies into a fresh venv without system site
+packages, and smoke-test it outside the checkout with `PYTHONPATH` cleared. It proves
+the package imports from that venv and exercises init, capture, curate, search, check,
+review and all four read commands, including preservation of source and revision bytes.
+Inputs are synthetic temporary files independent of the checkout examples; HOME and
+pip cache writes stay in the temporary directory. Installation can download build tools
+and dependencies; the CLI makes no runtime API calls. Temporary smoke artifacts are
+removed when the check exits. This does not publish a package.
+
+[CI](.github/workflows/ci.yml) is configured for pull requests and pushes to `main`,
+with `macos-latest` and `ubuntu-latest`, each on Python 3.11 and 3.14. Each of the four
+jobs runs the full unittest suite and wheel smoke check; only macOS/Python 3.14 runs
+both README source workflows. The workflow has read-only contents permission and
+uses pinned official actions without persisted checkout credentials. There is no
+schedule or automatic publishing.
+
+Local validation on macOS with Python 3.14.6 passed all 50 unit tests, the clean wheel
+smoke check, both README workflows, compilation and `pip check`. Hosted Actions jobs
+have not yet been observed. Linux and minimum-Python (3.11) validation remain pending;
+the configured matrix alone is not evidence of support.
