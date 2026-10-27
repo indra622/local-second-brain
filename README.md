@@ -2,7 +2,7 @@
 
 **English** | [한국어](README.ko.md)
 
-**Early alpha: validated on macOS. Windows is not supported. Linux is unvalidated.**
+**Early alpha: CI-tested on macOS and Ubuntu. Windows is not supported.**
 
 **Your second brain. Local files. Any agent.**
 
@@ -30,10 +30,9 @@ Python, the CLI, an AI account, and Obsidian are not required just to read the f
 
 **To install and run the CLI:**
 
-- **OS:** a local POSIX filesystem on macOS or Linux. Tested on macOS only; Linux is not yet validated.
+- **OS:** a local POSIX filesystem on macOS or Linux. CI-tested on hosted macOS and Ubuntu runners; other Linux environments are not separately validated.
   Windows is not supported because file access uses POSIX-specific APIs. WSL is not tested.
-- **Python:** Python 3.11 or newer with the standard `venv` module. Tests used Python 3.14.6;
-  the minimum supported version has not been tested separately.
+- **Python:** Python 3.11 or newer with the standard `venv` module. CI covers Python 3.11 and 3.14; local validation used Python 3.14.6.
 - **Shell:** a terminal with a POSIX shell, such as bash or zsh, for the commands below.
 - **Source files:** a local copy of this project, including `pyproject.toml`. Git is optional if you have an archive or copied source.
 - **Install dependencies:** `pip` in the virtual environment. It installs PyYAML and build tools automatically.
@@ -340,6 +339,8 @@ uses pinned official actions without persisted checkout credentials. There is no
 schedule or automatic publishing.
 
 Local validation on macOS with Python 3.14.6 passed all 50 unit tests, the clean wheel
-smoke check, both README workflows, compilation and `pip check`. Hosted Actions jobs
-have not yet been observed. Linux and minimum-Python (3.11) validation remain pending;
-the configured matrix alone is not evidence of support.
+smoke check, both README workflows, compilation and `pip check`.
+[Hosted run 40599790644](https://github.com/indra622/local-second-brain/actions/runs/40599790644)
+also passed all four macOS/Ubuntu and Python 3.11/3.14 jobs, including both README
+workflows in the macOS/Python 3.14 job. This validates those hosted environments,
+not every Linux distribution or the Obsidian GUI.

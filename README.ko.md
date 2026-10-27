@@ -2,7 +2,7 @@
 
 [English](README.md) | **한국어**
 
-**초기 알파: macOS에서 검증. Windows 미지원. Linux 미검증.**
+**초기 알파: macOS와 Ubuntu에서 CI 검증. Windows 미지원.**
 
 **내 파일로 남는 지식. 어떤 에이전트와도 이어서.**
 
@@ -28,10 +28,9 @@ CLI 명령은 `second-brain`이다. 내부 Python 모듈은 `local_knowledge_wik
 
 **CLI를 설치하고 실행할 때:**
 
-- **운영체제:** macOS 또는 Linux의 로컬 POSIX 파일시스템. 실제 검증은 macOS에서만 했다.
+- **운영체제:** macOS 또는 Linux의 로컬 POSIX 파일시스템. 호스팅된 macOS와 Ubuntu에서 CI를 통과했으며 다른 Linux 환경은 별도로 검증하지 않았다.
   Windows는 POSIX 전용 파일 API 때문에 지원하지 않는다. WSL도 미검증이다.
-- **Python:** 표준 `venv` 모듈을 사용할 수 있는 Python 3.11 이상. 테스트 환경은 3.14.6이며,
-  최소 버전인 3.11은 별도로 검증하지 않았다.
+- **Python:** 표준 `venv` 모듈을 사용할 수 있는 Python 3.11 이상. CI는 Python 3.11과 3.14를 검사하며 로컬 검증은 3.14.6에서 했다.
 - **터미널:** 아래 예제를 실행할 bash, zsh 같은 POSIX 셸.
 - **프로젝트 소스:** `pyproject.toml`이 포함된 로컬 프로젝트. 압축파일이나 복사본이 있으면 Git은 필수가 아니다.
 - **설치 도구와 의존성:** 가상환경 안의 `pip`가 PyYAML과 빌드 도구를 설치한다.
@@ -316,5 +315,8 @@ macOS/Python 3.14에서만 실행한다. 권한은 contents 읽기 전용이며 
 고정하고 체크아웃 인증 정보를 유지하지 않는다. 예약 실행이나 자동 배포는 없다.
 
 macOS/Python 3.14.6 로컬 검증에서 단위 테스트 50개, 독립 wheel 검사, 두 README 작업 절차,
-컴파일과 `pip check`가 통과했다. 호스팅된 Actions 작업의 실제 결과는 아직 확인하지 않았다.
-Linux와 최소 Python 버전(3.11)은 검증 대기 상태이며, 행렬 설정만으로 지원을 입증하지 않는다.
+컴파일과 `pip check`가 통과했다.
+[실제 Actions 실행 40599790644](https://github.com/indra622/local-second-brain/actions/runs/40599790644)도
+macOS/Ubuntu와 Python 3.11/3.14의 네 작업 모두 통과했다. 두 README의 전체 실행은
+macOS/Python 3.14 작업에서 통과했다. 해당 호스팅 환경의 검증이며 모든 Linux 배포판이나
+Obsidian GUI 동작을 검증했다는 뜻은 아니다.
