@@ -283,8 +283,18 @@ second-brain history "$DEMO_DIR/reuse-demo/wiki" lantern --format text
 리비전은 자동 삭제하지 않는다. [구조와 복구 범위](docs/architecture.md)를 먼저 확인한다.
 
 웹 UI, 서버, 벡터 DB, 클라우드, MCP, 계산 실행과 attestation은 이번 범위에 없다.
-라이선스는 아직 선택하지 않았으며, 이 저장소에서 재사용 라이선스를 부여하지 않는다.
 PyPI 배포는 아직 없으므로 프로젝트 소스로 설치한다.
+
+## 라이선스와 출처
+
+이 프로젝트에서 직접 작성한 구현과 문서는 [MIT 라이선스](LICENSE)를 따른다.
+저작권 표기는 `Copyright (c) 2026 indra622`다.
+
+이 구현은 LLM Wiki의 작업 흐름과
+[Open Knowledge Format(OKF) 명세](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md)를 참고했다.
+이 개념과 제3자 자료의 출처는 각 작성자에게 있다. 제3자 코드, 문서와 수집한 원문에는
+각각의 라이선스와 이용 조건이 적용된다. 이 프로젝트의 MIT 라이선스가 그 자료의
+라이선스를 바꾸지는 않는다.
 
 ## 개발 확인
 

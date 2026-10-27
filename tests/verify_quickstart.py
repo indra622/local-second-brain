@@ -16,7 +16,7 @@ def verify_readme(project, readme):
         root = Path(temporary)
         for name in ('src', 'tests', 'docs', 'examples', 'templates', 'workflows'):
             shutil.copytree(project / name, root / name, ignore=shutil.ignore_patterns('__pycache__'))
-        for name in ('README.md', 'README.ko.md', 'pyproject.toml'):
+        for name in ('README.md', 'README.ko.md', 'pyproject.toml', 'LICENSE'):
             shutil.copy2(project / name, root / name)
         tmp = root / 'tmp'
         tmp.mkdir()

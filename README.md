@@ -303,8 +303,19 @@ Editors do not honor this lock. Do not edit concurrently with a write command.
 Crash leftovers are preserved for manual inspection, not automatically deleted or repaired.
 
 There is no web UI, daemon, vector database, cloud backend, MCP server, computation execution,
-or attestation in this version. A license has not been selected; no reuse license is granted by this repository.
+or attestation in this version.
 No PyPI package release is available. Install from the source checkout.
+
+## License and attribution
+
+This project's original implementation and documentation are licensed under the
+[MIT License](LICENSE). Copyright (c) 2026 indra622.
+
+The implementation draws on LLM Wiki workflow concepts and the
+[Open Knowledge Format (OKF) specification](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md).
+Those concepts and third-party materials remain attributed to their respective authors.
+Third-party code, documentation, and captured source materials retain their own licenses
+and terms; this project's MIT license does not relicense them.
 
 ## Development checks
 
