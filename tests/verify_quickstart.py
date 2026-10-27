@@ -68,7 +68,21 @@ def verify_readme(project, readme):
         assert len(current) == 1 and current[0]['path'].endswith('r000003.md')
         fresh = read('search', '물주기', '--freshness', 'fresh', '--now', '2026-10-27T00:00:00Z')
         assert len(fresh) == 2 and all(hit['path'].endswith(('r000001.md', 'r000002.md')) for hit in fresh)
-        print(f'{readme}: install + workflow + revision preservation + browsing/filter assertions: PASS')
+        demo = bundle.parent / 'reuse-demo'
+        summary = json.loads((demo / 'summary.json').read_text())
+        assert summary['initial_hits'] == 0 and summary['revisions'] == 3
+        assert summary['current'] == 'concepts/lantern/r000003.md'
+        assert summary['trust'] == 'unverified'
+        assert summary['check'] == {'invalid': [], 'warnings': [], 'stale': [], 'concepts': 3}
+        before = json.loads((demo / 'reuse-before.json').read_text())
+        after = json.loads((demo / 'reuse-after.json').read_text())
+        assert 'amber trays and two bells' in before['body']
+        assert 'cobalt trays and three bells' in after['body']
+        assert before['reused_revision'].endswith('r000002.md')
+        assert after['reused_revision'].endswith('r000003.md')
+        assert (demo / 'wiki/sources/lantern-v1/content.raw').read_bytes() == (
+            root / 'examples/reuse-inputs/source-v1.txt').read_bytes()
+        print(f'{readme}: install + workflow + revisions + browsing/filters + reuse demo: PASS')
 
 
 def main():

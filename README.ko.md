@@ -213,7 +213,7 @@ actor는 `human:ID`, `process:ID`, `PRODUCER/VERSION` 중 하나다. 구성요�
 기록 시 CLI가 관측한 UTC 오프셋 포함 시각을 사용하며 과거 검토 시각은 입력할 수 없다.
 근거는 호스트가 있는 절대 HTTP(S) URL 또는 번들 루트 기준으로 실제 존재하는 비어 있지 않은
 일반 파일이다. 로컬 경로의 앞 `/`는 생략할 수 있고 파일명 공백은 허용한다.
-URL 자격 증명, 잘못된 포트·escape·공백, 다른 scheme, 로컬 query·fragment, 경로 순회,
+URL 자격 증명, 잘못된 포트, escape, 공백, 다른 scheme, 로컬 query 또는 fragment, 경로 순회,
 역슬래시, 앱 디렉터리와 심볼릭 링크는 거부한다. URL에 접속하거나 근거를 실행하지 않는다.
 근거 참조는 선언이며 진실의 증거가 아니다.
 
@@ -251,9 +251,31 @@ URL 자격 증명, 잘못된 포트·escape·공백, 다른 scheme, 로컬 query
 
 ## 작업 방법과 한계
 
-에이전트에는 [공통 작업 절차](workflows/AGENT-WORKFLOW.md)를 전달한다.
-[본문 템플릿](templates/concept-body.md)과 [합성 예제 번들](examples/bundle/index.md)을 참고할 수 있다.
-이 지침과 템플릿은 번들 밖에 둔다. 특정 vault 구조나 에이전트 설정을 가정하지 않는다.
+[에이전트 사용 안내와 작업 템플릿](docs/agent-kit.ko.md)부터 읽고
+[한국어 작업 절차](workflows/AGENT-WORKFLOW.ko.md)와
+[본문 템플릿](templates/concept-body.ko.md)을 에이전트에 전달한다. 각각 영어 문서도 있다.
+기존 [합성 예제 번들](examples/bundle/index.md)은 한국어다.
+지침과 템플릿은 번들 밖에 둔다. 특정 vault 구조나 에이전트 설정을 가정하지 않는다.
+
+체크아웃에서 환경을 활성화한 상태로 별도의 합성 재사용 예제를 실행한다.
+빠른 시작의 임시 `DEMO_DIR` 아래에 기존 `wiki`와 분리해서 저장한다.
+
+```sh
+python examples/knowledge_reuse.py --output "$DEMO_DIR/reuse-demo"
+second-brain show "$DEMO_DIR/reuse-demo/wiki" lantern --format text
+second-brain history "$DEMO_DIR/reuse-demo/wiki" lantern --format text
+```
+
+빈 검색, 원문 수집, 준비 본문, 나중 작업의 검색과 재사용, 수정 원문과 본문,
+현재 선택, 바이트 보존, 이력과 비교를 확인한다. `reuse-demo` 아래의
+`reuse-before.json`, `reuse-after.json`, `transcript.json`, `summary.json`을 읽어 볼 수 있다.
+[사용 안내](docs/agent-kit.ko.md)에서 각 결과를 설명한다.
+예제는 미리 작성한 영어 합성 노트와 결정적인 CLI 실행을 쓰며 LLM 합성이나 사실 검증기가 아니다.
+`process:synthetic-demo` 검토는 예제 선언이며 신원 인증이나 사람의 검토가 아니다.
+이후 내용 수정은 `unverified`다. 실제 Claude, Codex, Grok 연동은 시험하지 않았다.
+필수 모델, 업체, 계정이나 API 키는 없다. CLI는 오프라인에서 실행되지만 외부 에이전트는
+자체 정책을 따르며 외부 전송에는 별도 허가가 필요하다. 예제와 문서는 체크아웃 자료이며
+배포된 독립 패키지가 아니다.
 
 쓰기 명령은 번들의 배타 잠금을 사용하며 파일 생성 시 기존 파일을 덮어쓰지 않는다.
 `index.md`의 관리 표식 사이에는 생성된 현재 링크만 둔다. 그 밖에 쓴 글은 보존한다.
@@ -269,11 +291,11 @@ PyPI 배포는 아직 없으므로 프로젝트 소스로 설치한다.
 
 ```sh
 python -m unittest discover -s tests -v
-python -m compileall -q src tests
+python -m compileall -q src tests examples
 python -m pip check
 ```
 
 `python tests/verify_quickstart.py`는 두 README의 셸 블록을 각각 임시 프로젝트 복사본과 새 venv에서 그대로 실행한다.
-검증 항목은 설치, 원문 바이트 보존, 이전 버전 유지와 문서의 열람 명령이다.
+검증 항목은 설치, 원문 바이트 보존, 이전 버전 유지, 문서의 열람 명령과 별도 재사용 예제 결과다.
 
 Obsidian 화면 절차는 공식 도움말 기준이며 실제 GUI 조작은 독립 검증하지 않았다.
