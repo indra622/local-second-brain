@@ -102,6 +102,8 @@ class Store:
     def files(self):
         def walk(fd, prefix=""):
             for name in sorted(os.listdir(fd)):
+                if name in (".obsidian", ".git"):
+                    continue
                 path = prefix + name
                 info = os.stat(name, dir_fd=fd, follow_symlinks=False)
                 if stat.S_ISLNK(info.st_mode):

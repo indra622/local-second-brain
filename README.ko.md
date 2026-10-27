@@ -87,7 +87,7 @@ second-brain search "$DEMO_DIR/wiki" '물주기'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
-명령 출력은 JSON이다. `second-brain --help`와 `second-brain curate --help`로 옵션을 확인한다.
+명령의 기본 출력은 JSON이다. 검색과 읽기 전용 열람 명령은 `--format text`도 받는다. `second-brain --help`와 `second-brain curate --help`로 옵션을 확인한다.
 `--actor`는 실행 주체를 명시하는 입력이며 로그인 인증이나 신원 증명이 아니다.
 
 ## 저장된 지식 확인하기
@@ -102,14 +102,21 @@ YAML 메타데이터를 확인한다. Markdown 미리보기가 있는 편집기�
 위 예제를 끝낸 뒤 다음 명령으로 현재 링크, 두 번째 노트 버전과 원문 수집 기록을 확인한다.
 
 ```sh
-cat "$DEMO_DIR/wiki/index.md"
-cat "$DEMO_DIR/wiki/concepts/garden/r000002.md"
+second-brain list "$DEMO_DIR/wiki" --format text
+second-brain show "$DEMO_DIR/wiki" garden --format text
+second-brain show "$DEMO_DIR/wiki" garden --revision r000001 --format json
+second-brain history "$DEMO_DIR/wiki" garden --format text
+second-brain diff "$DEMO_DIR/wiki" garden r000001 r000002 --format text
+second-brain search "$DEMO_DIR/wiki" '물주기' --current-only --status draft \
+  --freshness unknown --format text
+second-brain search "$DEMO_DIR/wiki" '물주기' --status draft --freshness fresh \
+  --now '2026-10-27T00:00:00+00:00' --format json
 python -m json.tool "$DEMO_DIR/wiki/sources/garden-note/provenance.json"
 second-brain search "$DEMO_DIR/wiki" '물주기'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
-`search`는 본문 전체가 아니라 파일 경로와 메타데이터를 반환한다. 반환된 경로를 편집기로 열면 된다.
+`search`는 파일 경로, 메타데이터와 짧은 본문 발췌를 반환한다. 전체 본문은 `show`로 읽는다.
 `current: true`는 인덱스가 가리키는 현재 버전이다. 이전 파일은 비교용으로 남는다.
 `content.raw`는 원문 바이트를 보존하므로 텍스트 자료임을 알 때만 텍스트로 연다. 바이너리일 수도 있다.
 `provenance.json`에는 출처, 수집 시각, 수집 주체와 해시가 들어 있다.
@@ -128,8 +135,9 @@ second-brain check "$DEMO_DIR/wiki"
 5. 검색, 검사와 새 버전 작성은 터미널의 CLI로 한다. Obsidian으로 읽었다고 내용이 검증되는 것은 아니다.
 
 커뮤니티 플러그인, Sync 구독이나 Publish 서비스는 필요 없다. Obsidian은 `.obsidian` 설정 폴더를 만든다.
-설정 폴더는 지식 출처가 아니다. 현재 검사는 앱 폴더를 자동 제외하지 않아서 플러그인이나 설정 폴더에
-추가된 Markdown도 검사할 수 있다. 처음에는 커뮤니티 플러그인 없이 사용한다.
+검색, 검사와 리비전 순회는 모든 깊이에서 이름이 정확히 `.obsidian` 또는 `.git`인 항목을 제외한다.
+해당 이름의 심볼릭 링크도 따라가지 않으며 파일을 바꾸지 않는다. 그 외 숨김 지식 파일과 폴더는
+계속 검사하며, 일반 지식 경로의 심볼릭 링크는 거부한다.
 버전 이력을 지키려면 기존 리비전을 직접 고치지 말고, 별도 본문 파일을 준비해 `curate`로 저장한다.
 
 폴더를 볼트로 여는 절차는 [Obsidian 공식 가이드](https://help.obsidian.md/vault)를 기준으로 썼다.
@@ -143,6 +151,10 @@ second-brain check "$DEMO_DIR/wiki"
 | `capture BUNDLE FILE --id ID --actor ACTOR --resource ORIGIN` | 원문 바이트와 출처, 수집 주체, 시간, SHA-256을 보존한다. ID 재사용을 거부한다. |
 | `curate BUNDLE ID --body FILE --source SOURCE_ID --actor ACTOR` | 준비한 UTF-8 본문을 새 개념 리비전으로 저장한다. `--source`는 반복할 수 있다. |
 | `search BUNDLE QUERY` | 모든 개념 리비전의 제목과 본문을 단어로 검색한다. |
+| `list BUNDLE` | 모든 CLI 리비전 요약을 경로순으로 표시한다. |
+| `show BUNDLE ID [--revision rNNNNNN]` | 현재 리비전 또는 지정한 리비전의 본문을 읽는다. |
+| `history BUNDLE ID` | 리비전 요약을 오래된 순서로 표시한다. |
+| `diff BUNDLE ID BEFORE AFTER` | 두 리비전의 메타데이터와 본문을 비교한다. |
 | `check BUNDLE` | 메타데이터 일부를 검사하고 링크 경고와 오래된 문서를 별도로 보고한다. |
 
 ID는 영문 소문자나 숫자로 시작하는 1~64자의 영문 소문자, 숫자, 하이픈이다.
@@ -166,15 +178,40 @@ wiki/
 원문 검색, PDF 추출, 인코딩 추측은 없다. 본문과 개념 문서는 UTF-8이어야 한다.
 다른 인코딩은 에이전트가 별도 작업 파일에서 변환하고 원문과 구분해야 한다.
 
+`list`, `show`, `history`, `diff`는 파일을 바꾸지 않는 열람 명령이다.
+`concepts/ID/r000001.md`부터 `r999999.md`까지의 CLI 파일을 대상으로 한다.
+리비전 인자는 정확히 `rNNNNNN` 형식이며 ID 규칙은 `curate`와 같다.
+`show`는 가장 큰 번호를 현재 버전으로 추측하지 않는다. 현재 인덱스가 없으면 `--revision`을 지정한다.
+요약에는 현재 표시, 상태, 검토 수준, 신선도와 메타데이터 오류가 들어간다. `show`는 전체 본문과 메타데이터도 보여 준다.
+`diff`는 메타데이터를 포함한 전체 Markdown의 unified diff를 앞뒤 세 줄과 함께 출력한다.
+동일한 리비전이면 JSON의 `diff`는 빈 문자열이고 텍스트는 `No differences.`다.
+가져온 일반 OKF 노트는 검색, 검사와 편집기로 읽을 수 있지만 이 명령들이 리비전 이력을 추론하지는 않는다.
+없는 개념이나 리비전, 안전하지 않은 경로는 종료 코드 `2`다.
+잘못된 메타데이터는 `metadata_errors` 또는 텍스트의 오류 표시로 알리고 읽을 수 있는 내용은 반환한다.
+UTF-8이 아니면 오류와 빈 본문을 반환한다. `diff`는 잘못된 노트를 거부한다.
+읽기 명령의 실행 오류는 JSON 모드에서 stderr의 `{"error": "..."}`, 텍스트 모드에서
+`second-brain:` 메시지로 출력한다. 인자 문법 오류는 argparse의 텍스트 진단을 사용한다.
+
 검색은 Unicode `\w+` 토큰을 `casefold`한 뒤 모든 검색어가 정확히 있는 문서를 찾는다.
 점수는 중복을 제거한 검색어의 출현 횟수 합이며, 점수 내림차순과 경로 오름차순으로 정렬한다.
-형태소 분석, 부분 문자열 검색, 의미 검색은 없다. 이전 리비전도 결과에 남는다.
+형태소 분석, 부분 문자열 검색, 의미 검색은 없다. 기본 검색은 이전 리비전도 포함하며 기존 JSON 키와 점수를 유지한다.
+`title`과 `snippet`이 추가된다. `snippet`은 본문 공백을 한 칸으로 합친 뒤 앞에서 최대 160 Unicode 문자를
+보여 준다. 잘린 경우 마지막 문자는 `…`다.
+
+`--current-only`는 인덱스가 가리키는 현재 리비전만 남기며, 현재 여부를 모르면 제외한다.
+`--status draft|stable|deprecated`는 상태로 필터링하고 메타데이터 오류가 있는 문서는 제외한다.
+유효한 OKF 노트에서 상태가 생략되면 기존처럼 `stable`이다.
+`--freshness fresh|stale|unknown`은 `stale_after`만 사용한다. 유효한 기한이 `--now`보다 뒤면 fresh,
+기한에 도달했으면 stale이다. 기한이 없거나 잘못되었거나 UTC 오프셋이 없으면 unknown이다.
+다른 메타데이터 오류는 그대로 표시하되 신선도를 바꾸지 않는다. 필터는 AND로 결합하며 리비전마다 적용한다.
+이전 리비전이 조건에 맞아도 현재 리비전을 대신하지 않는다.
+재현 가능한 시간 판정에는 `--now`, 읽기 쉬운 Unicode 출력에는 `--format text`를 쓴다.
 `current`는 이 CLI의 현재 링크 여부이며, 가져온 일반 번들에서 판단할 수 없으면 `null`이다.
 `status`, `trust`, `stale`, 생성과 검토 기록, 메타데이터 오류를 함께 출력한다.
 `stale: null`은 기한이 없거나 잘못되어 판단할 수 없다는 뜻이다. 검토 수준은 기록에서
 계산한 참고 정보다. CLI가 사실이나 검토자의 신원을 확인했다는 뜻이 아니다.
 
-검사는 번들 안의 모든 `.md`를 읽는다. `index.md`와 `log.md`는 예약 파일로 구분한다.
+검사는 `.obsidian`과 `.git`을 제외한 번들 안의 `.md`를 읽는다. `index.md`와 `log.md`는 예약 파일로 구분한다.
 깨진 링크와 오래된 문서는 형식 오류와 별도이며, 이것만 있으면 종료 코드는 0이다.
 메타데이터 오류가 있으면 1, 입출력 실패나 안전상 거부, 잘못된 인자는 2다.
 정확한 검사 범위와 생략한 항목은 [검사 범위](docs/okf-subset.md)에 적었다.

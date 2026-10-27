@@ -10,7 +10,8 @@ from pathlib import PurePosixPath
 
 import yaml
 
-from .format import context, inspect_bundle, nonempty, parse, timestamp, validate
+from .format import inspect_bundle, nonempty, timestamp, validate
+from .reading import browse, current_paths, human, read_note
 from .storage import (Store, WikiError, capture, current_index, identifier, init,
                       read_input, render_entries)
 
@@ -54,33 +55,31 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
     return path
 
 
-def search(root, query, now):
+def search(root, query, now, current_only=False, status=None, freshness=None):
     terms = set(re.findall(r"\w+", query.casefold()))
     if not terms:
         raise WikiError("Query needs at least one word")
     results = []
     with Store(root) as store:
-        current = None
-        try:
-            current = set(current_index(store.read("index.md").decode("utf-8"))[0].values())
-        except (FileNotFoundError, WikiError):
-            pass
+        current = current_paths(store)
         for path in store.files():
             if not path.endswith(".md") or PurePosixPath(path).name in ("index.md", "log.md"):
                 continue
-            text = store.read(path).decode("utf-8")
-            errors = []
-            try:
-                meta, body = parse(text)
-                errors = validate(meta)
-            except WikiError as exc:
-                meta, body, errors = {}, text, [str(exc)]
-            counts = Counter(re.findall(r"\w+", (str(meta.get("title", "")) + "\n" + body).casefold()))
+            note, _ = read_note(store, path, now, current)
+            counts = Counter(re.findall(r"\w+", (str(note['title']) + "\n" + note['body']).casefold()))
             if not terms <= counts.keys():
                 continue
-            results.append({"path": path, "score": sum(counts[t] for t in terms),
-                            "current": path in current if current is not None else None,
-                            **context(meta, now, errors)})
+            if current_only and note['current'] is not True:
+                continue
+            if status and (note['metadata_errors'] or note['status'] != status):
+                continue
+            state = {True: "stale", False: "fresh", None: "unknown"}[note['stale']]
+            if freshness and state != freshness:
+                continue
+            snippet = " ".join(note.pop('body').split())
+            note.pop('metadata')
+            results.append({**note, "score": sum(counts[t] for t in terms),
+                            "snippet": snippet[:159] + "…" if len(snippet) > 160 else snippet})
     return sorted(results, key=lambda item: (-item["score"], item["path"]))
 
 
@@ -109,6 +108,24 @@ def main(argv=None):
     p.add_argument("bundle")
     p.add_argument("query")
     p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
+    p.add_argument("--current-only", action="store_true", help="Require an indexed current revision")
+    p.add_argument("--status", choices=("draft", "stable", "deprecated"),
+                   help="Filter lifecycle status; exclude invalid metadata")
+    p.add_argument("--freshness", choices=("fresh", "stale", "unknown"),
+                   help="Filter by usable stale_after deadline")
+    p.add_argument("--format", choices=("json", "text"), default="json")
+    for command in ("list", "show", "history", "diff"):
+        p = commands.add_parser(command, help="Browse CLI concept revisions (read-only)")
+        p.add_argument("bundle")
+        if command != "list":
+            p.add_argument("id")
+        if command == "show":
+            p.add_argument("--revision", help="Revision rNNNNNN; default is indexed current")
+        if command == "diff":
+            p.add_argument("before", help="Old revision rNNNNNN")
+            p.add_argument("after", help="New revision rNNNNNN")
+        p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
+        p.add_argument("--format", choices=("json", "text"), default="json")
     p = commands.add_parser("check", help="Check metadata subset, links and freshness")
     p.add_argument("bundle")
     p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
@@ -129,14 +146,25 @@ def main(argv=None):
                                          args.actor, now.isoformat(), args.type, args.title,
                                          args.status, args.stale_after)}
         elif args.command == "search":
-            result = search(args.bundle, args.query, now)
+            result = search(args.bundle, args.query, now, args.current_only, args.status, args.freshness)
+        elif args.command in ("list", "show", "history", "diff"):
+            with Store(args.bundle) as store:
+                result = browse(store, args.command, now, getattr(args, 'id', None),
+                                getattr(args, 'revision', None), getattr(args, 'before', None),
+                                getattr(args, 'after', None))
         else:
             with Store(args.bundle) as store:
                 result = inspect_bundle(store, now)
-        print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
+        if getattr(args, 'format', None) == 'text':
+            print(human(result))
+        else:
+            print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
         return 1 if args.command == "check" and result["invalid"] else 0
-    except (WikiError, OSError, UnicodeError, ValueError) as exc:
-        print(f"second-brain: {exc}", file=sys.stderr)
+    except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
+        if getattr(args, 'format', None) == 'json':
+            print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
+        else:
+            print(f"second-brain: {exc}", file=sys.stderr)
         return 2
 
 
