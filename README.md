@@ -78,7 +78,18 @@ second-brain check "$DEMO_DIR/wiki" --now '2026-10-27T00:00:00+00:00'
 ```
 
 The first check returns `invalid: []`, `warnings: []`, `stale: []`, and `concepts: 1`.
-A new revision defaults to `draft` and `unverified`. Save another revision:
+A new revision defaults to `draft` and `unverified`. After deliberately reviewing the
+fictional body against its source, record that declaration:
+
+```sh
+second-brain review "$DEMO_DIR/wiki" garden --revision r000001 \
+  --actor human:demo --evidence sources/garden-note/content.raw
+second-brain show "$DEMO_DIR/wiki" garden --format json
+```
+
+This creates `r000002`, with the same body and a `human-reviewed` declaration, while
+preserving `r000001`. It stays `draft`. The CLI does not check facts or authenticate `human:demo`.
+Save a content edit; it starts `unverified` again:
 
 ```sh
 second-brain curate "$DEMO_DIR/wiki" garden \
@@ -87,9 +98,9 @@ second-brain search "$DEMO_DIR/wiki" '물주기'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
-Both revisions remain on disk. The index points to the second one. Commands default to JSON.
+All three revisions remain on disk. The index points to `r000003`, the content edit. Commands default to JSON.
 Search and the read-only browsing commands also accept `--format text`.
-Use `second-brain --help` or `second-brain curate --help` for options.
+Use `second-brain --help`, `second-brain curate --help`, or `second-brain review --help` for options.
 
 ## View your knowledge
 
@@ -108,7 +119,7 @@ second-brain list "$DEMO_DIR/wiki" --format text
 second-brain show "$DEMO_DIR/wiki" garden --format text
 second-brain show "$DEMO_DIR/wiki" garden --revision r000001 --format json
 second-brain history "$DEMO_DIR/wiki" garden --format text
-second-brain diff "$DEMO_DIR/wiki" garden r000001 r000002 --format text
+second-brain diff "$DEMO_DIR/wiki" garden r000001 r000003 --format text
 second-brain search "$DEMO_DIR/wiki" '물주기' --current-only --status draft \
   --freshness unknown --format text
 second-brain search "$DEMO_DIR/wiki" '물주기' --status draft --freshness fresh \
@@ -152,6 +163,7 @@ The graphical workflow has not been independently tested for this project.
 3. **Curate:** Store the prepared body as a new concept revision with source references.
 4. **Recall:** Search notes and inspect their current-version, review, and freshness context.
 5. **Check:** Report metadata errors, local-link warnings, and stale notes separately.
+6. **Review:** Deliberately compare the current body with evidence, then record the declared reviewer and reference.
 
 There is no background learning loop or built-in LLM synthesis.
 `curate` stores prepared text; it does not summarize or verify it.
@@ -161,6 +173,7 @@ There is no background learning loop or built-in LLM synthesis.
 | `init BUNDLE` | Create an index in a new or empty directory. Refuse nonempty targets. |
 | `capture BUNDLE FILE --id ID --actor ACTOR --resource ORIGIN` | Preserve source bytes, origin, actor, capture time, and SHA-256. Refuse reused source IDs. |
 | `curate BUNDLE ID --body FILE --source SOURCE_ID --actor ACTOR` | Store a prepared UTF-8 body as a new revision. Repeat `--source` for multiple sources. |
+| `review BUNDLE ID --revision rNNNNNN --actor ACTOR --evidence RESOURCE` | Append a declared review in a new revision of the current body. |
 | `search BUNDLE QUERY` | Search titles and bodies across all concept revisions. |
 | `list BUNDLE` | List all CLI revision summaries, sorted by path. |
 | `show BUNDLE ID [--revision rNNNNNN]` | Read the indexed current revision, or an explicit revision. |
@@ -170,7 +183,7 @@ There is no background learning loop or built-in LLM synthesis.
 
 IDs are 1–64 lowercase ASCII letters, digits, or hyphens, starting with a letter or digit.
 `curate` also accepts `--type`, `--title`, `--status`, and `--stale-after`.
-`--actor` is a declared identity, not authentication. The CLI never adds `verified` automatically.
+`--actor` is a declared identity, not authentication. Only an explicit `review` adds `verified`; format validation never does.
 Relative body links resolve from the final revision file, not the prepared input file.
 
 ```text
@@ -182,6 +195,7 @@ wiki/
   concepts/garden/
     r000001.md
     r000002.md
+    r000003.md
 ```
 
 Sources retain their encoding, BOM, and line endings. Even Markdown sources are stored as
@@ -203,6 +217,24 @@ Non-string YAML mapping keys are converted to strings in output only. Stored not
 Mappings with colliding converted keys or cyclic values return a deliberate error instead of losing data.
 Read-command operational errors are a JSON `{"error": "..."}` object on stderr in JSON mode, or a
 `second-brain:` message in text mode. Argument syntax errors use argparse's text diagnostic.
+
+`review` requires the exact indexed current revision and refuses historical targets under the write lock.
+Actors must be `human:ID`, `process:ID`, or `PRODUCER/VERSION`, with nonempty components and no
+whitespace, controls, colon, slash or backslash inside a component. These are declarations.
+The CLI records its observed offset-aware UTC time; it accepts no historical review timestamp.
+Evidence must be an absolute HTTP(S) URL with a host (no credentials, invalid ports/escapes or whitespace),
+or an existing nonempty regular artifact at a literal bundle-root path, optionally starting with `/`.
+Local spaces are allowed, but query/fragment syntax, traversal, backslashes, application directories
+and symlinks are refused. Unsupported URL schemes are refused. URLs are never fetched and evidence
+is never executed. References are declarations, not proof of truth.
+
+The new event uses standard OKF `by`/`at` and project extensions `x-second-brain-target`
+(`resource` and SHA-256 of the complete target file) and `x-second-brain-evidence`
+(`resource`, plus SHA-256 for local evidence). Digests identify observed bytes; they do not authenticate
+reviewers. The original file stays byte-for-byte intact. The new body and metadata values, including
+unknown YAML keys and original generation records, are preserved; new YAML formatting may differ.
+Existing mapping/list review events are retained in a list. Status is unchanged, and a later `curate`
+does not inherit reviews. See the bilingual [review contract](docs/review-contract.md) for details and failure limits.
 
 ## Search and trust signals
 

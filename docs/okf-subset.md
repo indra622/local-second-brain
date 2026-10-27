@@ -18,7 +18,7 @@
   범위 설명 문자열도 허용한다. `last_modified`가 있으면 아래 시간 규칙을 적용한다.
 - `generated`가 있으면 매핑과 비어 있지 않은 `by`가 필요하다. `at`는 선택 사항이다.
 - `verified`는 매핑 하나 또는 매핑의 목록이다. 각 항목에는 비어 있지 않은 `by`와 `at`가 필요하다.
-  CLI는 이 필드를 생성하지 않는다. 빈 목록은 검토 기록이 없는 것으로 취급한다.
+  `review`만 명시적 검토 선언을 이 필드에 추가한다. [검토 규칙](review-contract.md)을 따른다. 빈 목록은 검토 기록이 없는 것으로 취급한다.
 - `status`가 있으면 `draft`, `stable`, `deprecated` 중 하나다. 없으면 `stable`로 읽는다.
 - `generated.at`, `verified.at`, `sources[].last_modified`, `stale_after`,
   `usage_window.from`, `usage_window.to`가 있으면 명시적 UTC 오프셋이 필요하다.
