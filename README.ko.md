@@ -26,6 +26,10 @@
 
 다음 작업을 시작할 때, 필요한 배경과 판단 기준이 이미 손에 있게 하세요.
 
+[![지난 작업을 출발점으로 다음 보고서를 쓰는 영상 보기](site/assets/report-scenario-v1-ko.jpg)](https://indra622.github.io/local-second-brain/assets/report-scenario-v1-ko.mp4)
+
+[34초 자막 시나리오 보기](https://indra622.github.io/local-second-brain/?lang=ko#report-scenario) | [장면 설명과 자막](site/data/report-scenario-v1-ko.txt). 가상 자료와 미리 작성한 개요입니다. 사용자가 노트를 골라 AI에게 전달합니다.
+
 Local Second Brain은 프로젝트 작업 규칙, 자료 조사 요약, 기술을 선택한 이유 같은
 노트를 원문 파일과 함께 내 컴퓨터에 저장하는 도구입니다. 저장한 노트를 검색해
 다음 작업을 AI에게 맡길 때 함께 전달하고, 원문과 수정 전 내용도 확인할 수 있습니다.

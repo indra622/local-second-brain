@@ -26,6 +26,10 @@ Instead of relying on a lone summary or hunting for the same sources again, open
 
 Start the next task with useful background and criteria already at hand.
 
+[![Watch: use previous work as the starting point for the next report](site/assets/report-scenario-v1-en.jpg)](https://indra622.github.io/local-second-brain/assets/report-scenario-v1-en.mp4)
+
+[Watch the 34-second captioned scenario](https://indra622.github.io/local-second-brain/#report-scenario) | [Descriptive transcript](site/data/report-scenario-v1-en.txt). Fictional materials and a prepared outline; you choose and give the notes to AI.
+
 Local Second Brain stores notes such as project rules, research summaries, and reasons
 for technical decisions on your computer, alongside their source files. Search for a saved
 note and give it to your AI for the next task, or inspect its sources and earlier versions.

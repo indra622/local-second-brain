@@ -102,3 +102,10 @@ footer{gap:16px}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
+
+.scenario{margin:28px 0 32px;max-width:100%}
+.scenario h3{font-size:22px;margin-bottom:14px}
+.scenario video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#193835;border-radius:10px;border:1px solid var(--line)}
+.scenario figcaption{margin-top:12px;font-size:14px;color:var(--muted);max-width:90ch}
+
+.scenario video::cue{font-size:16px;background:#193835;color:#fffefa}
