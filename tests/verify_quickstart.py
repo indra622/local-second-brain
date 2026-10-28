@@ -1,4 +1,4 @@
-"""Run the README shell blocks in a fresh, disposable project copy."""
+"""Run each README and its continuation guide in a fresh project copy."""
 
 import hashlib
 import json
@@ -11,7 +11,10 @@ from pathlib import Path
 
 
 def verify_readme(project, readme):
-    blocks = re.findall(r'```sh\n(.*?)```', (project / readme).read_text(), re.DOTALL)
+    guide = 'docs/getting-started.ko.md' if readme == 'README.ko.md' else 'docs/getting-started.md'
+    documents = (readme, guide)
+    blocks = [block for document in documents
+              for block in re.findall(r'```sh\n(.*?)```', (project / document).read_text(), re.DOTALL)]
     with tempfile.TemporaryDirectory(prefix='lkw-quickstart-', dir=project) as temporary:
         root = Path(temporary)
         for name in ('src', 'tests', 'docs', 'examples', 'templates', 'workflows'):
@@ -25,7 +28,7 @@ def verify_readme(project, readme):
         env = {**os.environ, 'HOME': str(home), 'TMPDIR': str(tmp),
                'PIP_CACHE_DIR': str(root / 'pip-cache'), 'PYTHONUSERBASE': str(home / 'python'),
                'PIP_DISABLE_PIP_VERSION_CHECK': '1'}
-        result = subprocess.run(['sh', '-c', 'set -eu\n' + '\n'.join(blocks)], cwd=root, env=env)
+        result = subprocess.run(['sh', '-c', 'set -eu\n' + '\n'.join(blocks)], cwd=root, env=env, timeout=600)
         if result.returncode:
             raise SystemExit(result.returncode)
         bundles = list(tmp.glob('*/wiki'))
@@ -41,7 +44,7 @@ def verify_readme(project, readme):
 
         def read(*args):
             output = subprocess.check_output([str(executable), args[0], str(bundle), *args[1:]],
-                                             cwd=root, env=env, text=True)
+                                             cwd=root, env=env, text=True, timeout=30)
             return json.loads(output)
 
         history = read('history', 'garden')
@@ -82,7 +85,7 @@ def verify_readme(project, readme):
         assert after['reused_revision'].endswith('r000003.md')
         assert (demo / 'wiki/sources/lantern-v1/content.raw').read_bytes() == (
             root / 'examples/reuse-inputs/source-v1.txt').read_bytes()
-        print(f'{readme}: install + workflow + revisions + browsing/filters + reuse demo: PASS')
+        print(f'{readme} + {guide}: install + workflow + revisions + browsing/filters + reuse demo: PASS')
 
 
 def main():
