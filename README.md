@@ -6,25 +6,29 @@
 
 **Your own knowledge library, with sources attached and notes ready to reuse.**
 
-Local Second Brain keeps notes you or your agent prepare as local files, together
-with their sources and earlier versions, so you can bring that work into your next task.
+Local Second Brain stores notes such as project rules, research summaries, and reasons
+for technical decisions on your computer, alongside their source files. Search for a saved
+note and give it to your AI for the next task, or inspect its sources and earlier versions.
 
 **[For agents](#for-agents)** | **[Manual quick start](#quick-start)**
 
 ### Put your knowledge to work again
 
-Keep useful findings and decisions in notes you can find and read in a later session.
-Give the relevant note to your agent when you start the next report or project.
+For example, save the report-writing guidelines you worked out last time as a note.
+When you ask your AI to draft a new report, find and provide that note, then ask it
+to write according to the saved guidelines.
 
 ### Keep the evidence behind the answer
 
-Save the source files alongside your notes. Revisit what a conclusion was based on,
-and compare earlier versions when your understanding changes.
+Keep a research summary with the source files you used. If you later want to check
+the summary, open the saved source and compare it. Save an edited note as a new
+revision so you can compare the previous text with the current version.
 
 ### Change your AI. Keep your files.
 
-Your notes stay on your computer as readable Markdown files.
-You can open and keep them without this tool or an AI account.
+Notes stay on your computer as Markdown files; captured sources retain the content
+saved at capture time. Keep these files even when you change AI services, and open
+the notes in a plain text editor without this tool or an AI account.
 
 ## Today's research, next week's report
 
