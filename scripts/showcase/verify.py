@@ -27,38 +27,36 @@ class Links(HTMLParser):
 
 Links().feed((SITE / 'index.html').read_text())
 for name in ('README.md','README.ko.md'):
-    # Fixed pre-vision baseline keeps preservation checks independent of remote updates.
-    old = subprocess.check_output(['git','show',f'cb65681:{name}'],cwd=ROOT,text=True)
+    # Only the opening vision block may change from the correction's fixed base.
+    old = subprocess.check_output(['git','show',f'3aa15aa:{name}'],cwd=ROOT,text=True)
     new = (ROOT / name).read_text()
+    assert len(re.findall(r'```(?:sh|text)\n.*?```',old,re.S)) == 5, name
     assert re.findall(r'```(?:sh|text)\n.*?```',old,re.S) == re.findall(r'```(?:sh|text)\n.*?```',new,re.S), name
     assert re.findall(r'^#+ .*$',old,re.M) == re.findall(r'^#+ .*$',new,re.M), name
-    # The vision replaces only the redundant banner; all other prose is retained.
-    banner = {
-        'README.md': '[![Local Second Brain introduction and working sample](site/assets/banner.png)](https://indra622.github.io/local-second-brain/)',
-        'README.ko.md': '[![Local Second Brain 소개와 실제 예제](site/assets/banner.png)](https://indra622.github.io/local-second-brain/?lang=ko)',
-    }[name]
-    assert old.splitlines().count(banner) == 1, name
-    previous=iter(new.splitlines())
-    assert all(any(candidate == line for candidate in previous) for line in old.replace(banner+'\n\n','').splitlines()), name
-    assert '<img src="site/assets/second-brain-vision-v01.webp"' in new, name
-    assert 'width="1672" height="941"' in new, name
-    assert new.index('second-brain-vision-v01.webp') < new.index('```'), name
+    start = '**The Second Brain' if name == 'README.md' else '**우리가 지향'
+    lead = '**Spend less time' if name == 'README.md' else '**AI에게 같은 배경'
+    intro = 'Local Second Brain stores' if name == 'README.md' else 'Local Second Brain은'
+    assert old[:old.index(start)] == new[:new.index(lead)], name
+    assert old[old.index(intro):] == new[new.index(intro):], name
+    assert 'second-brain-vision' not in new, name
     for target in re.findall(r'<img[^>]+src="([^"]+)"',new):
         assert (ROOT / target).exists(),target
     for target in re.findall(r'\]\((site/[^)]+)\)',new):
         assert (ROOT / target).exists(),target
 site_html = (SITE / 'index.html').read_text()
 site_js = (SITE / 'app.js').read_text()
-for name, label, description, limit, surface in (
-    ('README.md', 'The Second Brain we are building toward',
-     'Past sources and decisions connect, so relevant knowledge can support today’s question and the next report or task.',
-     'A vision illustration, not a current product screen. Today, you save and search notes with a command-line tool and choose what to give your AI.', site_html),
-    ('README.ko.md', '우리가 지향하는 Second Brain',
-     '과거에 모은 자료와 내린 결정이 서로 이어지고, 그중 필요한 지식이 오늘의 질문과 다음 보고서나 작업에 쓰이는 모습을 지향합니다.',
-     '지향하는 모습을 그린 비전 일러스트입니다. 현재는 사용자가 노트를 저장하고 검색해 AI에게 전달하는 명령줄 도구입니다.', site_js),
-):
-    for copy in (label, description, limit):
-        assert copy in (ROOT / name).read_text() and copy in surface, (name, copy)
+# Every outcome sentence has the same wording on the README and site.
+outcome_keys = []
+for key, english in re.findall(r'<(?:h2|h3|p)[^>]*data-t="([^"]+)"[^>]*>([^<]+)</', site_html):
+    if key not in ('outcomeLead','outcomeMechanism','reportHeading','reportOutcome',
+                   'resumeHeading','resumeOutcome','recheckHeading','recheckOutcome','outcomeEnd'):
+        continue
+    outcome_keys.append(key)
+    korean = json.loads(re.search(key + r':("[^"\n]+")',site_js).group(1))
+    assert english in (ROOT / 'README.md').read_text(), key
+    assert korean in (ROOT / 'README.ko.md').read_text(), key
+assert len(set(outcome_keys)) == 9
+assert 'class="vision"' not in site_html and 'vision-image' not in site_js
 for file in SITE.rglob('*'):
     if file.suffix in ('.js','.html','.css','.json','.txt','.md'):
         text = file.read_text()
@@ -74,7 +72,6 @@ for excerpt in json.loads((SITE / 'data/replay-selection.json').read_text()):
     assert all(line in original['output'].splitlines() for line in excerpt['selectedLines'])
 assert sample['check'] == {'invalid':[],'warnings':[],'stale':[],'concepts':3}
 assert (SITE / 'assets/cli-demo.gif').stat().st_size < 4_000_000
-assert (SITE / 'assets/second-brain-vision-v01.webp').stat().st_size < 500_000
 
 
 
@@ -89,4 +86,4 @@ for fg,bg,minimum in [('#176e69','#fdfefe',4.5),('#4d6262','#e3efed',4.5),('#87d
     assert ratio >= minimum, (fg,bg,ratio)
     print(f'Contrast {fg} on {bg}: {ratio:.2f}:1 (minimum {minimum}) PASS')
 
-print('PASS: README prose (except replaced banner), headings/sh/text blocks preserved; vision asset budget, local links, relative site assets, public path/copy scan, replay hashes/transcript binding, clean CLI check, GIF budget.')
+print('PASS: README prose (except replaced opening vision), headings/sh/text blocks preserved; equivalent EN/KO outcomes, local links, relative site assets, public path/copy scan, replay hashes/transcript binding, clean CLI check, GIF budget.')

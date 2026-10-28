@@ -65,7 +65,7 @@ System sans-serif for live text; system monospace for actual file content. No ex
 
 ## Layout
 
-1180px maximum content width, introductory headline and actions above full-width future-vision artwork, then a functioning sample workbench. The supplied artwork replaces the large logo panel; the header mark remains. Preserve the entire image at its original aspect ratio at every width, including mobile. Live English/Korean captions explain the intended connection between sources, past decisions, today’s question and the next output, and distinguish this vision from the current CLI. Below 768px, the workbench and replay become single-column. No horizontal scrolling at 390px.
+1180px maximum content width, with the original introductory headline and actions above a compact text block about what the reader gains, then a functioning sample workbench. Keep the logo in the header. English/Korean text explains saving sourced notes and choosing the relevant notes to give to AI for a new task. Three short situations cover the next report, a paused project and revisiting a conclusion. Show them in three columns on desktop and one column below 768px, where the workbench and replay also become single-column. No horizontal scrolling at 390px.
 
 ## Elevation & Depth
 
@@ -81,6 +81,6 @@ Native buttons, input, select and details elements provide keyboard interaction.
 
 ## Do's and Don'ts
 
-Preserve actual source and CLI text when translating labels. Label synthetic prepared text, file explanation, draft trust and deadline semantics. Use real captured output, the supplied mark and the supplied future-vision artwork. The vision is an illustration, not a current screenshot. Do not imply shipped GUI, authenticated review, model generation, semantic retrieval, customer proof or measured speed.
+Preserve actual source and CLI text when translating labels. Label synthetic prepared text, file explanation, draft trust and deadline semantics. Use real captured output and the supplied mark. Keep the opening focused on useful background and criteria for the next task. Retain existing artwork files without featuring the future-vision illustration in the opening. Do not imply shipped GUI, authenticated review, model generation, semantic retrieval, customer proof or measured speed.
 
 Skill preflight context: real component preview applies; React, Tailwind, icon packages, GSAP, stock photography, social proof, forms beyond search, marquees, bento, SEO migration and consumer product palettes are N/A. The complete visitor journey is introduction, sample exploration, real CLI evidence, portable files and installation. Hosting is this repository's Pages only.

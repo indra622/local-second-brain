@@ -11,23 +11,24 @@ const path = require('node:path');
   fs.mkdirSync(out,{recursive:true});
   const base = process.env.SHOWCASE_URL;
   assert(base && new URL(base).hostname === '127.0.0.1', 'Set SHOWCASE_URL to the owned loopback server');
-  async function checkVision(page, language, width, mode) {
-    const img = page.locator('#vision-image');
-    await img.evaluate(el => el.decode());
-    assert.match(await img.getAttribute('alt'), language === 'ko' ? /미래 비전.*오늘의 질문.*보고서/ : /Future vision:.*today’s question.*report/);
-    assert.equal(await img.getAttribute('loading'),null);
-    assert.equal(await img.getAttribute('width'),'1672');
-    assert.equal(await img.getAttribute('height'),'941');
-    assert.equal(await page.locator('#vision-label').innerText(), language === 'ko' ? '우리가 지향하는 Second Brain' : 'The Second Brain we are building toward');
-    assert.match(await page.locator('[data-t=visionLimit]').innerText(), language === 'ko' ? /비전 일러스트.*현재는.*명령줄 도구/ : /vision illustration, not a current product screen.*command-line tool/);
-    assert.match(await page.locator('[data-t=visionBody]').innerText(), language === 'ko' ? /자료.*결정.*질문.*보고서/ : /sources.*decisions.*question.*report/);
-    assert(await img.evaluate(el => {
-      const box=el.getBoundingClientRect(), style=getComputedStyle(el);
-      return el.naturalWidth === 1672 && el.naturalHeight === 941 &&
-        Math.abs(box.width / box.height - 1672 / 941) < .005 &&
-        box.width >= document.querySelector('main').clientWidth - 1 &&
-        style.objectFit !== 'cover' && box.left >= 0 && box.right <= innerWidth;
-    }));
+  async function checkOutcomes(page, language, width, mode) {
+    const outcomes = page.locator('.outcomes');
+    assert(await outcomes.isVisible());
+    assert.equal(await page.locator('#outcome-heading').innerText(), language === 'ko'
+      ? 'AI에게 같은 배경을 매번 처음부터 설명하는 일을 줄이세요.'
+      : 'Spend less time explaining the same background to AI.');
+    assert.match(await page.locator('[data-t=outcomeMechanism]').innerText(), language === 'ko'
+      ? /출처가 있는 노트.*필요한 노트를 골라 AI에게 전달/
+      : /notes with their sources.*choose the relevant notes and give them to your AI/);
+    assert.equal(await outcomes.locator('.situations h3').count(),3);
+    for (const text of await outcomes.locator('[data-t]').allTextContents()) assert(text.trim().length > 0);
+    for (const item of await outcomes.locator('.situations>div').all()) {
+      assert(await item.evaluate(el => {
+        const box=el.getBoundingClientRect();
+        return box.width > 0 && box.left >= 0 && box.right <= innerWidth;
+      }));
+    }
+    assert.equal(await page.locator('.hero img').count(),0);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({path:path.join(out,`hero-${width}-${mode}-${language}.png`),fullPage:true});
   }
@@ -41,7 +42,7 @@ const path = require('node:path');
       page.on('request',r=>requests.push(r.url()));
       await page.goto(new URL('site/',base).href);
       await page.locator('#workbench').waitFor({state:'visible'});
-      await checkVision(page,'en',width,mode);
+      await checkOutcomes(page,'en',width,mode);
       assert.match(await page.locator('#body').innerText(), /Thursday/);
       assert.match(await page.locator('#status').innerText(), /current.*draft.*unverified/);
       await page.selectOption('#revision','0');
@@ -69,12 +70,13 @@ const path = require('node:path');
       await page.screenshot({path:path.join(out,`${width}-${mode}.png`),fullPage:true});
       await page.locator('#theme').click();
       assert.equal(await page.locator('html').getAttribute('data-theme'),mode==='dark'?'light':'dark');
+      await page.locator('#theme').click();
       await page.locator('#locale').click();
       await page.locator('#workbench').waitFor({state:'visible'});
       assert.equal(await page.locator('html').getAttribute('lang'),'ko');
       assert.match(await page.title(),/대화/);
       assert.match(await page.locator('#note-title').innerText(),/보고서/);
-      await checkVision(page,'ko',width,mode);
+      await checkOutcomes(page,'ko',width,mode);
       assert(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
       await page.screenshot({path:path.join(out,`${width}-${mode}-ko.png`),fullPage:true});
       await page.locator('#play').click();
@@ -83,7 +85,7 @@ const path = require('node:path');
       assert.match(await page.locator('#replay-image').getAttribute('src'),/png$/);
       assert.deepEqual(errors,[]);
       assert(requests.every(url=>url.startsWith(new URL(base).origin+'/')));
-      results.push(`${width}px ${mode}: selection, source, old/current, diff, search/miss/reset, focus, locale, theme, playback, localized vision/alt/claim, full aspect ratio, no overflow or external requests PASS`);
+      results.push(`${width}px ${mode}: selection, source, old/current, diff, search/miss/reset, focus, locale, theme, playback, localized user outcomes, readable situation text, no overflow or external requests PASS`);
       await page.close();
     }
     const keyboard=await browser.newPage({reducedMotion:'no-preference'});
