@@ -8,13 +8,23 @@
 
 **Your own knowledge library, with sources attached and notes ready to reuse.**
 
-**The Second Brain we are building toward**
+**Spend less time explaining the same background to AI.**
 
-<img src="site/assets/second-brain-vision-v01.webp" alt="Future vision: source documents on the left connect with notes and past decisions around today’s question, leading to a finished report on the right." width="1672" height="941">
+Save useful project rules, prior research, and reasons for decisions as notes with their sources; for a new task, choose the relevant notes and give them to your AI.
 
-Past sources and decisions connect, so relevant knowledge can support today’s question and the next report or task.
+**When the next report is due**
 
-A vision illustration, not a current product screen. Today, you save and search notes with a command-line tool and choose what to give your AI.
+Instead of gathering scattered research again and re-explaining the report rules, give your AI the saved materials and rules so you can focus on what changed this time.
+
+**When you return to a paused project**
+
+In a new conversation or with a different AI, read the saved decision and its reason, then pass along the relevant notes to continue from there instead of rebuilding the background from scratch.
+
+**When you revisit a conclusion**
+
+Instead of relying on a lone summary or hunting for the same sources again, open the saved sources and earlier note versions to check the reasoning and update only what needs changing.
+
+Start the next task with useful background and criteria already at hand.
 
 Local Second Brain stores notes such as project rules, research summaries, and reasons
 for technical decisions on your computer, alongside their source files. Search for a saved
