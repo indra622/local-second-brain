@@ -24,14 +24,17 @@ header{display:flex;align-items:center;justify-content:space-between;gap:24px;mi
 .brand img{object-fit:contain}
 nav{display:flex;align-items:center;gap:22px}
 nav button{padding:5px 10px;font-size:14px}
-.hero{display:grid;grid-template-columns:1.7fr 1fr;align-items:center;gap:40px;padding:68px 0 78px}
+.hero{display:grid;gap:36px;padding:48px 0}
+.hero>div{max-width:850px}
 .hero h1{font-size:clamp(32px,3.4vw,46px);line-height:1.15;letter-spacing:-.035em;margin:0 0 24px}
-.hero p{max-width:45ch;font-size:19px;color:var(--muted)}
+.hero>div>p{max-width:45ch;font-size:19px;color:var(--muted)}
 .actions{display:flex;gap:14px;margin-top:28px}
 .actions a{text-decoration:none}
-.brand-figure{margin:0;background:var(--tint);border-radius:12px;padding:18px 24px 30px;text-align:center}
-.brand-figure img{width:100%;height:auto;max-width:256px}
-.brand-figure figcaption{color:var(--muted);font-size:14px}
+.vision{margin:0;min-width:0}
+.vision>p{margin:0 0 12px;font-weight:600;color:var(--accent)}
+.vision img{display:block;width:100%;height:auto;border-radius:12px}
+.vision figcaption{padding-top:8px}
+.vision figcaption p{max-width:95ch;margin:12px 0 0}
 section{padding:48px 0}
 h2{font-size:30px;line-height:1.25;letter-spacing:-.025em;margin:0 0 18px}
 h3{font-size:26px;line-height:1.3;margin:8px 0 22px}
@@ -79,8 +82,7 @@ header{align-items:flex-start;padding:16px 0;gap:12px;flex-direction:column}
 nav{gap:20px}
 .hero{grid-template-columns:1fr;padding:32px 0;gap:28px}
 .hero h1{font-size:34px}
-.hero p{font-size:17px}
-.brand-figure{display:none}
+.hero>div>p{font-size:17px}
 section{padding:32px 0}
 h2{font-size:26px}
 .workbench{grid-template-columns:1fr}

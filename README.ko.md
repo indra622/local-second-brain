@@ -8,13 +8,19 @@
 
 **원문과 함께 남기고, 다음 작업에 다시 쓰는 나만의 지식 저장소.**
 
+**우리가 지향하는 Second Brain**
+
+<img src="site/assets/second-brain-vision-v01.webp" alt="미래 비전: 왼쪽 원문 자료가 노트와 과거의 결정에 연결되고, 오늘의 질문을 중심으로 모여 오른쪽 완성된 보고서로 이어지는 모습." width="1672" height="941">
+
+과거에 모은 자료와 내린 결정이 서로 이어지고, 그중 필요한 지식이 오늘의 질문과 다음 보고서나 작업에 쓰이는 모습을 지향합니다.
+
+지향하는 모습을 그린 비전 일러스트입니다. 현재는 사용자가 노트를 저장하고 검색해 AI에게 전달하는 명령줄 도구입니다.
+
 Local Second Brain은 프로젝트 작업 규칙, 자료 조사 요약, 기술을 선택한 이유 같은
 노트를 원문 파일과 함께 내 컴퓨터에 저장하는 도구입니다. 저장한 노트를 검색해
 다음 작업을 AI에게 맡길 때 함께 전달하고, 원문과 수정 전 내용도 확인할 수 있습니다.
 
 **[에이전트에게 설치 맡기기 (For agents)](#에이전트에게-설치-맡기기-for-agents)** | **[직접 시작하기](#시작하기)**
-
-[![Local Second Brain 소개와 실제 예제](site/assets/banner.png)](https://indra622.github.io/local-second-brain/?lang=ko)
 
 **[브라우저에서 예제 살펴보기](https://indra622.github.io/local-second-brain/?lang=ko)**
 
