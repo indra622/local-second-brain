@@ -18,11 +18,16 @@ note and give it to your AI for the next task, or inspect its sources and earlie
 
 **[Explore the browser sample](https://indra622.github.io/local-second-brain/)**
 
-An illustrative explanation of CLI files using synthetic notes, not a shipped GUI or live AI chat.
+Explore saved notes, inspect their sources, and compare revisions in your browser.
+This sample illustrates the files the tool saves, using prepared fictional notes.
+It is a demonstration page, not a product GUI or live AI chat.
 
 ![Actual CLI saves and recalls a report rule, then compares its Friday and Thursday revisions](site/assets/cli-demo.gif)
 
-Selected actual CLI output; timing edited; full transcript linked below. Temporary paths are normalized. Synthetic prepared text; no model calls.
+Watch a report rule get saved, found, and compared with an updated version in the terminal.
+The recording shows selected output from actual command runs using prepared fictional text;
+no AI model was called. Playback timing was edited and temporary paths were normalized.
+The full transcript is linked below.
 [Static poster](site/assets/cli-poster.png) | [Text transcript](site/data/transcript.txt)
 
 ### Put your knowledge to work again
@@ -55,8 +60,8 @@ An illustrative example:
 
 For people who work with AI on research, project decisions, or recurring reports
 and want to carry useful knowledge from one task to the next.
-The current product is an early-alpha command-line tool: you choose the sources
-and direct the writing and reuse. Start with an agent or follow the manual example below.
+The current product is an early-alpha command-line tool (CLI), operated by typing commands
+in a terminal. You choose the sources and direct the writing and reuse. Start with an agent or follow the manual example below.
 
 ## For agents
 
@@ -85,8 +90,8 @@ Early alpha. Use Python 3.11+ with `venv`, a POSIX shell, and a writable local f
 on macOS or Linux. CI covers macOS and Ubuntu with Python 3.11 and 3.14. Other Linux
 environments and WSL are not separately validated; Windows is unsupported.
 
-Get the source with Git, then enter the checkout. If you downloaded an archive instead,
-extract it and open a terminal in the directory containing `pyproject.toml`.
+Get the source with Git, then enter the downloaded project folder (the checkout).
+If you downloaded an archive instead, extract it and open a terminal in the directory containing `pyproject.toml`.
 There is no PyPI release. Examples and guides come with this source checkout.
 
 ```text
@@ -94,7 +99,8 @@ git clone https://github.com/indra622/local-second-brain.git
 cd local-second-brain
 ```
 
-Check Python, create an isolated environment, and install. Installation normally needs
+Check Python, create a virtual environment with `venv` to keep this project's Python
+packages separate, and install. Installation normally needs
 internet access to download PyYAML and build tools. No AI account or API key is required.
 If Python is older than 3.11 or lacks `venv`, install a suitable interpreter first.
 
@@ -106,10 +112,12 @@ python3 -m venv .venv
 python -m pip install -e .
 ```
 
-This example turns a fictional garden source into a saved watering note, then finds it
-with the exact Korean word `물주기` (watering). **Capture** means copy the selected source
-and record its origin. **Curate** means save a note you have already written, linked to
-that source. The example uses prepared files; neither command generates text.
+Try the report-rule workflow described above: save a fictional team's Friday report
+rule, find it with the exact English word `report`, and read it back. In the
+[continuation](docs/getting-started.md), you will record a review and save a Thursday update.
+**Capture** copies a selected source and records its origin. **Curate** saves a note
+you have already written, linked to that source. Both commands use prepared files here;
+neither generates text.
 
 Keep the knowledge folder outside the checkout. The following temporary folder remains
 on disk so you can inspect it. Save the `DEMO_DIR=...` line printed below. It is the
@@ -119,24 +127,28 @@ parent directory; `init` prints the separate knowledge-folder path ending in `/w
 DEMO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/second-brain.XXXXXX")"
 printf 'DEMO_DIR=%s\n' "$DEMO_DIR"
 second-brain init "$DEMO_DIR/wiki"
-second-brain capture "$DEMO_DIR/wiki" examples/inputs/garden-note.txt \
-  --id garden-note --actor human:demo --resource synthetic:garden-note
-second-brain curate "$DEMO_DIR/wiki" garden \
-  --body examples/inputs/garden-v1.md --source garden-note --actor demo-agent/0.1 \
-  --title '달빛 정원의 물주기' --stale-after '2030-01-01T00:00:00+00:00'
-second-brain search "$DEMO_DIR/wiki" '물주기' --now '2026-10-27T00:00:00+00:00'
+second-brain capture "$DEMO_DIR/wiki" examples/inputs/report-memo-1.txt \
+  --id report-memo-1 --actor human:demo --resource synthetic:report-memo-1
+second-brain curate "$DEMO_DIR/wiki" report-rules \
+  --body examples/inputs/report-v1.md --source report-memo-1 --actor prepared-fixture/1 \
+  --title 'Report-writing rules' --stale-after '2030-01-01T00:00:00+00:00'
+second-brain search "$DEMO_DIR/wiki" 'report' --now '2026-10-27T00:00:00+00:00'
 second-brain check "$DEMO_DIR/wiki" --now '2026-10-27T00:00:00+00:00'
 ```
 Read the saved note:
 
 ```sh
-second-brain show "$DEMO_DIR/wiki" garden --format text
+second-brain show "$DEMO_DIR/wiki" report-rules --format text
 ```
 
-Search finds `concepts/garden/r000001.md` with `current: true`, `draft` status and
-`unverified` trust. The first `check` reports `invalid: []`, `warnings: []`,
-`stale: []`, and `concepts: 1`. These are metadata results, not a fact check.
-Open the knowledge folder's `index.md` to follow its link to the note.
+The search finds the saved report rule. It is the version selected in the index,
+but it is still a draft with no recorded review. The output expresses this as
+`current: true`, `status: draft`, and `trust: unverified` for
+`concepts/report-rules/r000001.md`.
+
+The first `check` finds no structural metadata or link problems and no notes past
+their recheck date: `invalid: []`, `warnings: []`, `stale: []`, and `concepts: 1`.
+It does not check facts. Open the knowledge folder's `index.md` to follow its link to the note.
 
 ## Scope and limits
 
