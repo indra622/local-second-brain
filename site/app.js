@@ -17,6 +17,26 @@ if (ko) {
   document.querySelector('#notes').setAttribute('aria-label','예제 노트');
   document.querySelector('#replay-image').alt = '실제 CLI 출력: 보고서 규칙 저장과 검색, 금요일에서 목요일로 바뀐 내용 비교.';
 }
+const scenarioLocale = ko ? 'ko' : 'en';
+const scenarioVideo = document.querySelector('#scenario-video');
+if (ko) {
+  document.querySelector('#scenario-title').textContent = '지난 작업을 다음 보고서의 출발점으로.';
+  document.querySelector('#scenario-caption').textContent = '가상의 자료와 미리 작성한 개요로 보여 주는 34초 무음 시나리오입니다. 사용자가 노트를 골라 AI에게 전달하는 장면이며, 실제 제품 화면의 녹화는 아닙니다.';
+  scenarioVideo.setAttribute('aria-label', '주간 보고서 사용 시나리오 예시, 34초, 자막이 있는 무음 영상');
+  scenarioVideo.querySelector('source').src = 'assets/report-scenario-v1-ko.mp4';
+  scenarioVideo.poster = 'assets/report-scenario-v1-ko.jpg';
+  const track = scenarioVideo.querySelector('track');
+  track.src = 'data/report-scenario-v1-ko.vtt'; track.srclang = 'ko'; track.label = '한국어';
+  const fallback = scenarioVideo.querySelector('a');
+  fallback.href = 'assets/report-scenario-v1-ko.mp4'; fallback.textContent = '자막이 있는 보고서 시나리오 영상 열기';
+  scenarioVideo.load();
+}
+const scenarioDownload = document.querySelector('#scenario-download');
+scenarioDownload.href = `assets/report-scenario-v1-${scenarioLocale}.mp4`;
+scenarioDownload.textContent = ko ? '영상 열기' : 'Open video';
+const scenarioText = document.querySelector('#scenario-text');
+scenarioText.href = `data/report-scenario-v1-${scenarioLocale}.txt`;
+scenarioText.textContent = ko ? '장면 설명과 자막 읽기' : 'Read the descriptive transcript';
 document.querySelector('#theme').addEventListener('click', () => {
   const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   document.documentElement.dataset.theme = dark ? 'light' : 'dark';

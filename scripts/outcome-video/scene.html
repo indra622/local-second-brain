@@ -1,0 +1,48 @@
+<!doctype html><meta charset="utf-8"><title>Prepared report scenario renderer</title>
+<style>body{margin:0}canvas{display:block}</style><canvas width="1280" height="720"></canvas>
+<script>
+const ko=new URLSearchParams(location.search).get('lang')==='ko';
+const c=document.querySelector('canvas').getContext('2d');
+const ink='#193835',teal='#176e69',muted='#506661',paper='#fffefa',ivory='#f4f3ec',tint='#deeee8';
+const L=(a,b)=>ko?a:b;
+const captions=[
+ L('이번 주 보고서가 또 필요합니다.','Another weekly report is due.'),
+ L('지난 조사와 판단 기준은 이미 노트로.','Prior research and criteria are saved as notes.'),
+ L('이번 작업에 쓸 노트를 직접 고릅니다.','You choose the notes for this task.'),
+ L('새 자료와 함께, 내가 AI에게 전달합니다.','You give them to AI with this week’s material.'),
+ L('같은 기준으로, 이번에 달라진 내용을 검토.','Review this week’s changes against prior criteria.'),
+ L('매번 처음부터가 아니라,','Start with your previous work,'),
+];
+window.captions=captions;
+const cuts=[0,5,11,17,23,29,34];
+function ease(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)}
+function text(s,x,y,size=28,color=ink,weight=500){c.fillStyle=color;c.font=`${weight} ${size}px "Arial", "Apple SD Gothic Neo", sans-serif`;c.fillText(s,x,y)}
+function box(x,y,w,h,fill=paper,stroke='#bdcdc5',r=18){c.beginPath();c.roundRect(x,y,w,h,r);c.fillStyle=fill;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=2;c.stroke()}}
+function pill(s,x,y,w=180){box(x,y,w,38,tint,null,19);text(s,x+16,y+26,20,teal,600)}
+function lines(x,y,w=160){for(let i=0;i<3;i++){box(x,y+i*17,w-i*23,5,'#d4ddd6',null,2)}}
+function check(x,y){c.strokeStyle=teal;c.lineWidth=5;c.beginPath();c.moveTo(x,y+8);c.lineTo(x+8,y+16);c.lineTo(x+23,y-2);c.stroke()}
+function cursor(x,y,press=false){c.save();c.translate(x,y);c.fillStyle=ink;c.strokeStyle=paper;c.lineWidth=2;c.beginPath();c.moveTo(0,0);c.lineTo(0,30);c.lineTo(8,23);c.lineTo(15,37);c.lineTo(22,33);c.lineTo(15,20);c.lineTo(28,19);c.closePath();c.fill();c.stroke();if(press){c.beginPath();c.arc(0,0,26,0,Math.PI*2);c.strokeStyle=teal;c.stroke()}c.restore()}
+const titles=[L('지난 조사 요약','Prior research'),L('보고서 작성 규칙','Report criteria'),L('결정과 그 이유','Decision + reason')];
+const bodies=[L('고객 인터뷰: 도입 장벽','Interviews: adoption barriers'),L('결정 / 근거 / 열린 질문','Decisions / evidence / questions'),L('소규모 검증부터 시작','Begin with a small pilot')];
+const sources=[L('출처: 인터뷰 기록 A','Source: interview notes A'),L('출처: 팀 합의 메모','Source: team agreement'),L('출처: 검토 회의 기록','Source: review meeting')];
+function note(i,x,y,w=342,selected=false){box(x,y,w,220,selected?tint:paper,selected?teal:'#bdcdc5');pill(L('저장한 노트','Saved note'),x+20,y+18,150);text(titles[i],x+20,y+91,29,ink,700);text(bodies[i],x+20,y+132,22);text(sources[i],x+20,y+190,20,muted);if(selected)check(x+w-44,y+28)}
+function header(step){text('LOCAL SECOND BRAIN',64,48,21,teal,700);text(L('사용 시나리오 예시','Illustrative use scenario'),900,48,21,muted);for(let i=0;i<6;i++)box(64+i*193,83,181,4,i<=step?teal:'#d5dfd8',null,2)}
+function request(x,y,w=500){box(x,y,w,186);pill(L('새 요청','New request'),x+24,y+20,150);text(L('이번 주 보고서','This week’s report'),x+24,y+100,36,ink,700);text(L('새 인터뷰 3건 + 검증 결과','3 new interviews + pilot results'),x+24,y+148,25,muted)}
+function outline(x,y,w=700,final=false){box(x,y,w,350);pill(L('미리 작성한 개요 예시','Prepared outline example'),x+24,y+18,ko?250:290);text(L('주간 보고서','Weekly report'),x+24,y+101,36,ink,700);text(L('기존 기준: 결정 / 근거 / 열린 질문','Prior criteria: decisions / evidence / questions'),x+24,y+149,24);box(x+18,y+172,w-36,100,tint,null,10);text(L('이번 주 변경점','New this week'),x+32,y+205,25,teal,700);text(L('검증 결과 추가 / 남은 질문 갱신','Pilot results added / open questions updated'),x+32,y+246,24);text(L('근거: 인터뷰 A + 이번 주 검증 기록','Evidence: interviews A + this week’s pilot'),x+24,y+316,22,muted)}
+window.render=(t)=>{
+ c.clearRect(0,0,1280,720);c.fillStyle=ivory;c.fillRect(0,0,1280,720);
+ let s=cuts.findIndex((v,i)=>t>=v&&t<cuts[i+1]);if(s<0)s=5;let u=t-cuts[s];header(s);
+ if(s===0){request(64+30*(1-ease(u)),140);text(L('다시 모아야 하나요?','Gather it all again?'),680,185,32,ink,600);['지난 조사','작성 기준','결정 이유'].forEach((v,i)=>{let x=660+i*30,y=220+i*65;box(x,y,440,68,paper);text(ko?v:['Prior research','Report criteria','Decision rationale'][i],x+24,y+43,27,muted)});if(u>2){text(L('어디까지 이야기했더라…','Where did we leave off?'),695,505,26,muted)}}
+ if(s===1){text(L('배경을 다시 조립하는 대신','Keep the background at hand'),64,158,39,ink,700);for(let i=0;i<3;i++){let a=ease((u-i*.5)/.8);c.globalAlpha=a;note(i,64+i*386,242+40*(1-a));c.globalAlpha=1}text(L('가상 예제 자료: 조사 · 규칙 · 결정 근거','Fictional materials: research, criteria, decision rationale'),64,525,25,muted)}
+ if(s===2){text(L('필요한 세 노트를 선택','Select the three relevant notes'),64,158,39,ink,700);for(let i=0;i<3;i++)note(i,64+i*386,230,342,u>1+i*1.2);let k=Math.min(2,Math.floor(Math.max(0,u-.5)/1.2));cursor(370+k*386,270,u>1+k*1.2&&u<1.4+k*1.2);let n=[1,2.2,3.4].filter(v=>u>v).length;pill(L(`${n}개 선택됨`,`${n} notes selected`),64,500,220)}
+ if(s===3){let move=ease((u-2.4)/1.4);text(L('내가 고른 배경 + 이번 주 자료','Your selected context + this week’s material'),64,155,38,ink,700);box(700,200,516,354,paper,teal);pill(L('AI에게 줄 요청','Request for AI'),724,222,220);text(L('같은 기준으로 개요를 써 줘.','Draft an outline using these criteria.'),724,305,25);text(L('이번 주 새 자료도 함께 참고해 줘.','Include this week’s new material.'),724,350,24,muted);
+ box(64,208,540,82,paper);text(L('이번 주: 새 인터뷰 + 검증 기록','This week: interviews + pilot results'),84,259,25);
+ c.globalAlpha=1-move*.2;let x=64+660*move,y=320+85*move;box(x,y,540-80*move,86,tint,teal);text(L('선택한 노트 3개 + 새 자료','3 chosen notes + new material'),x+20,y+52,25,teal,600);c.globalAlpha=1;
+ box(86,458,480,64,teal,null);text(L('선택 자료를 AI에게 직접 전달','Give selected material to AI'),108,500,26,paper,600);if(u<3.8)cursor(380,488,u>2.2);if(u>4.1){check(747,512);text(L('사용자가 전달함','Provided by you'),789,528,25,teal,600)}}
+ if(s===4){let p=ease(u/.8);outline(64,194+25*(1-p),745);box(850,220,366,286,paper);text(L('필요하면 근거 확인','Inspect evidence if needed'),870,264,25,ink,700);text(L('저장한 인터뷰 기록 A','Saved interview notes A'),870,318,24,teal);lines(874,349,260);text(L('“도입 절차가 복잡하다”','“Setup has too many steps”'),870,439,23);if(u>2){cursor(822,509,u<2.5);c.strokeStyle=teal;c.lineWidth=3;c.beginPath();c.moveTo(805,510);c.lineTo(833,510);c.lineTo(833,322);c.lineTo(850,322);c.stroke()}}
+ if(s===5){outline(64,165,740,true);text(L('이번 주에는','This week,'),867,253,36,ink,700);text(L('달라진 내용에','focus on'),867,313,36,teal,700);text(L('집중하세요.','what changed.'),867,373,36,teal,700);pill(L('배경과 기준은 손에','Context at hand'),868,438,280)}
+ box(0,588,1280,132,ink,null,0);text(captions[s],64,645,s===3?42:44,paper,700);
+ if(s===5)text(L('지난 작업을 출발점으로.','then build on what changed.'),64,694,36,'#a8dbcb',600);
+ else text(L('가상 자료로 준비한 보고서 작업 흐름','A prepared report workflow using fictional materials'),64,690,21,'#bdcdc5');
+};render(0);
+</script>

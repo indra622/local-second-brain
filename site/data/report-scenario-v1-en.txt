@@ -1,0 +1,20 @@
+Local Second Brain: the next weekly report
+34 seconds. Silent with English captions. Illustrative use scenario, fictional materials, prepared outline; not a product GUI or a live AI run.
+
+00:00-00:05 | Another weekly report is due.
+A new request asks for a report using three new interviews and pilot results. Scattered cards recall the prior research, report criteria and decision rationale: where did we leave off?
+
+00:05-00:11 | Prior research and criteria are saved as notes.
+Three sourced notes arrive on the desk: adoption barriers from interview notes A; report criteria (decisions, evidence, open questions) from a team agreement; and a decision to begin with a small pilot, from review meeting notes.
+
+00:11-00:17 | You choose the notes for this task.
+A pointer selects each relevant note. Check marks and a count show three selected notes.
+
+00:17-00:23 | You give them to AI with this week’s material.
+The user activates “Give selected material to AI.” The chosen notes and this week’s interviews and pilot results visibly move into a request for AI: draft an outline using the same criteria and include this week’s new material. The request is marked “Provided by you.” No automatic recall or background upload is shown.
+
+00:23-00:29 | Review this week’s changes against prior criteria.
+A prepared weekly report outline keeps decisions, evidence and open questions as its criteria. The highlighted new section adds pilot results and updates open questions. A pointer connects the evidence reference to saved interview notes A, available for inspection.
+
+00:29-00:34 | Start with your previous work, then build on what changed.
+The concrete report outline remains visible beside “This week, focus on what changed.” The background and criteria are already at hand.
