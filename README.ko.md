@@ -18,11 +18,15 @@ Local Second Brain은 프로젝트 작업 규칙, 자료 조사 요약, 기술�
 
 **[브라우저에서 예제 살펴보기](https://indra622.github.io/local-second-brain/?lang=ko)**
 
-CLI가 저장하는 파일을 설명하는 가상 예제입니다. 제품 GUI나 실시간 AI 대화가 아닙니다.
+저장된 노트를 읽고, 원문을 확인하고, 수정 전후를 브라우저에서 비교해 보세요.
+미리 작성한 가상 자료로 도구가 저장하는 파일을 보여 주는 예제 페이지입니다.
+제품의 그래픽 화면(GUI)이나 실시간 AI 대화는 아닙니다.
 
 ![실제 CLI로 보고서 규칙을 저장하고 다시 읽은 뒤 금요일과 목요일 변경 내용을 비교하는 과정](site/assets/cli-demo.gif)
 
-실제 CLI 출력 중 일부이며 재생 시간을 조정하고 임시 경로를 바꿨습니다. 전체 출력은 아래 링크에서 볼 수 있습니다. 미리 쓴 가상 자료를 사용하며 모델 호출은 없습니다.
+보고서 규칙을 저장하고 다시 찾은 뒤, 바뀐 내용과 비교하는 과정을 터미널에서 보여 줍니다.
+미리 작성한 가상 자료로 실제 명령을 실행한 출력 중 일부입니다. AI 모델을 호출하지 않았으며,
+재생 시간을 조정하고 임시 경로 표기를 통일했습니다. 전체 출력은 아래 링크에서 볼 수 있습니다.
 [정지 이미지](site/assets/cli-poster.png) | [텍스트 출력](site/data/transcript.txt)
 
 ### 한 번 정리한 지식을 다시 쓰세요
@@ -55,13 +59,14 @@ CLI가 저장하는 파일을 설명하는 가상 예제입니다. 제품 GUI나
 
 AI와 자료를 조사하고, 프로젝트의 방향을 정하고, 반복해서 보고서를 쓰면서
 한 작업에서 얻은 지식을 다음 작업에도 쓰고 싶은 분을 위한 도구입니다.
-현재는 초기 알파 단계의 명령줄 도구로, 저장할 자료를 고르고 작성과 재사용을 지시하는 일은
+현재는 터미널에 명령을 입력해 쓰는 명령줄 도구(CLI)이며 초기 알파 단계입니다.
+저장할 자료를 고르고 작성과 재사용을 지시하는 일은
 사용자가 맡습니다. 에이전트에게 설치를 맡기거나 아래 예제를 직접 따라 해 보세요.
 
 ## 에이전트에게 설치 맡기기 (For agents)
 
-에이전트에게 설치와 검증을 맡기려면 아래 지시문을 그대로 전달한다.
-직접 설치하려면 아래 [시작하기](#시작하기)를 따른다.
+에이전트에게 설치와 검증을 맡기려면 아래 지시문을 그대로 전달하세요.
+직접 설치하려면 아래 [시작하기](#시작하기)를 따라 해 보세요.
 
 ```text
 https://github.com/indra622/local-second-brain.git 에서 Local Second Brain을 설치하고 검증해 줘.
@@ -77,27 +82,28 @@ https://github.com/indra622/local-second-brain.git 에서 Local Second Brain을 
 ```
 
 이후 실제 노트를 다룰 때는 [에이전트 안내](docs/agent-kit.ko.md)와
-[작업 흐름](workflows/AGENT-WORKFLOW.ko.md)을 따른다.
+[작업 흐름](workflows/AGENT-WORKFLOW.ko.md)을 따릅니다.
 
 ## 시작하기
 
-초기 알파다. macOS 또는 Linux의 쓰기 가능한 로컬 POSIX 파일시스템,
-POSIX 셸, `venv`를 지원하는 Python 3.11 이상이 필요하다.
-CI는 macOS와 Ubuntu에서 Python 3.11과 3.14를 검사한다.
-다른 Linux 환경과 WSL은 별도 검증하지 않았으며 Windows는 지원하지 않는다.
+초기 알파 단계입니다. macOS 또는 Linux의 쓰기 가능한 로컬 POSIX 파일시스템,
+POSIX 셸, `venv`를 지원하는 Python 3.11 이상이 필요합니다.
+CI는 macOS와 Ubuntu에서 Python 3.11과 3.14를 검사합니다.
+다른 Linux 환경과 WSL은 별도 검증하지 않았으며 Windows는 지원하지 않습니다.
 
-Git으로 소스를 받은 뒤 프로젝트 폴더로 이동한다. 압축파일을 받았다면 압축을
-풀고 `pyproject.toml`이 있는 폴더에서 터미널을 연다.
-PyPI 배포는 없다. 예제와 안내 문서는 소스에 포함되어 있다.
+Git으로 소스를 받은 뒤 내려받은 프로젝트 폴더(체크아웃)로 이동하세요. 압축파일을 받았다면
+압축을 풀고 `pyproject.toml`이 있는 폴더에서 터미널을 여세요.
+PyPI 배포는 없습니다. 예제와 안내 문서는 소스에 포함되어 있습니다.
 
 ```text
 git clone https://github.com/indra622/local-second-brain.git
 cd local-second-brain
 ```
 
-Python을 확인하고 가상환경을 만든 뒤 설치한다. 설치 시 PyYAML과 빌드 도구를
-내려받으려면 보통 인터넷이 필요하다. AI 계정이나 API 키는 필요 없다.
-Python이 3.11보다 낮거나 `venv`가 없으면 적합한 Python을 먼저 설치한다.
+Python을 확인하고 `venv`로 가상환경을 만든 뒤 설치하세요. 가상환경은 이 프로젝트의
+Python 패키지를 다른 프로젝트와 분리하는 폴더입니다. 설치 시 PyYAML과 빌드 도구를
+내려받으려면 보통 인터넷이 필요합니다. AI 계정이나 API 키는 필요 없습니다.
+Python이 3.11보다 낮거나 `venv`가 없으면 적합한 Python을 먼저 설치하세요.
 
 ```sh
 python3 --version
@@ -107,37 +113,42 @@ python3 -m venv .venv
 python -m pip install -e .
 ```
 
-다음 예제는 가상의 정원 자료를 물주기 노트로 저장한 뒤 `물주기`라는 정확한
-단어로 찾는다. **capture(원문 수집)**는 선택한 파일을 복사하고 출처를 기록한다.
-**curate(노트 저장)**는 미리 쓴 글을 원문에 연결해 저장한다.
-예제는 준비된 파일을 쓰며 두 명령 모두 글을 생성하지 않는다.
+앞서 소개한 보고서 규칙을 직접 저장하고 찾아보세요. 가상 팀의 금요일 보고서 규칙을
+저장한 뒤, 정확한 영어 단어 `report`로 검색해 읽습니다.
+[이어서 사용하기](docs/getting-started.ko.md)에서는 검토 기록을 남기고 목요일로 바뀐 규칙을 저장합니다.
+**capture(원문 수집)**는 선택한 파일을 복사하고 출처를 기록합니다.
+**curate(노트 저장)**는 미리 쓴 글을 원문에 연결해 저장합니다.
+이 예제는 준비된 파일을 사용하며 두 명령 모두 글을 생성하지 않습니다.
 
-지식 폴더는 코드 폴더 밖에 둔다. 다음 임시 폴더는 실행 후에도 남으므로 직접
-살펴볼 수 있다. 아래에서 출력하는 `DEMO_DIR=...` 줄을 저장해 둔다.
-이 값은 상위 폴더다. `init`이 출력하는 `/wiki`로 끝나는 지식 폴더 경로와 다르다.
+지식 폴더는 코드 폴더 밖에 두세요. 다음 임시 폴더는 실행 후에도 남으므로 직접
+살펴볼 수 있습니다. 아래에서 출력하는 `DEMO_DIR=...` 줄을 저장해 두세요.
+이 값은 상위 폴더입니다. `init`이 출력하는 `/wiki`로 끝나는 지식 폴더 경로와 다릅니다.
 
 ```sh
 DEMO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/second-brain.XXXXXX")"
 printf 'DEMO_DIR=%s\n' "$DEMO_DIR"
 second-brain init "$DEMO_DIR/wiki"
-second-brain capture "$DEMO_DIR/wiki" examples/inputs/garden-note.txt \
-  --id garden-note --actor human:demo --resource synthetic:garden-note
-second-brain curate "$DEMO_DIR/wiki" garden \
-  --body examples/inputs/garden-v1.md --source garden-note --actor demo-agent/0.1 \
-  --title '달빛 정원의 물주기' --stale-after '2030-01-01T00:00:00+00:00'
-second-brain search "$DEMO_DIR/wiki" '물주기' --now '2026-10-27T00:00:00+00:00'
+second-brain capture "$DEMO_DIR/wiki" examples/inputs/report-memo-1.txt \
+  --id report-memo-1 --actor human:demo --resource synthetic:report-memo-1
+second-brain curate "$DEMO_DIR/wiki" report-rules \
+  --body examples/inputs/report-v1.md --source report-memo-1 --actor prepared-fixture/1 \
+  --title 'Report-writing rules' --stale-after '2030-01-01T00:00:00+00:00'
+second-brain search "$DEMO_DIR/wiki" 'report' --now '2026-10-27T00:00:00+00:00'
 second-brain check "$DEMO_DIR/wiki" --now '2026-10-27T00:00:00+00:00'
 ```
-저장한 노트를 읽는다.
+저장한 노트를 읽어 보세요.
 
 ```sh
-second-brain show "$DEMO_DIR/wiki" garden --format text
+second-brain show "$DEMO_DIR/wiki" report-rules --format text
 ```
 
-검색 결과는 `concepts/garden/r000001.md`이며 `current: true`, 상태 `draft`,
-검토 수준 `unverified`를 표시한다. 첫 `check` 결과는 `invalid: []`,
-`warnings: []`, `stale: []`, `concepts: 1`이다. 이는 형식 검사이며 사실 확인이 아니다.
-지식 폴더의 `index.md`에서 노트 링크를 열 수도 있다.
+검색하면 저장한 보고서 규칙을 찾을 수 있습니다. 인덱스가 선택한 현재 버전이지만,
+아직 초안이며 검토 기록은 없습니다. 출력에서는 `concepts/report-rules/r000001.md`에
+`current: true`, `status: draft`, `trust: unverified`로 표시합니다.
+
+첫 `check`에서는 메타데이터 형식이나 링크의 문제, 재확인 기한이 지난 노트가 발견되지 않습니다.
+결과는 `invalid: []`, `warnings: []`, `stale: []`, `concepts: 1`입니다.
+이 검사는 사실 확인이 아닙니다. 지식 폴더의 `index.md`에서 노트 링크를 열 수도 있습니다.
 
 ## 지원 범위와 한계
 
@@ -148,21 +159,21 @@ second-brain show "$DEMO_DIR/wiki" garden --format text
 
 ## 이어서 사용하기
 
-- [검토, 수정, 다시 찾기](docs/getting-started.ko.md): 예제를 이어서 세 버전을 남기고 별도 합성 재사용 작업을 실행한다. 선택 사항인 Obsidian 안내도 있다.
-- [내 에이전트로 사용하기](docs/agent-kit.ko.md): 출처가 있는 노트를 쓰고 나중 작업에 재사용한다. 파일 인터페이스는 특정 에이전트나 자동 연동을 요구하지 않는다.
-- [공개 자료로 실행한 Codex 검증](docs/field-validation.md): 실제 에이전트 작성과 후속 작업, 빈 검색 결과와 GUI 접근 한계를 기록했다. 한 번의 수동 실행이며 모든 에이전트의 연동 시험은 아니다.
-- [명령과 지원 범위](docs/reference.ko.md): 정확한 검색 규칙, 검토 선언, 안전과 복구 한계. [개발과 검증](docs/development.ko.md)에는 테스트와 CI 설명이 있다.
+- [검토, 수정, 다시 찾기](docs/getting-started.ko.md): 예제를 이어서 세 버전을 남기고 별도 합성 재사용 작업을 실행합니다. 선택 사항인 Obsidian 안내도 있습니다.
+- [내 에이전트로 사용하기](docs/agent-kit.ko.md): 출처가 있는 노트를 쓰고 나중 작업에 재사용합니다. 파일 인터페이스는 특정 에이전트나 자동 연동을 요구하지 않습니다.
+- [공개 자료로 실행한 Codex 검증](docs/field-validation.md): 실제 에이전트 작성과 후속 작업, 빈 검색 결과와 GUI 접근 한계를 기록했습니다. 한 번의 수동 실행이며 모든 에이전트의 연동 시험은 아닙니다.
+- [명령과 지원 범위](docs/reference.ko.md): 정확한 검색 규칙, 검토 선언, 안전과 복구 한계. [개발과 검증](docs/development.ko.md)에는 테스트와 CI 설명이 있습니다.
 
-이전 버전은 직접 고치지 말고 별도 파일에 수정한 뒤 `curate`로 저장한다.
-세부 규칙은 참조 문서에서 확인할 수 있다.
+이전 버전은 직접 고치지 말고 별도 파일에 수정한 뒤 `curate`로 저장하세요.
+세부 규칙은 참조 문서에서 확인할 수 있습니다.
 
 ## 라이선스와 출처
 
-이 프로젝트에서 직접 작성한 구현과 문서는 [MIT 라이선스](LICENSE)를 따른다.
-저작권 표기는 `Copyright (c) 2026 indra622`다.
+이 프로젝트에서 직접 작성한 구현과 문서는 [MIT 라이선스](LICENSE)를 따릅니다.
+저작권 표기는 `Copyright (c) 2026 indra622`입니다.
 
 이 구현은 LLM Wiki의 작업 흐름과
-[Open Knowledge Format(OKF) 명세](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md)를 참고했다.
-이 개념과 제3자 자료의 출처는 각 작성자에게 있다. 제3자 코드, 문서와 수집한 원문에는
-각각의 라이선스와 이용 조건이 적용된다. 이 프로젝트의 MIT 라이선스가 그 자료의
-라이선스를 바꾸지는 않는다.
+[Open Knowledge Format(OKF) 명세](https://github.com/GoogleCloudPlatform/open-knowledge-format/blob/main/SPEC.md)를 참고했습니다.
+이 개념과 제3자 자료의 출처는 각 작성자에게 있습니다. 제3자 코드, 문서와 수집한 원문에는
+각각의 라이선스와 이용 조건이 적용됩니다. 이 프로젝트의 MIT 라이선스가 그 자료의
+라이선스를 바꾸지는 않습니다.

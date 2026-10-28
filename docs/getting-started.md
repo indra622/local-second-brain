@@ -9,24 +9,29 @@ not the knowledge-folder path ending in `/wiki`; the commands below add `/wiki`.
 
 ## Review and revise
 
-The first check returns `invalid: []`, `warnings: []`, `stale: []`, and `concepts: 1`.
-A new revision defaults to `draft` and `unverified`. After deliberately reviewing the
-fictional body against its source, record that declaration:
+The saved note says to send the report on Friday. Compare it with the captured
+fictional memo, then record that you reviewed it. It is still a draft; saving alone
+does not record a review (`status: draft`, `trust: unverified`). The README's `check`
+only checks metadata structure and links, not whether the rule is true.
 
 ```sh
-second-brain review "$DEMO_DIR/wiki" garden --revision r000001 \
-  --actor human:demo --evidence sources/garden-note/content.raw
-second-brain show "$DEMO_DIR/wiki" garden --format json
+second-brain review "$DEMO_DIR/wiki" report-rules --revision r000001 \
+  --actor human:demo --evidence sources/report-memo-1/content.raw
+second-brain show "$DEMO_DIR/wiki" report-rules --format json
 ```
 
 This creates `r000002`, with the same body and a `human-reviewed` declaration, while
 preserving `r000001`. It stays `draft`. The CLI does not check facts or authenticate `human:demo`.
-Save a content edit; it starts `unverified` again:
+Now the fictional team moves the report to Thursday. Capture the prepared update
+and save the revised note with a link to that new source. The edited note has no
+review declaration (`unverified`), even though its predecessor was reviewed:
 
 ```sh
-second-brain curate "$DEMO_DIR/wiki" garden \
-  --body examples/inputs/garden-v2.md --source garden-note --actor demo-agent/0.1
-second-brain search "$DEMO_DIR/wiki" '물주기'
+second-brain capture "$DEMO_DIR/wiki" examples/inputs/report-memo-2.txt \
+  --id report-memo-2 --actor human:demo --resource synthetic:report-memo-2
+second-brain curate "$DEMO_DIR/wiki" report-rules \
+  --body examples/inputs/report-v2.md --source report-memo-2 --actor prepared-fixture/1
+second-brain search "$DEMO_DIR/wiki" 'report'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
@@ -48,21 +53,24 @@ and inspect the captured source record:
 
 ```sh
 second-brain list "$DEMO_DIR/wiki" --format text
-second-brain show "$DEMO_DIR/wiki" garden --format text
-second-brain show "$DEMO_DIR/wiki" garden --revision r000001 --format json
-second-brain history "$DEMO_DIR/wiki" garden --format text
-second-brain diff "$DEMO_DIR/wiki" garden r000001 r000003 --format text
-second-brain search "$DEMO_DIR/wiki" '물주기' --current-only --status draft \
+second-brain show "$DEMO_DIR/wiki" report-rules --format text
+second-brain show "$DEMO_DIR/wiki" report-rules --revision r000001 --format json
+second-brain history "$DEMO_DIR/wiki" report-rules --format text
+second-brain diff "$DEMO_DIR/wiki" report-rules r000001 r000003 --format text
+second-brain search "$DEMO_DIR/wiki" 'report' --current-only --status draft \
   --freshness unknown --format text
-second-brain search "$DEMO_DIR/wiki" '물주기' --status draft --freshness fresh \
+second-brain search "$DEMO_DIR/wiki" 'report' --status draft --freshness fresh \
   --now '2026-10-27T00:00:00+00:00' --format json
-python -m json.tool "$DEMO_DIR/wiki/sources/garden-note/provenance.json"
-second-brain search "$DEMO_DIR/wiki" '물주기'
+python -m json.tool "$DEMO_DIR/wiki/sources/report-memo-1/provenance.json"
+second-brain search "$DEMO_DIR/wiki" 'report'
 second-brain check "$DEMO_DIR/wiki"
 ```
 
 `search` returns paths, metadata, and short body snippets. Use `show` for the full body.
 `current: true` marks the indexed revision. Older revisions are kept for comparison.
+The third revision has no recheck date, so its `freshness` is `unknown`. The first two
+match `fresh` because the specified date has not passed. These labels describe the
+recheck date, not a review or factual accuracy. All three revisions remain `draft`.
 `content.raw` preserves source bytes, so open it as text only when you know it is a text source;
 it can also contain binary data. `provenance.json` records its origin, capture time, actor, and hash.
 If you open another terminal, activate `.venv` again and set the path to your knowledge folder;
