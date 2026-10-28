@@ -3,7 +3,9 @@
 **English** | [한국어](getting-started.ko.md)
 
 Continue in the same shell after the [README quick start](../README.md#quick-start).
-In a new terminal, activate the virtual environment and set `DEMO_DIR` to the saved path.
+In a new terminal, return to the checkout and activate the virtual environment.
+Restore the `DEMO_DIR=...` line saved from the README. This is the parent directory,
+not the knowledge-folder path ending in `/wiki`; the commands below add `/wiki`.
 
 ## Review and revise
 

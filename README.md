@@ -44,10 +44,12 @@ and record its origin. **Curate** means save a note you have already written, li
 that source. The example uses prepared files; neither command generates text.
 
 Keep the knowledge folder outside the checkout. The following temporary folder remains
-on disk so you can inspect it. Save the path printed by `init`.
+on disk so you can inspect it. Save the `DEMO_DIR=...` line printed below. It is the
+parent directory; `init` prints the separate knowledge-folder path ending in `/wiki`.
 
 ```sh
 DEMO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/second-brain.XXXXXX")"
+printf 'DEMO_DIR=%s\n' "$DEMO_DIR"
 second-brain init "$DEMO_DIR/wiki"
 second-brain capture "$DEMO_DIR/wiki" examples/inputs/garden-note.txt \
   --id garden-note --actor human:demo --resource synthetic:garden-note

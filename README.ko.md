@@ -44,10 +44,12 @@ python -m pip install -e .
 예제는 준비된 파일을 쓰며 두 명령 모두 글을 생성하지 않는다.
 
 지식 폴더는 코드 폴더 밖에 둔다. 다음 임시 폴더는 실행 후에도 남으므로 직접
-살펴볼 수 있다. `init`이 출력하는 경로를 저장해 둔다.
+살펴볼 수 있다. 아래에서 출력하는 `DEMO_DIR=...` 줄을 저장해 둔다.
+이 값은 상위 폴더다. `init`이 출력하는 `/wiki`로 끝나는 지식 폴더 경로와 다르다.
 
 ```sh
 DEMO_DIR="$(mktemp -d "${TMPDIR:-/tmp}/second-brain.XXXXXX")"
+printf 'DEMO_DIR=%s\n' "$DEMO_DIR"
 second-brain init "$DEMO_DIR/wiki"
 second-brain capture "$DEMO_DIR/wiki" examples/inputs/garden-note.txt \
   --id garden-note --actor human:demo --resource synthetic:garden-note
