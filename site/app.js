@@ -56,7 +56,7 @@ function renderList() {
     found++;
     const button = document.createElement('button'); button.textContent = ko ? note.titleKo : note.revisions[0].title;
     button.setAttribute('aria-pressed',String(i === selected));
-    button.addEventListener('click', () => {selected=i; revision=currentIndex(note); compare=false; $('source-details').open=false; renderNote(); renderList();});
+    button.addEventListener('click', () => {selected=i; revision=currentIndex(note); compare=false; $('source-details').open=false; renderNote(); renderList(); $('notes').querySelector('[aria-pressed="true"]')?.focus();});
     return [button];
   }));
   $('no-results').hidden = found > 0;

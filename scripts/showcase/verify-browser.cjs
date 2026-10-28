@@ -66,6 +66,7 @@ const path = require('node:path');
     assert.match(await keyboard.locator('#replay-image').getAttribute('src'),/png$/);
     await keyboard.locator('#notes button').nth(1).focus();
     await keyboard.keyboard.press('Enter');
+    assert(await keyboard.locator('#notes button').nth(1).evaluate(el => el === document.activeElement));
     assert.match(await keyboard.locator('#note-title').innerText(),/Research/);
     await keyboard.locator('#reset').focus();
     await keyboard.keyboard.press('Enter');
