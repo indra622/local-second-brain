@@ -2,20 +2,108 @@
 
 **English** | [한국어](README.ko.md)
 
-Keep source files and reusable notes in a local folder. Local Second Brain is a small
-Python command-line tool for people and agents who need to find a note later, see its
-source, and keep earlier versions when it changes.
+Local Second Brain is a local file-based notebook for agent-assisted work that keeps
+reusable notes tied to their source files and earlier versions.
 
-You or your agent write the note. The CLI copies sources without changing their bytes,
-stores Markdown revisions, searches exact words, and checks metadata. It does not call
-a model or access the network at runtime. You can read the files in any text editor;
-Obsidian is an optional viewer.
+## Pick up the reasoning in your next session
+
+You work through a project question with an agent, compare sources, and reach a useful
+decision. Weeks later, another task needs that reasoning. A saved conversation holds the
+exchange, but you still need to identify the conclusion, its basis, and whether it still
+applies. A short summary is easier to reuse, but can leave those connections behind.
+Rebuilding that context costs time and makes it easy to reuse an outdated assumption.
+
+This project gives that work a place outside the conversation. You select local source
+files; you or your chosen agent prepare a note with the decision, evidence, and limits.
+The Python CLI stores them together under an explicit convention for sources, revisions,
+and the current note. In a later session, you can find the note, read its basis, and
+choose what to reuse or recheck.
+
+## What you keep when a note changes
+
+- **The basis behind the summary.** Capture preserves the selected source bytes and
+  records their origin, capture time, declared actor, and SHA-256 hash. Prepared notes
+  link back to those files. You can revisit what the note was based on, even if the
+  original document later changes.
+- **A current answer with its history.** Each saved revision is a new Markdown file;
+  earlier revisions are not overwritten. An index selects the current one, while
+  history and diff let you inspect past reasoning and what changed. Later work can
+  use the current note without erasing how you got there.
+- **Context for deciding what to recheck.** Results show current-version status,
+  declared reviews, and freshness based on an optional deadline. A new content revision
+  does not inherit the old review. These signals help you decide where to spend review
+  effort; they do not verify facts or authenticate reviewers.
+- **Files you can keep using.** Notes are ordinary Markdown, provenance is JSON, and
+  captured sources retain their bytes. You can read and keep them without an AI account,
+  model backend, or this CLI. The workflow and body template give a person or a chosen
+  agent the same preparation steps while the CLI keeps storage consistent.
+
+You could maintain these links and versions in plain notes yourself. The value here is
+making that convention explicit and applying it with commands, so each new session does
+not have to invent its own way to preserve sources and distinguish current from past work.
+
+## Example: revisit a project's archive naming rule
+
+This is an illustrative workflow for a recurring project decision:
+
+1. **Before:** An agent helped you decide how to name exported archives. When you later
+   build a migration checklist, you find a summary saying “use the new naming rule,”
+   but still have to recover which requirements it used and whether the rule changed.
+2. **Preserve the decision:** Select the local requirements and sample filenames,
+   capture them, and ask your agent to write an `archive naming` note: why exports use
+   a UTC date, as in `metrics-2026-10-28.zip`, and which exceptions apply. Save it with
+   source links. Compare it with the evidence yourself if needed, then record a review
+   declaration and an optional recheck deadline.
+3. **After:** In a later session, direct the agent to search for the exact words
+   `archive naming`, read the current note and its sources, and use it to draft the
+   checklist. If requirements change, capture the changed file under a new source ID
+   and save a new note revision. The index points to that revision; history and diff
+   still show the earlier rule and why it was chosen, as recorded in the note.
+
+You or the agent perform the reading and reasoning. The CLI preserves and retrieves
+that work. A [manual Codex run](docs/field-validation.md) exercised source capture,
+agent-written notes, later reuse, and revision comparison once; it is not evidence of
+automatic memory or an integration with every agent.
+
+## When to use it
+
+Use it for project decisions or research findings you expect to revisit across sessions,
+when you can select the local evidence and want both a reusable note and a path back to
+its basis. It fits people willing to choose what to save and direct a person or agent
+to prepare and recall it.
+
+For a broad note app, instant AI chat, or an automatic collector of everything you read,
+choose a tool built for that job. This CLI has exact-word search, not semantic search;
+it has no model calls, GUI, or MCP server, and implements only part of OKF. Obsidian can
+be an optional viewer. The CLI does not use the network at runtime; external agents
+have their own network and data policies.
+
+## For agents
+
+To have an agent install and verify the tool, give it this prompt. For manual setup,
+follow [Quick start](#quick-start) below.
+
+```text
+Install and verify Local Second Brain from https://github.com/indra622/local-second-brain.git.
+Clone into a new working folder, or inspect and reuse an existing checkout without
+overwriting user changes. Read its README and supported requirements first.
+Create a project-local .venv and use the documented source install: python -m pip install -e .
+With that environment active, verify second-brain --help and run the README synthetic
+quickstart from the checkout, using a separate new temporary knowledge folder.
+Report the checkout, CLI executable, and demo folder paths, commands, and results.
+Keep this task to installation and the synthetic demo: do not scan personal vaults,
+upload data, change global configuration, or pipe remote installers into a shell.
+Installation does not provide automatic memory or model integration.
+```
+
+For later work with your own notes, use the [portable agent kit](docs/agent-kit.md)
+and its [workflow](workflows/AGENT-WORKFLOW.md).
+
+## Quick start
 
 Early alpha. Use Python 3.11+ with `venv`, a POSIX shell, and a writable local filesystem
 on macOS or Linux. CI covers macOS and Ubuntu with Python 3.11 and 3.14. Other Linux
 environments and WSL are not separately validated; Windows is unsupported.
-
-## Quick start
 
 Get the source with Git, then enter the checkout. If you downloaded an archive instead,
 extract it and open a terminal in the directory containing `pyproject.toml`.
@@ -77,9 +165,8 @@ Open the knowledge folder's `index.md` to follow its link to the note.
 - [Public-source Codex validation](docs/field-validation.md) (Korean): an actual agent-written note and follow-up task, with search misses and a GUI access limit. This is one manual run, not an integration test for every agent.
 - [Command and support reference](docs/reference.md): exact search rules, review declarations, safety and recovery limits. [Developer checks](docs/development.md) describes tests and CI.
 
-Review identities are declarations, not authenticated identities. Search is based on
-exact words, not meaning. Keep original revisions intact: prepare changes in a separate
-file and save them with `curate`. Detailed contracts are in the reference.
+Keep original revisions intact: prepare changes in a separate file and save them with
+`curate`. Detailed contracts are in the reference.
 
 ## License and attribution
 
