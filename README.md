@@ -2,81 +2,44 @@
 
 **English** | [한국어](README.ko.md)
 
-Local Second Brain is a local file-based notebook for agent-assisted work that keeps
-reusable notes tied to their source files and earlier versions.
+## Keep what you learn with AI. Use it beyond the chat.
 
-## Pick up the reasoning in your next session
+**Your own knowledge library, with sources attached and notes ready to reuse.**
 
-You work through a project question with an agent, compare sources, and reach a useful
-decision. Weeks later, another task needs that reasoning. A saved conversation holds the
-exchange, but you still need to identify the conclusion, its basis, and whether it still
-applies. A short summary is easier to reuse, but can leave those connections behind.
-Rebuilding that context costs time and makes it easy to reuse an outdated assumption.
+Local Second Brain keeps notes you or your agent prepare as local files, together
+with their sources and earlier versions, so you can bring that work into your next task.
 
-This project gives that work a place outside the conversation. You select local source
-files; you or your chosen agent prepare a note with the decision, evidence, and limits.
-The Python CLI stores them together under an explicit convention for sources, revisions,
-and the current note. In a later session, you can find the note, read its basis, and
-choose what to reuse or recheck.
+**[For agents](#for-agents)** | **[Manual quick start](#quick-start)**
 
-## What you keep when a note changes
+### Put your knowledge to work again
 
-- **The basis behind the summary.** Capture preserves the selected source bytes and
-  records their origin, capture time, declared actor, and SHA-256 hash. Prepared notes
-  link back to those files. You can revisit what the note was based on, even if the
-  original document later changes.
-- **A current answer with its history.** Each saved revision is a new Markdown file;
-  earlier revisions are not overwritten. An index selects the current one, while
-  history and diff let you inspect past reasoning and what changed. Later work can
-  use the current note without erasing how you got there.
-- **Context for deciding what to recheck.** Results show current-version status,
-  declared reviews, and freshness based on an optional deadline. A new content revision
-  does not inherit the old review. These signals help you decide where to spend review
-  effort; they do not verify facts or authenticate reviewers.
-- **Files you can keep using.** Notes are ordinary Markdown, provenance is JSON, and
-  captured sources retain their bytes. You can read and keep them without an AI account,
-  model backend, or this CLI. The workflow and body template give a person or a chosen
-  agent the same preparation steps while the CLI keeps storage consistent.
+Keep useful findings and decisions in notes you can find and read in a later session.
+Give the relevant note to your agent when you start the next report or project.
 
-You could maintain these links and versions in plain notes yourself. The value here is
-making that convention explicit and applying it with commands, so each new session does
-not have to invent its own way to preserve sources and distinguish current from past work.
+### Keep the evidence behind the answer
 
-## Example: revisit a project's archive naming rule
+Save the source files alongside your notes. Revisit what a conclusion was based on,
+and compare earlier versions when your understanding changes.
 
-This is an illustrative workflow for a recurring project decision:
+### Change your AI. Keep your files.
 
-1. **Before:** An agent helped you decide how to name exported archives. When you later
-   build a migration checklist, you find a summary saying “use the new naming rule,”
-   but still have to recover which requirements it used and whether the rule changed.
-2. **Preserve the decision:** Select the local requirements and sample filenames,
-   capture them, and ask your agent to write an `archive naming` note: why exports use
-   a UTC date, as in `metrics-2026-10-28.zip`, and which exceptions apply. Save it with
-   source links. Compare it with the evidence yourself if needed, then record a review
-   declaration and an optional recheck deadline.
-3. **After:** In a later session, direct the agent to search for the exact words
-   `archive naming`, read the current note and its sources, and use it to draft the
-   checklist. If requirements change, capture the changed file under a new source ID
-   and save a new note revision. The index points to that revision; history and diff
-   still show the earlier rule and why it was chosen, as recorded in the note.
+Your notes stay on your computer as readable Markdown files.
+You can open and keep them without this tool or an AI account.
 
-You or the agent perform the reading and reasoning. The CLI preserves and retrieves
-that work. A [manual Codex run](docs/field-validation.md) exercised source capture,
-agent-written notes, later reuse, and revision comparison once; it is not evidence of
-automatic memory or an integration with every agent.
+## Today's research, next week's report
 
-## When to use it
+An illustrative example:
 
-Use it for project decisions or research findings you expect to revisit across sessions,
-when you can select the local evidence and want both a reusable note and a path back to
-its basis. It fits people willing to choose what to save and direct a person or agent
-to prepare and recall it.
+1. **Today:** Choose the research files worth keeping. Save them with a note you or your agent writes.
+2. **Next week:** Find that note and ask your agent to use it as a starting point for a report.
+3. **When something changes:** Reopen the saved sources, check the new evidence, and save an updated note. The earlier version stays available.
 
-For a broad note app, instant AI chat, or an automatic collector of everything you read,
-choose a tool built for that job. This CLI has exact-word search, not semantic search;
-it has no model calls, GUI, or MCP server, and implements only part of OKF. Obsidian can
-be an optional viewer. The CLI does not use the network at runtime; external agents
-have their own network and data policies.
+## Who it's for
+
+For people who work with AI on research, project decisions, or recurring reports
+and want to carry useful knowledge from one task to the next.
+The current product is an early-alpha command-line tool: you choose the sources
+and direct the writing and reuse. Start with an agent or follow the manual example below.
 
 ## For agents
 
@@ -157,6 +120,13 @@ Search finds `concepts/garden/r000001.md` with `current: true`, `draft` status a
 `unverified` trust. The first `check` reports `invalid: []`, `warnings: []`,
 `stale: []`, and `concepts: 1`. These are metadata results, not a fact check.
 Open the knowledge folder's `index.md` to follow its link to the note.
+
+## Scope and limits
+
+- **You guide the work.** There is no automatic memory, model-generated synthesis, or semantic search. The tool stores prepared notes and searches exact words. It has no GUI or MCP server and implements only part of OKF.
+- **Local operation.** The CLI does not use the network at runtime. External agents have their own network and data policies.
+- **Review is a declaration.** Review records and freshness signals help you choose what to recheck; they do not authenticate reviewers or verify facts. See the [command and support reference](docs/reference.md).
+- **Optional Obsidian viewing.** You can follow the [viewer instructions](docs/getting-started.md#with-obsidian), but the GUI workflow has not been verified. Obsidian is not required.
 
 ## Continue
 
