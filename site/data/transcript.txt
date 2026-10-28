@@ -1,0 +1,58 @@
+Synthetic prepared text; no model generation. Actual CLI output.
+Timing edited for replay; temporary bundle path normalized to sample/wiki.
+
+$ second-brain curate sample/wiki report-rules --body fixtures/report-v1.md --source report-memo-1 --actor prepared-fixture/1 --title 'Report-writing rules' --stale-after 2030-01-01T00:00:00+00:00
+{
+  "revision": "concepts/report-rules/r000001.md"
+}
+
+
+$ second-brain curate sample/wiki report-rules --body fixtures/report-v2.md --source report-memo-2 --actor prepared-fixture/1 --title 'Report-writing rules' --stale-after 2030-01-01T00:00:00+00:00
+{
+  "revision": "concepts/report-rules/r000002.md"
+}
+
+
+$ second-brain search sample/wiki report --current-only --now 2026-10-28T00:00:00+00:00 --format text
+concepts/report-rules/r000002.md [current]
+  Report-writing rules
+  status: draft | trust: unverified | fresh
+
+  # Report-writing rules Send the weekly report on Thursday. Include decisions, evidence links and open questions.
+
+
+$ second-brain show sample/wiki report-rules --now 2026-10-28T00:00:00+00:00 --format text
+concepts/report-rules/r000002.md [current]
+  Report-writing rules
+  status: draft | trust: unverified | fresh
+
+  Metadata: {"type": "Concept", "title": "Report-writing rules", "status": "draft", "generated": {"by": "prepared-fixture/1", "at": "2026-10-28T10:15:43.403783+00:00"}, "sources": [{"id": "report-memo-2", "resource": "../../sources/report-memo-2/content.raw"}], "stale_after": "2030-01-01T00:00:00+00:00"}
+
+
+# Report-writing rules
+Send the weekly report on Thursday.
+Include decisions, evidence links and open questions.
+
+
+
+$ second-brain diff sample/wiki report-rules r000001 r000002 --now 2026-10-28T00:00:00+00:00 --format text
+--- concepts/report-rules/r000001.md
++++ concepts/report-rules/r000002.md
+@@ -4,12 +4,12 @@
+ status: draft
+ generated:
+   by: prepared-fixture/1
+-  at: '2026-10-28T10:15:43.323870+00:00'
++  at: '2026-10-28T10:15:43.403783+00:00'
+ sources:
+-- id: report-memo-1
+-  resource: ../../sources/report-memo-1/content.raw
++- id: report-memo-2
++  resource: ../../sources/report-memo-2/content.raw
+ stale_after: '2030-01-01T00:00:00+00:00'
+ ---
+ # Report-writing rules
+-Send the weekly report on Friday.
++Send the weekly report on Thursday.
+ Include decisions, evidence links and open questions.
+

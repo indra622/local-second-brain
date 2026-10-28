@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Save sourced notes locally. Explore how Local Second Brain keeps revisions ready for your next AI task.">
+<title>Local Second Brain | Knowledge beyond the chat</title>
+<link rel="icon" href="assets/logo.png"><link rel="stylesheet" href="styles.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#explore" data-t="skip">Skip to sample</a>
+<header><a class="brand" href="./"><img src="assets/logo.png" alt="" width="48" height="48">Local Second Brain</a><nav aria-label="Preferences"><a id="locale" href="?lang=ko" lang="ko">한국어</a><button id="theme" data-t="theme">Switch theme</button><a href="https://github.com/indra622/local-second-brain">GitHub</a></nav></header>
+<main>
+<section class="hero">
+<div><h1 data-t="hero">Keep what you learn with AI. Use it beyond the chat.</h1><p data-t="sub">Your own knowledge library, with sources attached and notes ready to reuse.</p><div class="actions"><a class="primary" href="#explore" data-t="explore">Explore sample</a><a class="button" id="install-link" href="https://github.com/indra622/local-second-brain#quick-start" data-t="install">Install</a></div></div>
+<figure class="brand-figure"><img src="assets/logo.png" alt="Linked folder and document mark" width="256" height="256"><figcaption data-t="mark">Your notes. Their sources. The next task.</figcaption></figure>
+</section>
+<section id="explore" aria-labelledby="explore-heading">
+<h2 id="explore-heading" data-t="benefit">Put your knowledge to work again</h2>
+<p data-t="example">A report rule changes from Friday to Thursday. Open the note, inspect its source, and compare the saved versions.</p>
+<p class="notice" data-t="disclosure">Illustrative browser explanation of CLI files. This is not a shipped CLI GUI or a live agent chat. All sample text is synthetic and prepared; no model generated it.</p>
+<noscript><p>JavaScript is needed for the explorer. 한국어: 탐색하려면 JavaScript가 필요합니다. <a href="data/sample.json">Sample data / 예제 데이터</a> | <a href="data/transcript.txt">Actual CLI transcript / 실제 CLI 출력</a></p></noscript>
+<p id="load-state" role="status">Loading sample / 예제 불러오는 중…</p>
+<div class="workbench" id="workbench" hidden>
+<aside><label for="search" data-t="filter">Filter sample notes</label><input id="search" type="search" aria-describedby="filter-help"><p id="filter-help" class="small" data-t="filterHelp">Browser substring filter over titles and all revision bodies. CLI search uses exact words.</p><div id="notes" aria-label="Sample notes"></div><p id="no-results" hidden data-t="noResults">No matching notes. Clear the filter or reset the sample.</p><button id="reset" data-t="reset">Reset sample</button></aside>
+<article id="note-panel" aria-labelledby="note-title"><div class="note-heading"><span class="small" data-t="savedNote">Saved note</span><h3 id="note-title"></h3></div><div class="controls"><label for="revision" data-t="revision">Revision</label><select id="revision"></select><button id="compare" aria-pressed="false" data-t="compare">Compare changes</button></div><p id="status" class="status"></p><p id="file-path" class="small mono"></p><pre id="body"></pre><details id="source-details"><summary data-t="sources">Inspect saved source</summary><div id="sources"></div></details><div class="handoff"><h4 data-t="next">What to give your agent next time</h4><p data-t="handoff">Attach the current note and its source. Ask your agent to draft the next report using the saved rules, and flag anything that needs checking.</p><code id="handoff-path"></code></div></article>
+</div>
+<p class="small" data-t="trust">These sample notes are drafts with unverified trust: no review is recorded. “Fresh” only means its deadline has not passed at the sample date, 28 October 2026. At or after 1 January 2030 it is stale. These labels do not verify facts.</p>
+<p class="small" data-t="sampleLanguage">The source files and CLI output stay in their original English when you switch language.</p>
+</section>
+<section class="replay" aria-labelledby="replay-title"><div><h2 id="replay-title" data-t="evidence">Keep the evidence behind the answer</h2><p data-t="replayIntro">Watch an actual CLI run save a note, find it again, and compare the changed rule.</p><button id="play" data-t="play">Play CLI replay</button><p class="small" data-t="caption">Selected actual CLI output; timing edited; full transcript linked below. Temporary paths are normalized. Synthetic prepared inputs; no model calls.</p><a href="assets/cli-poster.png" data-t="poster">Open static poster</a></div><figure><img id="replay-image" src="assets/cli-poster.png" alt="Actual CLI output: saving and recalling the report rule, then comparing Friday with Thursday." width="960" height="560" loading="lazy"></figure><details class="transcript"><summary data-t="transcript">Read the CLI transcript</summary><pre id="transcript"></pre><a href="data/transcript.txt" data-t="download">Open text transcript</a></details></section>
+<section class="files"><h2 data-t="files">Change your AI. Keep your files.</h2><p data-t="filesBody">Notes stay as Markdown. Captured sources keep their original bytes. Choose which files to give your next agent.</p><div class="file-tree mono">sample/wiki/<br>├── index.md<br>├── concepts/report-rules/<br>│   ├── r000001.md<br>│   └── r000002.md<br>└── sources/report-memo-2/content.raw</div><p data-t="limits">The current product is an early-alpha CLI. You choose sources and direct writing and reuse. It has no automatic memory, model integration, or semantic search.</p></section>
+</main><footer><span>Local Second Brain</span><a href="https://github.com/indra622/local-second-brain/blob/main/LICENSE">MIT License</a><a href="data/sample.json" data-t="data">Inspect public sample data</a></footer>
+</body></html>

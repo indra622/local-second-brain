@@ -1,5 +1,7 @@
 # Local Second Brain
 
+<img src="site/assets/logo.png" alt="" width="80" height="80">
+
 **English** | [한국어](README.ko.md)
 
 ## Keep what you learn with AI. Use it beyond the chat.
@@ -11,6 +13,17 @@ for technical decisions on your computer, alongside their source files. Search f
 note and give it to your AI for the next task, or inspect its sources and earlier versions.
 
 **[For agents](#for-agents)** | **[Manual quick start](#quick-start)**
+
+[![Local Second Brain introduction and working sample](site/assets/banner.png)](https://indra622.github.io/local-second-brain/)
+
+**[Explore the browser sample](https://indra622.github.io/local-second-brain/)**
+
+An illustrative explanation of CLI files using synthetic notes, not a shipped GUI or live AI chat.
+
+![Actual CLI saves and recalls a report rule, then compares its Friday and Thursday revisions](site/assets/cli-demo.gif)
+
+Selected actual CLI output; timing edited; full transcript linked below. Temporary paths are normalized. Synthetic prepared text; no model calls.
+[Static poster](site/assets/cli-poster.png) | [Text transcript](site/data/transcript.txt)
 
 ### Put your knowledge to work again
 
