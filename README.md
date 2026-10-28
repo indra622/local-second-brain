@@ -10,15 +10,15 @@
 
 **Spend less time explaining the same background to AI.**
 
-Save useful project rules, prior research, and reasons for decisions as notes with their sources; for a new task, choose the relevant notes and give them to your AI.
+Save useful project rules, prior research, and reasons for decisions as notes with their sources. For the next task, an agent you authorize finds and reads the relevant notes and works from them with your new material; you set the goal and review the result.
 
 **When the next report is due**
 
-Instead of gathering scattered research again and re-explaining the report rules, give your AI the saved materials and rules so you can focus on what changed this time.
+Instead of gathering scattered research again and re-explaining the report rules, ask your agent for this week's draft: it reads the saved criteria and research, combines them with this week's material, and you review what changed.
 
 **When you return to a paused project**
 
-In a new conversation or with a different AI, read the saved decision and its reason, then pass along the relevant notes to continue from there instead of rebuilding the background from scratch.
+In a new conversation or with a different agent, point it at the saved decision and its reason and continue from there instead of rebuilding the background from scratch.
 
 **When you revisit a conclusion**
 
@@ -26,13 +26,13 @@ Instead of relying on a lone summary or hunting for the same sources again, open
 
 Start the next task with useful background and criteria already at hand.
 
-[![Watch: use previous work as the starting point for the next report](site/assets/report-scenario-v1-en.jpg)](https://indra622.github.io/local-second-brain/assets/report-scenario-v1-en.mp4)
+[![Watch: an agent starts the next report from your previous work](site/assets/agent-report-v2-en.jpg)](https://indra622.github.io/local-second-brain/assets/agent-report-v2-en.mp4)
 
-[Watch the 34-second captioned scenario](https://indra622.github.io/local-second-brain/#report-scenario) | [Descriptive transcript](site/data/report-scenario-v1-en.txt). Fictional materials and a prepared outline; you choose and give the notes to AI.
+[Watch the 38-second captioned scenario](https://indra622.github.io/local-second-brain/#report-scenario) | [Descriptive transcript](site/data/agent-report-v2-en.txt). Fictional materials and a prepared draft; an agent you authorize finds the saved notes with the CLI and drafts from them.
 
 Local Second Brain stores notes such as project rules, research summaries, and reasons
-for technical decisions on your computer, alongside their source files. Search for a saved
-note and give it to your AI for the next task, or inspect its sources and earlier versions.
+for technical decisions on your computer, alongside their source files. An agent you authorize can search the
+saved notes and use them for the next task, and you can inspect their sources and earlier versions at any time.
 
 **[For agents](#for-agents)** | **[Manual quick start](#quick-start)**
 
@@ -53,8 +53,8 @@ The full transcript is linked below.
 ### Put your knowledge to work again
 
 For example, save the report-writing guidelines you worked out last time as a note.
-When you ask your AI to draft a new report, find and provide that note, then ask it
-to write according to the saved guidelines.
+When you ask your agent to draft a new report, it finds that note in the folder you
+allow and writes according to the saved guidelines.
 
 ### Keep the evidence behind the answer
 
@@ -73,7 +73,7 @@ the notes in a plain text editor without this tool or an AI account.
 An illustrative example:
 
 1. **Today:** Choose the research files worth keeping. Save them with a note you or your agent writes.
-2. **Next week:** Find that note and ask your agent to use it as a starting point for a report.
+2. **Next week:** Ask your agent for the report. It finds that note and uses it as a starting point.
 3. **When something changes:** Reopen the saved sources, check the new evidence, and save an updated note. The earlier version stays available.
 
 ## Who it's for
@@ -81,7 +81,7 @@ An illustrative example:
 For people who work with AI on research, project decisions, or recurring reports
 and want to carry useful knowledge from one task to the next.
 The current product is an early-alpha command-line tool (CLI), operated by typing commands
-in a terminal. You choose the sources and direct the writing and reuse. Start with an agent or follow the manual example below.
+in a terminal. You choose what to save, which folder an agent may use, and what to accept. Start with an agent or follow the manual example below.
 
 ## For agents
 

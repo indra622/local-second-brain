@@ -1,0 +1,176 @@
+<!doctype html><meta charset="utf-8"><title>Agent report scenario renderer</title>
+<style>html,body{margin:0;background:#111}canvas{display:block}</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+'use strict';
+// Bilingual deterministic renderer: ?lang=ko or ?lang=en. render(t) draws the frame at t seconds.
+// Local system fonts only; all names, dates and materials are synthetic.
+const ko=new URLSearchParams(location.search).get('lang')!=='en';
+const L=(a,b)=>ko?a:b;
+// Deterministic frame renderer: render(t) draws the frame for time t (seconds).
+// Local system fonts only. All data is synthetic.
+const W=1920,H=1080;
+const cv=document.getElementById('c'),c=cv.getContext('2d');
+const C={ink:'#182b2b',teal:'#176e69',tealL:'#87d0c6',ivory:'#f4f3ec',paper:'#fdfefe',tint:'#e3efed',muted:'#4d6262',line:'#c3d1cc',hair:'#dde6e2',ivoryDim:'rgba(244,243,236,.66)',ivoryFaint:'rgba(244,243,236,.2)',grey:'#e6e9e6',greyText:'#5c6a68'};
+const FONT='"Apple SD Gothic Neo","Helvetica Neue",sans-serif';
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const easeOut=x=>{x=clamp(x);return 1-Math.pow(1-x,3)};
+const easeInOut=x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const overflows=[];window.__overflows=overflows;window.__t=0;
+const font=(size,weight=500)=>`${weight} ${size}px ${FONT}`;
+function text(s,x,y,o={}){const {size=28,color=C.ink,weight=500,align='left',maxWidth=null,alpha=1,track=0}=o;c.save();c.globalAlpha*=alpha;c.fillStyle=color;c.font=font(size,weight);c.textAlign=align;c.textBaseline='alphabetic';c.letterSpacing=track+'px';const w=c.measureText(s).width;if(maxWidth&&w>maxWidth+.5)overflows.push({t:window.__t,s,w:Math.round(w),maxWidth});c.fillText(s,x,y);c.restore();return w}
+function wrap(s,size,weight,maxWidth){c.font=font(size,weight);c.letterSpacing='0px';const lines=[];let cur='';const push=()=>{if(cur){lines.push(cur);cur=''}};for(const wd of s.split(' ')){const trial=cur?cur+' '+wd:wd;if(c.measureText(trial).width<=maxWidth)cur=trial;else{push();if(c.measureText(wd).width<=maxWidth)cur=wd;else{for(const ch of wd){if(c.measureText(cur+ch).width<=maxWidth)cur+=ch;else{push();cur=ch}}}}}push();return lines}
+function para(s,x,y,o={}){const {size=28,weight=500,maxWidth=600,lineHeight=1.45,color=C.ink,alpha=1}=o;const lines=wrap(s,size,weight,maxWidth);lines.forEach((ln,i)=>text(ln,x,y+i*size*lineHeight,{size,weight,color,alpha,maxWidth}));return lines.length}
+function rect(x,y,w,h,o={}){const {fill=C.paper,stroke=null,r=10,lw=2,alpha=1,dash=null}=o;c.save();c.globalAlpha*=alpha;c.beginPath();c.roundRect(x,y,w,h,r);if(fill){c.fillStyle=fill;c.fill()}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw;if(dash)c.setLineDash(dash);c.stroke()}c.restore()}
+function line(x1,y1,x2,y2,o={}){const {color=C.hair,lw=2,alpha=1}=o;c.save();c.globalAlpha*=alpha;c.strokeStyle=color;c.lineWidth=lw;c.lineCap='round';c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();c.restore()}
+function check(x,y,s=1,color=C.teal,alpha=1,k=1){c.save();c.globalAlpha*=alpha;c.strokeStyle=color;c.lineWidth=4*s;c.lineCap='round';c.lineJoin='round';c.beginPath();c.moveTo(x,y);const p1=[x+8*s,y+8*s],p2=[x+24*s,y-10*s];if(k<.5){c.lineTo(lerp(x,p1[0],k*2),lerp(y,p1[1],k*2))}else{c.lineTo(p1[0],p1[1]);c.lineTo(lerp(p1[0],p2[0],(k-.5)*2),lerp(p1[1],p2[1],(k-.5)*2))}c.stroke();c.restore()}
+function tag(s,x,y,o={}){const {fill=C.tint,color=C.teal,size=20,weight=700,alpha=1,padX=14,h=34,stroke=null}=o;c.font=font(size,weight);c.letterSpacing='0px';const w=c.measureText(s).width+padX*2;rect(x,y,w,h,{fill,r:8,alpha,stroke});text(s,x+padX,y+h/2+size*.36,{size,weight,color,alpha});return w}
+function pointer(x,y,press=0,alpha=1){c.save();c.globalAlpha*=alpha;c.strokeStyle=C.teal;c.lineWidth=3;c.beginPath();c.arc(x,y,19-7*press,0,Math.PI*2);c.stroke();c.fillStyle=C.teal;c.beginPath();c.arc(x,y,5+4*press,0,Math.PI*2);c.fill();c.restore()}
+// pointer path helper: moves between waypoints [[t,x,y,press],...]
+function path(u,pts){if(u<=pts[0][0])return pts[0];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];if(u>=a[0]&&u<b[0]){const k=easeInOut((u-a[0])/(b[0]-a[0]));return [u,lerp(a[1],b[1],k),lerp(a[2],b[2],k),lerp(a[3],b[3],k)]}}return pts[pts.length-1]}
+
+// ---- layout ----
+const PW=640,PX=72,IW=PW-PX*2; // ink panel
+const SX=PW,M=80,X0=SX+M,X1=W-M,CW=X1-X0; // stage 1280 wide, content 1120
+
+// ---- synthetic data ----
+const notes=[
+ {d:L('8월 12일','Aug 12'),t:L('보고서 작성 기준','Report-writing criteria'),s:L('출처: 팀 합의 메모','Source: team agreement'),r:'r000002'},
+ {d:L('8월 20일','Aug 20'),t:L('1차 고객 인터뷰 정리','First customer interviews'),s:L('출처: 인터뷰 기록 3건','Source: 3 interview records'),r:'r000003'},
+ {d:L('9월 2일','Sep 2'),t:L('경쟁 도구 비교','Competitor comparison'),s:L('출처: 조사 메모','Source: research memo'),r:'r000001'},
+ {d:L('9월 9일','Sep 9'),t:L('결정: 소규모 파일럿부터','Decision: small pilot first'),s:L('출처: 검토 회의 기록','Source: review meeting'),r:'r000001'},
+ {d:L('9월 16일','Sep 16'),t:L('온보딩 설문 요약','Onboarding survey'),s:L('출처: 설문 응답 파일','Source: survey responses'),r:'r000001'},
+ {d:L('9월 30일','Sep 30'),t:L('가격 정책 메모','Pricing policy memo'),s:L('출처: 회의 기록','Source: meeting notes'),r:'r000002'},
+ {d:L('10월 7일','Oct 7'),t:L('지원 요청 패턴','Support request patterns'),s:L('출처: 티켓 발췌','Source: ticket excerpts'),r:'r000001'},
+];
+const hits=[0,1,3];
+const cards=[
+ {t:L('보고서 작성 기준','Report-writing criteria'),b:L('결정 → 근거 → 열린 질문 순서로 쓴다','Write in the order decision, evidence, open questions'),m:L('현재 리비전 r000002 · 출처 1건','Current revision r000002, 1 source'),s:L('출처: 팀 합의 메모 · 8월 12일','Source: team agreement memo, Aug 12')},
+ {t:L('1차 고객 인터뷰 정리','First customer interviews'),b:L('“설정 단계가 복잡하다” — 3건 중 2건','“Setup has too many steps”: 2 of 3'),m:L('현재 리비전 r000003 · 출처 3건','Current revision r000003, 3 sources'),s:L('출처: 인터뷰 기록 3건 · 8월 20일','Source: 3 interview records, Aug 20')},
+ {t:L('결정: 소규모 파일럿부터','Decision: small pilot first'),b:L('이유: 위험을 작게 두고 빨리 배우려고','Reason: keep the risk small and learn fast'),m:L('현재 리비전 r000001 · 출처 1건','Current revision r000001, 1 source'),s:L('출처: 검토 회의 기록 · 9월 9일','Source: review meeting notes, Sep 9')},
+];
+const HS=ko?54:46,HL=ko?72:60; // panel headline size and line height
+
+// ---- shared stage pieces ----
+function stageBase(){rect(SX,0,W-SX,H,{fill:C.ivory,r:0});text(L('에이전트 활용 시나리오 · 가상 자료로 그린 예시 장면','Agent use scenario. Illustrative scene drawn from fictional materials'),X0,1032,{size:21,weight:400,color:C.muted,maxWidth:CW})}
+function card(i,x,y,w,h,alpha=1){c.save();c.globalAlpha*=alpha;rect(x,y,w,h,{fill:C.paper,stroke:C.teal,r:12});tag(L('저장된 노트 · 에이전트가 읽음','Saved note, read by the agent'),x+24,y+22);text(cards[i].t,x+24,y+96,{size:28,weight:700,maxWidth:w-48});text(cards[i].b,x+24,y+132,{size:ko?22:20,weight:400,maxWidth:w-48});text(cards[i].m,x+24,y+166,{size:19,weight:600,color:C.teal,maxWidth:w-48});text(cards[i].s,x+24,y+h-20,{size:19,weight:400,color:C.muted,maxWidth:w-48});c.restore()}
+function curve(x1,y1,x2,y2,k,o={}){const {color=C.teal,lw=3,alpha=1}=o;if(k<=0)return;c.save();c.globalAlpha*=alpha;c.strokeStyle=color;c.lineWidth=lw;c.lineCap='round';c.beginPath();const cx1=x1+(x2-x1)*.5,cx2=x2-(x2-x1)*.5;const n=40;for(let i=0;i<=n*k;i++){const t=i/n;const mt=1-t;const x=mt*mt*mt*x1+3*mt*mt*t*cx1+3*mt*t*t*cx2+t*t*t*x2;const y=mt*mt*mt*y1+3*mt*mt*t*y1+3*mt*t*t*y2+t*t*t*y2;if(i===0)c.moveTo(x,y);else c.lineTo(x,y)}c.stroke();if(k>=1){c.fillStyle=color;c.beginPath();c.arc(x2,y2,6,0,Math.PI*2);c.fill()}c.restore()}
+// ledger on the right: date/title/source stacked, agent hits highlighted
+function ledger2(x,w,u,hitAt,dimAfter){const y0=232,rh=86;tag(L('저장된 노트','Saved notes'),x,150);text(L('허용한 지식 폴더','Allowed knowledge folder'),x+150,174,{size:22,weight:400,color:C.muted,maxWidth:w-150});line(x,y0-10,x+w,y0-10,{color:C.ink,lw:2});
+ notes.forEach((n,i)=>{const y=y0+i*rh;const hi=hits.indexOf(i);const k=hi>=0?smooth((u-hitAt[hi])/.4):0;const dim=(u>dimAfter&&hi<0)?lerp(1,.4,smooth((u-dimAfter)/.5)):1;
+  if(k>0)rect(x-12,y+6,w+24,rh-12,{fill:C.tint,r:8,alpha:k});
+  c.save();c.globalAlpha*=dim;text(n.d,x+8,y+40,{size:20,weight:400,color:C.muted});text(n.t,x+130,y+42,{size:ko?27:25,weight:600,maxWidth:300});text(n.s+(ko?' · ':', ')+n.r,x+130,y+70,{size:18,weight:400,color:C.muted,maxWidth:300});line(x,y+rh-4,x+w,y+rh-4);c.restore();
+  if(k>0)tag(L('찾음','found'),x+w-78,y+26,{alpha:k,fill:C.teal,color:C.paper,size:18,h:30,padX:12});
+ });}
+
+// ---- beats ----
+const beats=[
+{dur:5,head:L('에이전트에게 한 번만 말합니다.','Tell the agent once.'),sub:L('노트를 하나씩 고르지 않아도, 목표와 범위만 전하면 됩니다.','No picking notes one by one. Give the goal and the scope.'),draw(u){
+ const k=easeOut(u/.8);const x=X0+40*(1-k);
+ rect(x,150,760,220,{fill:C.paper,stroke:C.line,r:14,alpha:k});tag(L('사용자 요청','User request'),x+32,180,{alpha:k});
+ para(L('지난 조사와 보고서 기준을 참고해서, 이번 주 보고서 초안을 써 줘.','Using my past research and the report criteria, draft this week’s report.'),x+32,268,{size:32,weight:700,maxWidth:696,lineHeight:1.4,alpha:k});
+ const a1=easeOut((u-.9)/.6);rect(X0,410,760,380,{fill:C.paper,stroke:C.line,r:14,alpha:a1});tag(L('함께 준 범위 · 한 번만','Scope given once'),X0+32,440,{alpha:a1});
+ const rows=[[L('허용한 지식 폴더','Allowed knowledge folder'),L('저장된 노트와 출처 파일이 있는 폴더 하나','One folder of notes and source files')],[L('이번 주 입력','This week’s inputs'),L('새 인터뷰 3건 · 파일럿 결과','3 new interviews, pilot results')],[L('작업 절차','Workflow'),L('에이전트 공통 작업 절차 문서','The agent workflow document')]];
+ rows.forEach((r,i)=>{const a=easeOut((u-1.4-i*.45)/.5);const y=530+i*86;rect(X0+32,y-24,10,34,{fill:C.teal,r:3,alpha:a});text(r[0],X0+62,y,{size:ko?26:25,weight:700,alpha:a,maxWidth:ko?300:312});text(r[1],X0+(ko?330:380),y,{size:23,weight:400,color:C.muted,alpha:a,maxWidth:ko?420:370})});
+ const ax=1520,aw=320;rect(ax,150,aw,330,{fill:C.tint,r:14,alpha:k});tag(L('에이전트','Agent'),ax+28,180,{alpha:k,fill:C.teal,color:C.paper});
+ const st=[[L('작업 접수','Task received'),.6],[L('범위 확인','Checking scope'),2.9],[L('허용한 폴더와 입력만 읽음','Reads only the allowed folder and inputs'),3.6]];
+ st.forEach((s,i)=>{const a=easeOut((u-s[1])/.5);if(i<2)text(s[0],ax+28,275+i*58,{size:26,weight:700,color:C.ink,alpha:a,maxWidth:aw-56});else para(s[0],ax+28,275+i*58,{size:21,weight:400,color:C.muted,alpha:a,maxWidth:aw-56,lineHeight:1.4})});
+ const a2=easeOut((u-3.9)/.6);text(L('노트를 하나씩 고르거나 붙여 넣지 않습니다.','No picking or pasting notes one by one.'),X0,870+12*(1-a2),{size:30,weight:700,color:C.teal,alpha:a2,maxWidth:CW});
+}},
+{dur:7,head:L('에이전트가 저장된 노트를 찾아 읽습니다.','The agent finds and reads the saved notes.'),sub:L('허용된 폴더 안에서 정확한 단어로 검색하고, 본문·출처·현재 리비전을 확인합니다.','Inside the allowed folder it searches exact words and checks the body, sources and current revision.'),draw(u){
+ const a0=easeOut(u/.6);const lx=X0,lw=560;rect(lx,150,lw,600,{fill:C.paper,stroke:C.line,r:14,alpha:a0});tag(L('에이전트가 저장된 노트를 검색하고 읽는 중','Agent searching and reading saved notes'),lx+28,178,{alpha:a0});
+ const steps=[[L('검색 “보고서 기준”','Search “report criteria”'),L('1건 · 현재 리비전','1 hit, current revision'),.9],[L('검색 “인터뷰”','Search “interview”'),L('1건 · 출처 3건','1 hit, 3 sources'),2.0],[L('검색 “파일럿”','Search “pilot”'),L('1건 · 결정과 이유','1 hit, decision and reason'),3.1],[L('본문 · 출처 파일 · 리비전 읽기','Read body, source files, revision'),L('세 노트 모두','all three notes'),4.3],[L('상태 확인','Check status'),L('초안 · 사람 검토 전 · 유효 기한 없음','draft, not yet reviewed, no expiry'),5.3]];
+ steps.forEach((s,i)=>{const a=easeOut((u-s[2])/.5);const y=270+i*92;const yy=y+10*(1-a);c.save();c.globalAlpha*=a;rect(lx+28,yy-26,34,34,{fill:C.tint,r:17});text(String(i+1),lx+45,yy-2,{size:19,weight:700,color:C.teal,align:'center'});text(s[0],lx+80,yy,{size:25,weight:700,maxWidth:450});text(s[1],lx+80,yy+32,{size:21,weight:400,color:C.muted,maxWidth:450});c.restore()});
+ const na=easeOut((u-5.9)/.5);para(L('검색은 정확한 단어로 합니다. 알맞은 검색어는 에이전트가 고릅니다.','Search matches exact words. The agent chooses suitable terms.'),lx,820,{size:22,weight:400,maxWidth:560,color:C.muted,alpha:na,lineHeight:1.5});
+ c.save();c.globalAlpha*=a0;ledger2(1340,500,u,[1.1,2.2,3.3],4.6);c.restore();
+}},
+{dur:7,head:L('지난 결정과 그 이유를 이번 주 자료와 연결합니다.','It links the past decision and its reason to this week’s material.'),sub:L('에이전트가 읽은 것: 보고서 기준, 지난 인터뷰, 파일럿 결정과 이유. 사용자가 준 것: 새 인터뷰 3건, 파일럿 결과.','Agent read: report criteria, past interviews, the pilot decision and reason. User gave: 3 new interviews, pilot results.'),draw(u){
+ const a0=easeOut(u/.6);tag(L('에이전트가 읽고 연결하는 중','Agent reading and connecting'),X0,150,{alpha:a0});
+ const cw=500,ch=215;const cy=i=>205+i*235;
+ for(let i=0;i<3;i++){const a=easeOut((u-.3-i*.35)/.5);card(i,X0,cy(i)+12*(1-a),cw,ch,a)}
+ const rx=1340,rw=500;const b1=easeOut((u-.8)/.6);rect(rx,205,rw,215,{fill:C.paper,stroke:C.line,r:12,alpha:b1});tag(L('이번 주 입력 · 사용자가 준 자료','This week’s inputs, given by the user'),rx+24,227,{alpha:b1});
+ text(L('새 인터뷰 3건','3 new interviews'),rx+24,300,{size:26,weight:700,alpha:b1});text(L('참여자 D · E · F, 10월 둘째 주','Participants D, E, F, second week of October'),rx+24,332,{size:20,weight:400,color:C.muted,alpha:b1,maxWidth:rw-48});
+ text(L('파일럿 결과','Pilot results'),rx+24,375,{size:26,weight:700,alpha:b1});text(L('2주 운영 기록과 설문','Two weeks of run logs and a survey'),rx+24,405,{size:20,weight:400,color:C.muted,alpha:b1,maxWidth:rw-48});
+ const b2=easeOut((u-2.2)/.6);rect(rx,475,rw,420,{fill:C.tint,r:12,alpha:b2});tag(L('연결 메모 · 에이전트','Connection notes, agent'),rx+24,497,{alpha:b2,fill:C.teal,color:C.paper});
+ const memos=[L('같은 기준(결정 → 근거 → 열린 질문)으로 쓴다','Use the same criteria: decision, evidence, open questions'),L('지난 인터뷰의 “설정 복잡” ↔ 파일럿 설정 단계 이탈 2건','Past “setup too complex” relates to 2 setup drop-offs in the pilot'),L('파일럿부터 시작한 이유 ↔ 확대 여부는 이번 주 판단','Why the pilot came first informs this week’s expansion call')];
+ memos.forEach((m,i)=>{const a=easeOut((u-2.8-i*1.1)/.5);const y=575+i*100;rect(rx+24,y-22,6,30,{fill:C.teal,r:2,alpha:a});para(m,rx+46,y,{size:22,weight:500,maxWidth:rw-70,lineHeight:1.4,alpha:a})});
+ const links=[[0,cy(0)+ch/2,rx,575-8,2.6],[1,cy(1)+ch/2,rx,675-8,3.7],[2,cy(2)+ch/2,rx,775-8,4.8]];
+ links.forEach(l=>{const k=easeInOut((u-l[4])/.7);curve(X0+cw,l[1],l[2],l[3],k)});
+}},
+{dur:8,head:L('지난 기준 위에, 이번 주의 새 근거로 초안을 씁니다.','On the saved criteria, it drafts with this week’s new evidence.'),sub:L('미리 써 본 예시 초안입니다. 실제 AI 출력이 아닙니다.','A prepared example draft, not live AI output.'),draw(u){
+ const a0=easeOut(u/.7);const dx=X0,dw=780;rect(dx,130,dw,800,{fill:C.paper,stroke:C.line,r:14,alpha:a0});
+ tag(L('에이전트가 쓴 초안 예시 · 미리 써 본 것','Example draft by the agent, prepared in advance'),dx+32,156,{alpha:a0});
+ text(L('주간 보고서 초안','Weekly report draft'),dx+32,246,{size:40,weight:700,alpha:a0});
+ text(L('저장된 기준 그대로: 결정 → 근거 → 열린 질문','Saved criteria as before: decision, evidence, open questions'),dx+32,290,{size:22,weight:400,color:C.muted,alpha:a0,maxWidth:dw-64});
+ const secs=[
+  {h:L('1. 결정','1. Decision'),items:[[L('소규모 파일럿 유지, 대상 팀 1곳 추가 제안','Keep the small pilot; propose adding one team'),1]]},
+  {h:L('2. 근거','2. Evidence'),items:[[L('지난 인터뷰: “설정 단계가 복잡하다” (3건 중 2건)','Past interviews: “setup has too many steps” (2 of 3)'),0],[L('이번 주 파일럿: 설정 단계 이탈 2건, 완료 후 만족 높음','This week’s pilot: 2 setup drop-offs, high satisfaction after'),1],[L('새 인터뷰 D·E·F: 안내 문서 요청 3건 모두','New interviews D, E, F: all 3 asked for a setup guide'),1]]},
+  {h:L('3. 열린 질문','3. Open questions'),items:[[L('설정 안내는 누가 맡는가?','Who owns the setup guide?'),1],[L('파일럿 확대 시점은? (9월 결정 당시의 질문, 아직 열림)','When to expand the pilot? (asked in September, still open)'),0]]},
+ ];
+ let y=350,idx=0;
+ secs.forEach(sec=>{const ha=easeOut((u-.6-idx*.42)/.5);text(sec.h,dx+32,y,{size:26,weight:700,color:C.teal,alpha:ha});line(dx+32,y+14,dx+dw-32,y+14,{alpha:ha});y+=50;
+  sec.items.forEach(it=>{idx++;const a=easeOut((u-.6-idx*.42)/.5);const isNew=it[1]===1;const yy=y+10*(1-a);
+   if(isNew)rect(dx+32,yy-26,5,52,{fill:C.teal,r:2,alpha:a});
+   const tw=tag(isNew?L('이번 주','this week'):L('저장 노트','saved note'),dx+50,yy-24,{alpha:a,fill:isNew?C.teal:C.grey,color:isNew?C.paper:C.greyText,size:18,h:30,padX:12});
+   text(it[0],dx+50+tw+14,yy,{size:ko?24:22,weight:isNew?600:400,color:isNew?C.ink:C.greyText,alpha:a,maxWidth:dw-110-tw});
+   y+=58});
+  y+=16});
+ const fa=easeOut((u-4.6)/.6);line(dx+32,y-10,dx+dw-32,y-10,{alpha:fa});text(L('인용: 보고서 작성 기준 r000002 · 인터뷰 정리 r000003 · 파일럿 결정 r000001','Cites: report criteria r000002, interviews r000003, pilot decision r000001'),dx+32,y+26,{size:20,weight:400,maxWidth:dw-64,color:C.muted,alpha:fa});
+ const lx=1540,la=easeOut((u-1)/.6);
+ text(L('읽는 법','How to read'),lx,180,{size:22,weight:700,color:C.muted,alpha:la});
+ tag(L('저장 노트','saved note'),lx,206,{alpha:la,fill:C.grey,color:C.greyText,size:18,h:30,padX:12});para(L('저장된 노트에서 가져온 기준과 근거','Criteria and evidence taken from saved notes'),lx,266,{size:21,weight:400,maxWidth:300,color:C.muted,alpha:la,lineHeight:1.45});
+ tag(L('이번 주','this week'),lx,350,{alpha:la,fill:C.teal,color:C.paper,size:18,h:30,padX:12});para(L('이번 주 입력에서 나온 새 근거와 질문','New evidence and questions from this week’s inputs'),lx,410,{size:21,weight:400,maxWidth:300,color:C.muted,alpha:la,lineHeight:1.45});
+ const ca=easeOut((u-5.2)/.6);rect(lx,520,300,210,{fill:C.tint,r:12,alpha:ca});text(L('저장 노트 인용','Saved notes cited'),lx+24,566,{size:21,weight:600,color:C.teal,alpha:ca});text('3',lx+276,566,{size:26,weight:700,color:C.teal,alpha:ca,align:'right'});text(L('새 근거','New evidence'),lx+24,620,{size:21,weight:600,color:C.teal,alpha:ca});text('3',lx+276,620,{size:26,weight:700,color:C.teal,alpha:ca,align:'right'});text(L('새 질문','New questions'),lx+24,674,{size:21,weight:600,color:C.teal,alpha:ca});text('1',lx+276,674,{size:26,weight:700,color:C.teal,alpha:ca,align:'right'});
+ const na=easeOut((u-6.0)/.6);para(L('상태: 초안 · 사람 검토 전','Status: draft, not yet reviewed by a person'),lx,790,{size:22,weight:700,color:C.ink,alpha:na,maxWidth:300,lineHeight:1.4});para(L('CLI가 글을 쓰지는 않습니다. 저장·리비전·검색만 맡습니다.','The CLI does not write text. It stores, versions and searches.'),lx,ko?836:866,{size:20,weight:400,maxWidth:300,color:C.muted,alpha:na,lineHeight:1.5});
+}},
+{dur:6,head:L('사용자는 달라진 내용과 다음 판단만 검토합니다.','You review only what changed and the next decision.'),sub:L('지난 배경을 다시 설명하는 대신, 이번 주 달라진 내용과 다음 판단에 집중합니다.','Instead of re-explaining the past background, focus on what changed this week and the next decision.'),draw(u){
+ const a0=easeOut(u/.6);const lx=X0,lw=560;rect(lx,150,lw,400,{fill:C.paper,stroke:C.line,r:14,alpha:a0});tag(L('에이전트의 검토 요청','The agent’s review request'),lx+28,178,{alpha:a0});
+ const items=[[L('새 근거','New evidence'),L('파일럿 설정 단계 이탈 2건','2 setup drop-offs in the pilot')],[L('새 근거','New evidence'),L('새 인터뷰 3건 모두 안내 문서 요청','All 3 want a setup guide')],[L('열린 질문','Open question'),L('설정 안내는 누가 맡는가?','Who owns the setup guide?')]];
+ items.forEach((it,i)=>{const a=easeOut((u-.5-i*.4)/.5);const y=270+i*92;rect(lx+28,y-26,5,52,{fill:C.teal,r:2,alpha:a});const tw=tag(it[0],lx+46,y-24,{alpha:a,fill:C.teal,color:C.paper,size:18,h:30,padX:12});text(it[1],lx+46+tw+14,y,{size:ko?24:22,weight:600,alpha:a,maxWidth:lw-120-tw})});
+ const sa=easeOut((u-2.0)/.5);text(L('다시 설명하지 않은 것','Not explained again'),lx,640,{size:24,weight:700,color:C.muted,alpha:sa});
+ const left=[L('보고서 기준','Report criteria'),L('지난 인터뷰 내용','Past interview content'),L('파일럿을 택한 이유','Why the pilot came first')];
+ left.forEach((s,i)=>{const y=700+i*62;const a=easeOut((u-2.2-i*.2)/.4);const k=easeInOut((u-2.9-i*.25)/.4);text(s,lx,y,{size:26,weight:500,color:C.greyText,alpha:a*(1-.4*k),maxWidth:500});c.font=font(26,500);c.letterSpacing='0px';const w=c.measureText(s).width;if(k>0)line(lx,y-9,lx+w*k,y-9,{color:C.teal,lw:4,alpha:a})});
+ const rx=1320,rw=520;const b=easeOut((u-1.2)/.6);rect(rx,150,rw,560,{fill:C.paper,stroke:C.teal,r:14,alpha:b});tag(L('다음 판단 · 사용자','Next decision, user'),rx+28,178,{alpha:b});
+ para(L('파일럿을 유지하고 대상 팀 1곳을 추가할까?','Keep the pilot and add one more team?'),rx+28,262,{size:28,weight:700,maxWidth:rw-56,lineHeight:1.4,alpha:b});
+ const opts=[[L('유지 + 안내 문서 먼저','Keep it, setup guide first'),L('새 근거 3건과 맞음','matches the 3 new findings')],[L('지금 확대','Expand now'),L('설정 이탈 원인을 모른 채','without knowing why setup fails')]];
+ const pick=easeOut((u-3.6)/.4);
+ opts.forEach((o,i)=>{const a=easeOut((u-2.0-i*.3)/.5);const y=380+i*120;const sel=i===0?pick:0;rect(rx+28,y,rw-56,96,{fill:sel>0?C.tint:C.paper,stroke:sel>0?C.teal:C.line,r:10,alpha:a,lw:sel>0?3:2});if(sel>0)check(rx+52,y+46,1,C.teal,a,sel);text(o[0],rx+(sel>0?92:52),y+44,{size:25,weight:700,alpha:a,maxWidth:rw-150});text(o[1],rx+(sel>0?92:52),y+76,{size:20,weight:400,color:C.muted,alpha:a,maxWidth:rw-150})});
+ const pts=[[0,rx+430,330,0],[2.6,rx+430,330,0],[3.4,rx+120,430,0],[3.6,rx+120,430,1],[3.8,rx+120,430,0],[4.4,rx+460,450,0]];const p=path(u,pts);if(u>2.4)pointer(p[1],p[2],p[3],b);
+ const na=easeOut((u-4.3)/.5);para(L('지시하면 에이전트가 이 결정을 새 리비전으로 저장합니다.','If you say so, the agent saves this decision as a new revision.'),rx+28,650,{size:21,weight:400,maxWidth:rw-56,color:C.muted,alpha:na,lineHeight:1.5});
+}},
+{dur:4.5,head:L('매번 처음부터가 아니라, 지난 작업을 출발점으로.','Not from scratch every time. Start from your previous work.'),sub:L('한 번 정리한 지식이 에이전트를 통해 다음 보고서에서 다시 일합니다.','Knowledge you organized once works again in the next report, through the agent.'),draw(u){
+ const nodes=[[L('저장된 노트','Saved notes'),L('CLI: 저장 · 리비전 · 검색','CLI: store, revise, search')],[L('에이전트','Agent'),L('읽기 · 연결 · 초안','read, connect, draft')],[L('이번 주 초안','This week’s draft'),L('지난 기준 + 새 근거','saved criteria + new evidence')],[L('사용자','User'),L('목표 · 범위 · 결정','goal, scope, decision')]];
+ const nw=240,gap=(CW-nw*4)/3;
+ nodes.forEach((n,i)=>{const a=easeOut((u-.2-i*.5)/.5);const x=X0+i*(nw+gap);const y=300;rect(x,y,nw,150,{fill:i===1?C.teal:C.paper,stroke:i===1?null:C.line,r:14,alpha:a});text(n[0],x+nw/2,y+70,{size:ko?28:26,weight:700,color:i===1?C.paper:C.ink,align:'center',alpha:a,maxWidth:nw-24});text(n[1],x+nw/2,y+112,{size:ko?19:17,weight:400,color:i===1?'rgba(253,254,254,.85)':C.muted,align:'center',alpha:a,maxWidth:nw-20});
+  if(i<3){const k=easeInOut((u-.6-i*.5)/.4);const x1=x+nw,x2=x+nw+gap;line(x1+8,y+75,x1+8+(x2-x1-16)*k,y+75,{color:C.teal,lw:4,alpha:1});if(k>=1){c.save();c.fillStyle=C.teal;c.beginPath();c.arc(x2-8,y+75,6,0,Math.PI*2);c.fill();c.restore()}}});
+ const ba=easeOut((u-2.3)/.6);para(L('지난 조사, 보고서 기준, 결정 이유를 다시 설명하지 않아도 이번 주 초안에 그대로 들어갑니다.','Past research, report criteria and decision reasons go into this week’s draft without being explained again.'),X0,560+10*(1-ba),{size:30,weight:700,maxWidth:CW,lineHeight:1.45,color:C.ink,alpha:ba});
+ const wa=easeOut((u-3.0)/.6);line(X0,760,X1,760,{color:C.line,alpha:wa});
+ text('LOCAL SECOND BRAIN',X0,830,{size:30,weight:700,color:C.teal,track:4,alpha:wa});
+ text(L('출처가 있는 노트를 내 컴퓨터에 저장하고, 허용한 에이전트가 다음 작업에서 찾아 쓰게 하는 도구','Save sourced notes on your computer and let an agent you authorize find and use them in the next task'),X0,876,{size:24,weight:400,color:C.muted,alpha:wa,maxWidth:CW});
+}},
+];
+let acc=0;beats.forEach(b=>{b.start=acc;acc+=b.dur});const TOTAL=acc;window.TOTAL=TOTAL;window.beats=beats.map(b=>({start:b.start,dur:b.dur,head:b.head,sub:b.sub}));
+
+function drawPanel(i,u){const b=beats[i];rect(0,0,PW,H,{fill:C.ink,r:0});
+ text('LOCAL SECOND BRAIN',PX,96,{size:22,weight:700,color:C.tealL,track:3});
+ text(L('에이전트와 다음 보고서','Agent and the next report'),PX,134,{size:22,weight:400,color:C.ivoryDim});
+ const k=easeOut(u/.7),dy=26*(1-k);
+ text(String(i+1).padStart(2,'0'),PX-6,318+dy,{size:150,weight:200,color:C.ivoryFaint,alpha:k});
+ rect(PX,352+dy,64,4,{fill:C.tealL,r:2,alpha:k});
+ const lines=wrap(b.head,HS,700,IW);lines.forEach((ln,j)=>text(ln,PX,436+j*HL+dy,{size:HS,weight:700,color:C.ivory,alpha:k,maxWidth:IW}));
+ const subY=436+lines.length*HL+22;
+ para(b.sub,PX,subY,{size:25,weight:400,maxWidth:IW,lineHeight:1.55,color:C.ivoryDim,alpha:k*smooth((u-.25)/.5)});
+ const seg=(IW+10)/beats.length;beats.forEach((bb,j)=>{const x=PX+j*seg,w=seg-10;const prog=j<i?1:j===i?clamp(u/bb.dur):0;rect(x,986,w,4,{fill:C.ivoryFaint,r:2});rect(x,986,w*prog,4,{fill:C.tealL,r:2})});
+ text(`${i+1} / ${beats.length}`,PX,1032,{size:20,weight:500,color:C.ivoryDim});
+ const tt=Math.min(TOTAL,b.start+u);text(`00:${String(Math.floor(tt)).padStart(2,'0')}`,PX+IW,1032,{size:20,weight:400,color:C.ivoryDim,align:'right'});
+}
+window.render=t=>{window.__t=t;t=clamp(t,0,TOTAL-1e-6);c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;c.clearRect(0,0,W,H);
+ let i=beats.findIndex(b=>t>=b.start&&t<b.start+b.dur);if(i<0)i=beats.length-1;const b=beats[i],u=t-b.start;
+ stageBase();const X=.5;
+ if(i>0&&u<X&&!b.nocut){const k=smooth(u/X);c.save();c.globalAlpha=1-k;beats[i-1].draw(beats[i-1].dur);c.restore();c.save();c.globalAlpha=k;b.draw(u);c.restore()}else b.draw(u);
+ drawPanel(i,u);
+};
+render(0);
+</script>
