@@ -8,13 +8,19 @@
 
 **Your own knowledge library, with sources attached and notes ready to reuse.**
 
+**The Second Brain we are building toward**
+
+<img src="site/assets/second-brain-vision-v01.webp" alt="Future vision: source documents on the left connect with notes and past decisions around today’s question, leading to a finished report on the right." width="1672" height="941">
+
+Past sources and decisions connect, so relevant knowledge can support today’s question and the next report or task.
+
+A vision illustration, not a current product screen. Today, you save and search notes with a command-line tool and choose what to give your AI.
+
 Local Second Brain stores notes such as project rules, research summaries, and reasons
 for technical decisions on your computer, alongside their source files. Search for a saved
 note and give it to your AI for the next task, or inspect its sources and earlier versions.
 
 **[For agents](#for-agents)** | **[Manual quick start](#quick-start)**
-
-[![Local Second Brain introduction and working sample](site/assets/banner.png)](https://indra622.github.io/local-second-brain/)
 
 **[Explore the browser sample](https://indra622.github.io/local-second-brain/)**
 
