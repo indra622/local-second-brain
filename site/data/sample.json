@@ -1,0 +1,183 @@
+{
+  "evaluatedAt": "2026-10-28T00:00:00+00:00",
+  "deadline": "2030-01-01T00:00:00+00:00",
+  "notes": [
+    {
+      "id": "report-rules",
+      "titleKo": "보고서 작성 규칙",
+      "revisions": [
+        {
+          "path": "concepts/report-rules/r000001.md",
+          "current": false,
+          "title": "Report-writing rules",
+          "metadata": {
+            "type": "Concept",
+            "title": "Report-writing rules",
+            "status": "draft",
+            "generated": {
+              "by": "prepared-fixture/1",
+              "at": "2026-10-28T10:15:43.323870+00:00"
+            },
+            "sources": [
+              {
+                "id": "report-memo-1",
+                "resource": "../../sources/report-memo-1/content.raw"
+              }
+            ],
+            "stale_after": "2030-01-01T00:00:00+00:00"
+          },
+          "body": "# Report-writing rules\nSend the weekly report on Friday.\nInclude decisions, evidence links and open questions.\n",
+          "status": "draft",
+          "trust": "unverified",
+          "stale": false,
+          "stale_after": "2030-01-01T00:00:00+00:00",
+          "generated": {
+            "by": "prepared-fixture/1",
+            "at": "2026-10-28T10:15:43.323870+00:00"
+          },
+          "verified": null,
+          "metadata_errors": []
+        },
+        {
+          "path": "concepts/report-rules/r000002.md",
+          "current": true,
+          "title": "Report-writing rules",
+          "metadata": {
+            "type": "Concept",
+            "title": "Report-writing rules",
+            "status": "draft",
+            "generated": {
+              "by": "prepared-fixture/1",
+              "at": "2026-10-28T10:15:43.403783+00:00"
+            },
+            "sources": [
+              {
+                "id": "report-memo-2",
+                "resource": "../../sources/report-memo-2/content.raw"
+              }
+            ],
+            "stale_after": "2030-01-01T00:00:00+00:00"
+          },
+          "body": "# Report-writing rules\nSend the weekly report on Thursday.\nInclude decisions, evidence links and open questions.\n",
+          "status": "draft",
+          "trust": "unverified",
+          "stale": false,
+          "stale_after": "2030-01-01T00:00:00+00:00",
+          "generated": {
+            "by": "prepared-fixture/1",
+            "at": "2026-10-28T10:15:43.403783+00:00"
+          },
+          "verified": null,
+          "metadata_errors": []
+        }
+      ],
+      "sources": {
+        "report-memo-1": {
+          "text": "Synthetic team memo, 2026-10-01\nWeekly report: send on Friday. Include decisions, evidence links and open questions.\n",
+          "sha256": "66729887eded0255ef0d683c234858f9e8d914b0696d526c9479b3b7c4421892"
+        },
+        "report-memo-2": {
+          "text": "Synthetic team memo, 2026-10-15\nWeekly report: send on Thursday. Include decisions, evidence links and open questions.\n",
+          "sha256": "1496d1c14a967b9199fc7518ea42a02e599687153f9f0be404943af22e96892d"
+        }
+      },
+      "diff": "--- concepts/report-rules/r000001.md\n+++ concepts/report-rules/r000002.md\n@@ -4,12 +4,12 @@\n status: draft\n generated:\n   by: prepared-fixture/1\n-  at: '2026-10-28T10:15:43.323870+00:00'\n+  at: '2026-10-28T10:15:43.403783+00:00'\n sources:\n-- id: report-memo-1\n-  resource: ../../sources/report-memo-1/content.raw\n+- id: report-memo-2\n+  resource: ../../sources/report-memo-2/content.raw\n stale_after: '2030-01-01T00:00:00+00:00'\n ---\n # Report-writing rules\n-Send the weekly report on Friday.\n+Send the weekly report on Thursday.\n Include decisions, evidence links and open questions.\n"
+    },
+    {
+      "id": "research-handoff",
+      "titleKo": "조사 자료 전달",
+      "revisions": [
+        {
+          "path": "concepts/research-handoff/r000001.md",
+          "current": true,
+          "title": "Research handoff",
+          "metadata": {
+            "type": "Concept",
+            "title": "Research handoff",
+            "status": "draft",
+            "generated": {
+              "by": "prepared-fixture/1",
+              "at": "2026-10-28T10:15:43.484051+00:00"
+            },
+            "sources": [
+              {
+                "id": "research-memo",
+                "resource": "../../sources/research-memo/content.raw"
+              }
+            ],
+            "stale_after": "2030-01-01T00:00:00+00:00"
+          },
+          "body": "# Research handoff\nKeep evidence links with each decision.\nList unanswered questions separately.\n",
+          "status": "draft",
+          "trust": "unverified",
+          "stale": false,
+          "stale_after": "2030-01-01T00:00:00+00:00",
+          "generated": {
+            "by": "prepared-fixture/1",
+            "at": "2026-10-28T10:15:43.484051+00:00"
+          },
+          "verified": null,
+          "metadata_errors": []
+        }
+      ],
+      "sources": {
+        "research-memo": {
+          "text": "Synthetic research memo\nKeep evidence links with each decision. List unanswered questions separately.\n",
+          "sha256": "63c12767f61cb71f7f069ceb73b59e26ada4dbef9cf11c875a960ce070762c94"
+        }
+      },
+      "diff": ""
+    }
+  ],
+  "search": [
+    {
+      "path": "concepts/report-rules/r000002.md",
+      "current": true,
+      "title": "Report-writing rules",
+      "status": "draft",
+      "trust": "unverified",
+      "stale": false,
+      "stale_after": "2030-01-01T00:00:00+00:00",
+      "generated": {
+        "by": "prepared-fixture/1",
+        "at": "2026-10-28T10:15:43.403783+00:00"
+      },
+      "verified": null,
+      "metadata_errors": [],
+      "score": 3,
+      "snippet": "# Report-writing rules Send the weekly report on Thursday. Include decisions, evidence links and open questions."
+    }
+  ],
+  "check": {
+    "invalid": [],
+    "warnings": [],
+    "stale": [],
+    "concepts": 3
+  },
+  "frames": [
+    {
+      "command": "second-brain curate sample/wiki report-rules --body fixtures/report-v1.md --source report-memo-1 --actor prepared-fixture/1 --title 'Report-writing rules' --stale-after 2030-01-01T00:00:00+00:00",
+      "output": "{\n  \"revision\": \"concepts/report-rules/r000001.md\"\n}\n"
+    },
+    {
+      "command": "second-brain curate sample/wiki report-rules --body fixtures/report-v2.md --source report-memo-2 --actor prepared-fixture/1 --title 'Report-writing rules' --stale-after 2030-01-01T00:00:00+00:00",
+      "output": "{\n  \"revision\": \"concepts/report-rules/r000002.md\"\n}\n"
+    },
+    {
+      "command": "second-brain search sample/wiki report --current-only --now 2026-10-28T00:00:00+00:00 --format text",
+      "output": "concepts/report-rules/r000002.md [current]\n  Report-writing rules\n  status: draft | trust: unverified | fresh\n\n  # Report-writing rules Send the weekly report on Thursday. Include decisions, evidence links and open questions.\n"
+    },
+    {
+      "command": "second-brain show sample/wiki report-rules --now 2026-10-28T00:00:00+00:00 --format text",
+      "output": "concepts/report-rules/r000002.md [current]\n  Report-writing rules\n  status: draft | trust: unverified | fresh\n\n  Metadata: {\"type\": \"Concept\", \"title\": \"Report-writing rules\", \"status\": \"draft\", \"generated\": {\"by\": \"prepared-fixture/1\", \"at\": \"2026-10-28T10:15:43.403783+00:00\"}, \"sources\": [{\"id\": \"report-memo-2\", \"resource\": \"../../sources/report-memo-2/content.raw\"}], \"stale_after\": \"2030-01-01T00:00:00+00:00\"}\n\n\n# Report-writing rules\nSend the weekly report on Thursday.\nInclude decisions, evidence links and open questions.\n\n"
+    },
+    {
+      "command": "second-brain diff sample/wiki report-rules r000001 r000002 --now 2026-10-28T00:00:00+00:00 --format text",
+      "output": "--- concepts/report-rules/r000001.md\n+++ concepts/report-rules/r000002.md\n@@ -4,12 +4,12 @@\n status: draft\n generated:\n   by: prepared-fixture/1\n-  at: '2026-10-28T10:15:43.323870+00:00'\n+  at: '2026-10-28T10:15:43.403783+00:00'\n sources:\n-- id: report-memo-1\n-  resource: ../../sources/report-memo-1/content.raw\n+- id: report-memo-2\n+  resource: ../../sources/report-memo-2/content.raw\n stale_after: '2030-01-01T00:00:00+00:00'\n ---\n # Report-writing rules\n-Send the weekly report on Friday.\n+Send the weekly report on Thursday.\n Include decisions, evidence links and open questions.\n\n"
+    }
+  ],
+  "preservedSha256": {
+    "revision": "e1ca1ab6f699b7f677aa9aa5de238e7b92ed307df4bd8211a48d3dc14ce9199d",
+    "source": "66729887eded0255ef0d683c234858f9e8d914b0696d526c9479b3b7c4421892"
+  }
+}

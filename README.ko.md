@@ -1,5 +1,7 @@
 # Local Second Brain
 
+<img src="site/assets/logo.png" alt="" width="80" height="80">
+
 [English](README.md) | **한국어**
 
 ## AI와 쌓은 지식, 대화 밖에서도 이어서.
@@ -11,6 +13,17 @@ Local Second Brain은 프로젝트 작업 규칙, 자료 조사 요약, 기술�
 다음 작업을 AI에게 맡길 때 함께 전달하고, 원문과 수정 전 내용도 확인할 수 있습니다.
 
 **[에이전트에게 설치 맡기기 (For agents)](#에이전트에게-설치-맡기기-for-agents)** | **[직접 시작하기](#시작하기)**
+
+[![Local Second Brain 소개와 실제 예제](site/assets/banner.png)](https://indra622.github.io/local-second-brain/?lang=ko)
+
+**[브라우저에서 예제 살펴보기](https://indra622.github.io/local-second-brain/?lang=ko)**
+
+CLI가 저장하는 파일을 설명하는 가상 예제입니다. 제품 GUI나 실시간 AI 대화가 아닙니다.
+
+![실제 CLI로 보고서 규칙을 저장하고 다시 읽은 뒤 금요일과 목요일 변경 내용을 비교하는 과정](site/assets/cli-demo.gif)
+
+실제 CLI 출력 중 일부이며 재생 시간을 조정하고 임시 경로를 바꿨습니다. 전체 출력은 아래 링크에서 볼 수 있습니다. 미리 쓴 가상 자료를 사용하며 모델 호출은 없습니다.
+[정지 이미지](site/assets/cli-poster.png) | [텍스트 출력](site/data/transcript.txt)
 
 ### 한 번 정리한 지식을 다시 쓰세요
 

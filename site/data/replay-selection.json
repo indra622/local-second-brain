@@ -1,0 +1,42 @@
+[
+  {
+    "caption": "Save a note",
+    "command": "second-brain curate sample/wiki report-rules --body fixtures/report-v1.md --source report-memo-1 --actor prepared-fixture/1 --title 'Report-writing rules' --stale-after 2030-01-01T00:00:00+00:00",
+    "selectedLines": [
+      "{",
+      "  \"revision\": \"concepts/report-rules/r000001.md\"",
+      "}"
+    ]
+  },
+  {
+    "caption": "Find it",
+    "command": "second-brain search sample/wiki report --current-only --now 2026-10-28T00:00:00+00:00 --format text",
+    "selectedLines": [
+      "concepts/report-rules/r000002.md [current]",
+      "  Report-writing rules",
+      "  status: draft | trust: unverified | fresh"
+    ]
+  },
+  {
+    "caption": "Read it",
+    "command": "second-brain show sample/wiki report-rules --now 2026-10-28T00:00:00+00:00 --format text",
+    "selectedLines": [
+      "concepts/report-rules/r000002.md [current]",
+      "  Report-writing rules",
+      "  status: draft | trust: unverified | fresh",
+      "# Report-writing rules",
+      "Send the weekly report on Thursday.",
+      "Include decisions, evidence links and open questions."
+    ]
+  },
+  {
+    "caption": "Compare changes",
+    "command": "second-brain diff sample/wiki report-rules r000001 r000002 --now 2026-10-28T00:00:00+00:00 --format text",
+    "selectedLines": [
+      "--- concepts/report-rules/r000001.md",
+      "+++ concepts/report-rules/r000002.md",
+      "-Send the weekly report on Friday.",
+      "+Send the weekly report on Thursday."
+    ]
+  }
+]
