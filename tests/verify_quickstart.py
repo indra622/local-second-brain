@@ -41,7 +41,7 @@ def verify_readme(project, readme):
         assert len(list((bundle / 'concepts/report-rules').glob('r*.md'))) == 3
         index = (bundle / 'index.md').read_text()
         assert 'r000003.md' in index and 'r000001.md' not in index and 'r000002.md' not in index
-        assert not (bundle / '.lkw.lock').exists()
+        assert (bundle / '.lkw.lock').read_bytes() == b'lkw:flock:v1\n'
         executable = root / '.venv/bin/second-brain'
 
         def read(*args):
@@ -49,6 +49,7 @@ def verify_readme(project, readme):
                                              cwd=root, env=env, text=True, timeout=30)
             return json.loads(output)
 
+        assert read('inspect-storage')['lock']['state'] == 'recognized_available'
         history = read('history', 'report-rules')
         assert [note['current'] for note in history] == [False, False, True]
         assert read('list') == history

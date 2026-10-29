@@ -11,6 +11,7 @@ from functools import partial
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
+from .inspection import inspect_storage
 from .errors import ErrorParser, emit_error, machine_errors
 from .format import (inspect_bundle, nonempty, parse, serialize_revision, timestamp, validate,
                      validate_revision)
@@ -82,8 +83,10 @@ def write_revision(store, concept_id, meta, body, before, index, entries, start,
         raise WikiError("Revision limit reached")
     path = prefix + f"{revision:06}.md"
     entries[concept_id] = path
-    store.create(path, data)
-    store.replace_index(before, (index[:start] + render_entries(entries) + index[end:]).encode())
+    after = (index[:start] + render_entries(entries) + index[end:]).encode()
+    with store.stage_index(after):
+        store.create(path, data)
+        store.replace_index(before, after)
     return path
 
 
@@ -263,6 +266,8 @@ def main(argv=None):
             p.add_argument("after", help="New revision rNNNNNN")
         p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
         p.add_argument("--format", choices=("json", "text"), default="json")
+    p = commands.add_parser("inspect-storage", help="Read-only bounded storage inventory; no repair or safe-retry claim")
+    p.add_argument("bundle")
     p = commands.add_parser("check", help="Check metadata subset, links and freshness")
     p.add_argument("bundle")
     p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
@@ -284,6 +289,9 @@ def main(argv=None):
                                          args.status, args.stale_after, args.request_id, args.expect_current)}
         elif args.command == "review":
             result = review(args.bundle, args.id, args.revision, args.actor, args.evidence, args.request_id)
+        elif args.command == "inspect-storage":
+            print(render(inspect_storage(args.bundle)), end="")
+            return 0
         elif args.command == "recall":
             result = recall(args.bundle, args.query, now, args.match, args.limit, args.max_chars)
             print(render(result), end="")
@@ -309,7 +317,7 @@ def main(argv=None):
     except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
         if machine:
             emit_error(exc)
-        elif args.command == 'recall' or getattr(args, 'format', None) == 'json':
+        elif args.command in ('recall', 'inspect-storage') or getattr(args, 'format', None) == 'json':
             print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         else:
             print(f"second-brain: {exc}", file=sys.stderr)

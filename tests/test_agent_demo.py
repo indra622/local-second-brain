@@ -8,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from local_knowledge_wiki.storage import LOCK_MARKER, Store
+
 
 PROJECT = Path(__file__).resolve().parents[1]
 FIXTURES = PROJECT / 'examples/reuse-inputs'
@@ -33,7 +35,7 @@ class AgentDemoTests(unittest.TestCase):
         summary = json.loads(self.demo().stdout)
         self.assertEqual(summary['initial_hits'], 0)
         self.assertEqual(summary['revisions'], 3)
-        self.assertEqual(summary['preserved_files'], 4)
+        self.assertEqual(summary['preserved_files'], 5)
         self.assertEqual(summary['trust'], 'unverified')
         self.assertEqual(summary['check'], {'invalid': [], 'warnings': [], 'stale': [], 'concepts': 3})
         self.assertEqual(summary, self.load('summary.json'))
@@ -68,7 +70,8 @@ class AgentDemoTests(unittest.TestCase):
         comparison = next(e['result']['diff'] for e in events if e['arguments'][0] == 'diff')
         self.assertIn('-Use amber trays and two bells', comparison)
         self.assertIn('+Use cobalt trays and three bells', comparison)
-        self.assertFalse((bundle / '.lkw.lock').exists())
+        with Store(bundle) as store, store.lock():
+            self.assertEqual((bundle / '.lkw.lock').read_bytes(), LOCK_MARKER)
 
     def test_existing_empty_output_works(self):
         self.output.mkdir()

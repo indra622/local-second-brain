@@ -8,7 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from local_knowledge_wiki.format import context, parse, timestamp, validate
-from local_knowledge_wiki.storage import Store, WikiError
+from local_knowledge_wiki.storage import LOCK_MARKER, Store, WikiError
 
 
 class MetadataTests(unittest.TestCase):
@@ -158,7 +158,7 @@ class WorkflowTests(unittest.TestCase):
         (self.bundle / '.lkw.lock').write_text('other writer')
         self.curate(code=2)
         self.assertEqual((self.bundle / '.lkw.lock').read_text(), 'other writer')
-        (self.bundle / '.lkw.lock').unlink()
+        (self.bundle / '.lkw.lock').write_bytes(LOCK_MARKER)
         index = self.bundle / 'index.md'
         index.write_text(index.read_text().replace('<!-- lkw:current:end -->',
                                                  'Human addition\n<!-- lkw:current:end -->'))

@@ -21,16 +21,26 @@
 
 ## 쓰기와 복구
 
-`.lkw.lock`을 `O_EXCL`로 만들어 CLI 쓰기를 직렬화한다. 대기나 자동 재시도는 없다.
-수집은 새 출처 디렉터리를 먼저 확보하고 원문과 JSON을 만든다.
-정리는 새 리비전을 먼저 만들고, 인덱스 임시 파일을 만든 뒤 `os.replace`로 교체한다.
-교체 전 인덱스 바이트를 두 번 비교한다. 관리 구역 밖의 사용자 글은 그대로 남긴다.
+`.lkw.lock`은 정확한 `lkw:flock:v1`+LF를 가진 영구 일반 파일이다. 비차단 native flock으로
+협력 작성자를 배제하며 종료 시 descriptor만 닫는다. 기존 파일을 지우거나 다시 초기화하지 않는다.
+구형/빈/부분/알 수 없는 표식은 flock 가용성과 관계없이 검사 필요로 거부한다. 구형 작성자와의
+혼용/자동 이전은 없다. 보유 중 fork하지 않으며 상속 descriptor는 프로세스 종료 뒤 잠금을 유지할 수 있다.
 
-기존 출처나 리비전 파일은 덮어쓰지 않는다. 실패 시 기존 기록을 되돌리거나 삭제하지 않는다.
-디스크 부족이나 중단으로 잠금, 부분 출처, 임시 인덱스, 현재 링크에 연결되지 않은
-리비전이 남을 수 있다. 다음 실행은 잠금을 발견하면 거부한다. 실행 중인 쓰기 프로세스가
-없는지 확인하고 파일과 인덱스를 대조한 뒤 사용자가 복구해야 한다. 자동 복구 명령은 없다.
-파일 데이터는 `fsync`하지만 디렉터리 전체의 crash transaction이나 전원 장애 내구성을 보장하지 않는다.
+수집은 새 출처 디렉터리를 먼저 확보하고 원문과 JSON을 만든다. 리비전 쓰기는 소유한 무작위 이름의
+index stage를 배타 생성/동기화한 뒤 리비전을 생성한다. 인덱스와 stage 바이트/inode를 확인한 후
+인덱스 한 파일을 os.replace하고 루트를 fsync한다. 정리 시 소유한 stage inode만 지우며 리비전은
+삭제하지 않는다. rename 뒤 오류면 새 파일이 이미 현재일 수 있다. 고정/기존 임시 파일은 보존한다.
+
+키가 있는 작업의 stage는 intent 뒤에서만 시작한다. 중단으로 부분 출처, stage, 미연결 리비전이나
+현재 리비전과 미완료 요청이 남을 수 있다. 초기화된 유일 보유자 종료는 커널 잠금을 풀지만 데이터
+완료를 증명하지 않는다. 읽기 전용 inspect-storage는 공유 잠금이 가능하면 유지하고, 아니면
+best_effort로 표시한다. 정상 과거 기록을 orphan으로 단정하지 않는다. 자동 복구/삭제/재실행은 없다.
+
+Persistent marked flock and owned staging provide cooperating-writer exclusion and one-index
+replacement, not atomic revision/index/receipt visibility or power-loss recovery. Directory sync
+of the index does not order all other directories. Inspection is bounded and read-only;
+see the bilingual [reference](reference.md#storage-interruption-and-read-only-inspection) for
+upgrade rules, limits, diagnostic states and inherited-descriptor caveats.
 
 잠금은 이 CLI끼리 협력할 때만 유효하다. 편집기는 쓰기 명령과 동시에 실행하지 않는다.
 검사와 검색도 쓰기 도중의 일관된 스냅샷을 보장하지 않는다. 적대적인 프로세스가

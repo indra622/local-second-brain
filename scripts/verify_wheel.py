@@ -115,7 +115,13 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
                               ('search', ('달빛',))):
             assert '달빛' in run(executable, command, bundle, *args, '--format', 'text')
         assert snapshot() == before, 'Read commands changed bundle artifacts'
-        assert not (bundle / '.lkw.lock').exists()
+        lock_inode = (bundle / '.lkw.lock').stat().st_ino
+        assert (bundle / '.lkw.lock').read_bytes() == b'lkw:flock:v1\n'
+        inventory = cli('inspect-storage')
+        assert inventory['consistency'] == 'shared_lock_held'
+        assert inventory['revisions']['non_current'] == 2
+        assert (bundle / '.lkw.lock').stat().st_ino == lock_inode
+        assert snapshot() == before
         def agent(command, *args):
             return json.loads(run(executable, '--error-format', 'json', command, bundle, *args))
 
@@ -133,6 +139,9 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
         assert agent('review', *review_args) == declared
         assert len(cli('history', 'agent-note')) == 2
         assert cli('check')['invalid'] == []
+        inventory = cli('inspect-storage')
+        assert inventory['receipts']['states'] == {'self_consistent': 3}
+        assert (bundle / '.lkw.lock').stat().st_ino == lock_inode
         failed = subprocess.run([str(executable), '--error-format', 'json', 'curate'],
                                 cwd=root, env=env, capture_output=True, text=True, timeout=30)
         assert failed.returncode == 2 and not failed.stdout

@@ -1,15 +1,51 @@
 """Descriptor-relative bundle access and exclusive local writes."""
 
+import errno
 import hashlib
 import json
 import os
 import re
+import secrets
 import stat
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
 
 from .errors import WikiError
+
+
+LOCK_MARKER = b"lkw:flock:v1\n"
+STAGE_PATTERN = re.compile(r"\.lkw-index\.[0-9a-f]{32}\.tmp")
+
+
+class LockCapabilityError(WikiError):
+    pass
+
+
+def flock(handle, shared=False):
+    try:
+        import fcntl
+    except ImportError as exc:
+        raise LockCapabilityError("Native flock is unavailable; writes require supported local macOS/Linux locking", "recovery_required") from exc
+    try:
+        fcntl.flock(handle, (fcntl.LOCK_SH if shared else fcntl.LOCK_EX) | fcntl.LOCK_NB)
+    except OSError as exc:
+        if exc.errno in (errno.EAGAIN, errno.EACCES):
+            raise WikiError("Bundle writer lock is busy; wait for the active holder", "locked") from exc
+        raise
+
+
+def write_all(handle, data):
+    view = memoryview(data)
+    while view:
+        written = os.write(handle, view)
+        if written <= 0:
+            raise OSError("Short write made no progress")
+        view = view[written:]
+
+
+def same_inode(left, right):
+    return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
 
 
 def read_input(path):
@@ -61,13 +97,20 @@ class Store:
         finally:
             os.close(fd)
 
-    def read(self, relative):
+    def read(self, relative, max_bytes=None):
         with self.parent(relative) as (fd, name):
             handle = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
             with os.fdopen(handle, "rb") as stream:
                 if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                     raise WikiError(f"Not a regular file: {relative}", "unsafe_path")
-                return stream.read()
+                if max_bytes is None:
+                    return stream.read()
+                if os.fstat(stream.fileno()).st_size > max_bytes:
+                    raise WikiError("Inspection file size limit exceeded")
+                data = stream.read(max_bytes + 1)
+                if len(data) > max_bytes:
+                    raise WikiError("Inspection file size limit exceeded")
+                return data
 
     def create(self, relative, data):
         with self.parent(relative, create=True) as (fd, name):
@@ -78,30 +121,104 @@ class Store:
                 stream.flush()
                 os.fsync(stream.fileno())
 
-    @contextmanager
-    def lock(self):
+    def open_lock(self, flags):
         try:
-            self.create(".lkw.lock", b"active local CLI write\n")
-        except FileExistsError as exc:
-            raise WikiError("Bundle is locked; after a crash, inspect before removing .lkw.lock", "locked") from exc
-        try:
-            yield
-        finally:
-            os.unlink(".lkw.lock", dir_fd=self.fd)
+            return os.open(".lkw.lock", flags, 0o644, dir_fd=self.fd)
+        except OSError as exc:
+            if exc.errno in (errno.ELOOP, errno.EISDIR, errno.ENOTDIR):
+                raise WikiError("Unsafe .lkw.lock path", "unsafe_path") from exc
+            raise
 
-    def replace_index(self, before, after):
-        if self.read("index.md") != before:
-            raise WikiError("index.md changed during this operation", "concurrent_change")
-        self.create(".lkw-index.tmp", after)
+    def validate_lock(self, handle, marker=True):
+        opened = os.fstat(handle)
         try:
-            if self.read("index.md") != before:
-                raise WikiError("index.md changed during this operation", "concurrent_change")
-            os.replace(".lkw-index.tmp", "index.md", src_dir_fd=self.fd, dst_dir_fd=self.fd)
-        finally:
+            named = os.stat(".lkw.lock", dir_fd=self.fd, follow_symlinks=False)
+        except FileNotFoundError as exc:
+            raise WikiError(".lkw.lock pathname disappeared", "unsafe_path") from exc
+        if (not stat.S_ISREG(opened.st_mode) or opened.st_nlink != 1
+                or not stat.S_ISREG(named.st_mode) or named.st_nlink != 1
+                or not same_inode(opened, named)):
+            raise WikiError("Unsafe or substituted .lkw.lock inode", "unsafe_path")
+        if marker and os.pread(handle, len(LOCK_MARKER) + 1, 0) != LOCK_MARKER:
+            raise WikiError("Legacy, empty or unknown .lkw.lock; stop writers and inspect; no automatic conversion", "recovery_required")
+
+    @contextmanager
+    def lock(self, *, shared=False, create=True):
+        flags = (os.O_RDONLY if shared else os.O_RDWR) | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
+        created = False
+        try:
+            handle = self.open_lock(flags)
+        except FileNotFoundError:
+            if shared or not create:
+                raise
             try:
-                os.unlink(".lkw-index.tmp", dir_fd=self.fd)
+                handle = self.open_lock(flags | os.O_CREAT | os.O_EXCL)
+                created = True
+            except FileExistsError:
+                handle = self.open_lock(flags)
+        try:
+            os.set_inheritable(handle, False)
+            self.validate_lock(handle, marker=not created)
+            flock(handle, shared)
+            self.validate_lock(handle, marker=not created)
+            if created:
+                write_all(handle, LOCK_MARKER)
+                os.fsync(handle)
+                os.fsync(self.fd)
+                self.validate_lock(handle)
+            yield handle
+        finally:
+            # Never unlink: another inode would form an independent lock domain.
+            os.close(handle)
+
+    @contextmanager
+    def stage_index(self, data):
+        handle = None
+        for _ in range(10):
+            name = f".lkw-index.{secrets.token_hex(16)}.tmp"
+            try:
+                handle = os.open(name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                                 0o644, dir_fd=self.fd)
+                break
+            except FileExistsError:
+                continue
+        if handle is None:
+            raise WikiError("Index staging name collision limit reached; inspect existing artifacts", "already_exists")
+        owned = None
+        try:
+            owned = os.fstat(handle)
+            write_all(handle, data)
+            os.fsync(handle)
+            self._index_stage = (name, handle, owned)
+            yield name
+        finally:
+            self._index_stage = None
+            try:
+                named = os.stat(name, dir_fd=self.fd, follow_symlinks=False)
+                if owned is not None and stat.S_ISREG(named.st_mode) and named.st_nlink == 1 and same_inode(owned, named):
+                    os.unlink(name, dir_fd=self.fd)
             except FileNotFoundError:
                 pass
+            finally:
+                os.close(handle)
+
+    def replace_index(self, before, after):
+        stage = getattr(self, '_index_stage', None)
+        if stage is None:
+            with self.stage_index(after):
+                return self.replace_index(before, after)
+        name, handle, owned = stage
+        if self.read("index.md") != before:
+            raise WikiError("index.md changed during this operation", "concurrent_change")
+        named = os.stat(name, dir_fd=self.fd, follow_symlinks=False)
+        if (not stat.S_ISREG(named.st_mode) or named.st_nlink != 1 or not same_inode(owned, named)
+                or not same_inode(owned, os.fstat(handle)) or os.fstat(handle).st_size != len(after)
+                or os.pread(handle, len(after) + 1, 0) != after):
+            raise WikiError("Index staging identity or bytes changed", "concurrent_change")
+        if self.read("index.md") != before:
+            raise WikiError("index.md changed during this operation", "concurrent_change")
+        os.replace(name, "index.md", src_dir_fd=self.fd, dst_dir_fd=self.fd)
+        os.fsync(self.fd)
 
     def files(self):
         def walk(fd, prefix=""):
@@ -155,11 +272,14 @@ def init(root):
     path = Path(root)
     if not path.exists():
         path.mkdir(parents=True)
-    with Store(path) as store, store.lock():
-        if set(os.listdir(store.fd)) != {".lkw.lock"}:
+    with Store(path) as store:
+        if os.listdir(store.fd):
             raise WikiError("init requires an empty target directory")
-        store.create("index.md", ("---\nokf_version: '0.2'\n---\n\n# Local knowledge\n\n"
-                                  + START + END + "\n").encode())
+        with store.lock():
+            if set(os.listdir(store.fd)) != {".lkw.lock"}:
+                raise WikiError("init requires an empty target directory")
+            store.create("index.md", ("---\nokf_version: '0.2'\n---\n\n# Local knowledge\n\n"
+                                      + START + END + "\n").encode())
 
 
 def capture(root, source, source_id, actor, resource, at, request_id=None):

@@ -65,7 +65,7 @@ class ErrorParser(argparse.ArgumentParser):
 def machine_errors(argv):
     """Recognize the global mode before the command, including repeated options."""
     mode = 'legacy'
-    commands = {'init', 'capture', 'curate', 'review', 'recall', 'search', 'list', 'show', 'history', 'diff', 'check'}
+    commands = {'init', 'capture', 'curate', 'review', 'recall', 'search', 'list', 'show', 'history', 'diff', 'check', 'inspect-storage'}
     for index, arg in enumerate(argv):
         if arg in commands or arg == '--':
             break
