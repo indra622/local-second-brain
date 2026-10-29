@@ -7,10 +7,13 @@ Keep instructions, templates and prepared files outside the inspected knowledge 
 No product configuration or agent runtime is required. Start with the
 [guide and task template](../docs/agent-kit.md).
 
-1. Search existing current knowledge first with `search BUNDLE QUERY --current-only`.
-   Read the designated `index.md` and relevant concepts with `show`. Inspect `current`,
-   `status`, `trust`, `stale` and `metadata_errors` before using a result. Search matches
-   exact words, not meaning; try relevant terms before deciding knowledge is absent.
+1. Run `recall BUNDLE QUERY --limit 5 --max-chars 12000` for bounded current context.
+   Inspect match/fallback mode, state, omissions, status, trust, freshness and errors.
+   Use `show BUNDLE ID --revision rNNNNNN` for full selected metadata/body, then inspect
+   separately authorized preserved sources. Recall never fetches sources. A miss is not
+   proof of absence: follow diagnostics and try alternative words or inspect list/check.
+   Use `--match exact` for exact words only; default auto tries word-prefix fallback
+   only after an exact miss. Prefixes can match unrelated words. See the reference.
 2. Capture only approved sources. Set `--resource` to their origin or synthetic label.
    Declare the actual actor: `human:ID`, `PRODUCER/VERSION` for a tool or agent, or
    `process:ID` for automation. These labels do not authenticate identity.
@@ -28,7 +31,7 @@ No product configuration or agent runtime is required. Start with the
 6. Run `search`, `show` and `check`. Read the new file and the current index link.
    Format validation does not establish truth. Do not automatically add `verified` or
    pretend a human reviewed the body. Report metadata errors, link warnings and freshness.
-7. In a later task, search current knowledge again, read the selected full body and its
+7. In a later task, recall current knowledge again, read the selected full body and its
    source/review context, and cite the exact revision used. Record how it informed the
    new task and what remains uncertain. Older revisions remain searchable by default.
 8. Optionally compare the current body deliberately with evidence, then record a declaration

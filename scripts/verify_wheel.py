@@ -102,6 +102,10 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
         hits = cli('search', '달빛', '--current-only')
         assert len(hits) == 1 and hits[0]['path'] == current['path']
         assert len(cli('search', 'lantern')) == 3
+        recalled = cli('recall', '달빛')
+        assert recalled['results'][0]['revision'] == 'r000003'
+        assert recalled['match_mode'] == 'exact' and not recalled['fallback_used']
+        assert len(run(executable, 'recall', bundle, '달빛', '--max-chars', '2048')) <= 2048
         diff = cli('diff', 'lantern', 'r000001', 'r000003')['diff']
         assert '-Use amber trays.' in diff and '+Use cobalt trays.' in diff
         assert cli('check') == {'invalid': [], 'warnings': [], 'stale': [], 'concepts': 3}
