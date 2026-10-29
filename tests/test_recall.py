@@ -3,6 +3,9 @@
 import contextlib
 import io
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -148,6 +151,75 @@ class RecallTests(unittest.TestCase):
             with contextlib.redirect_stdout(out):
                 self.assertEqual(main(['recall', str(self.root), 'archive']), 0)
             json.loads(out.getvalue(), parse_constant=reject_constant)
+
+    def test_surrogate_yaml_recall_uses_utf8_stdout_with_strict_bounds(self):
+        target = self.note('sample', 'archive 보고서 literal \\uD800 ' * 200,
+                           title='보고서 \ud800',
+                           generated={'by': 'tool/\udfff'},
+                           sources=[{'resource': '../../sources/\ud800/content.raw'}])
+        self.note('ordinary', 'archive 보존한 원문')
+        env = {**os.environ, 'PYTHONIOENCODING': 'utf-8:strict',
+               'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src')}
+        valid = target.read_text(encoding='utf-8')
+        malformed = ('---\ntype: Concept\n"\\uD800": first\n"\\uD800": duplicate\n'
+                     '---\narchive 보고서 literal \\uD800\n')
+        for document in (valid, malformed):
+            target.write_text(document, encoding='utf-8')
+            before = {p.relative_to(self.root): p.read_bytes()
+                      for p in self.root.rglob('*') if p.is_file()}
+            for budget in (2048, 4096, 12000):
+                with self.subTest(malformed=document == malformed, budget=budget):
+                    process = subprocess.run(
+                        [sys.executable, '-m', 'local_knowledge_wiki.cli', 'recall',
+                         str(self.root), 'archive', '--max-chars', str(budget)],
+                        env=env, capture_output=True, timeout=10)
+                    self.assertEqual(process.returncode, 0, process.stderr)
+                    self.assertEqual(process.stderr, b'')
+                    stdout = process.stdout.decode('utf-8', errors='strict')
+                    self.assertLessEqual(len(stdout), budget)
+                    output = json.loads(stdout)
+                    self.assertEqual(output['matched'], 2)
+                    self.assertIn('보고서', stdout)
+                    hit = next(item for item in output['results'] if item['id'] == 'sample')
+                    if document == valid:
+                        self.assertEqual(hit['title'], '보고서 \ud800')
+                        self.assertEqual(hit['generated']['by'], 'tool/\udfff')
+                        self.assertEqual(hit['sources'][0]['resource'],
+                                         '../../sources/\ud800/content.raw')
+                        self.assertIn('literal \\uD800', hit['body'])
+                    else:
+                        self.assertEqual(hit['trust'], 'invalid-metadata')
+                        self.assertIn('Duplicate YAML key: \ud800', hit['metadata_errors'])
+                    if budget == 2048 and document == valid:
+                        self.assertTrue(hit['body_truncated'] or output['omitted_results'])
+            self.assertEqual(before, {p.relative_to(self.root): p.read_bytes()
+                                     for p in self.root.rglob('*') if p.is_file()})
+
+    def test_surrogates_are_escaped_everywhere_without_escaping_korean(self):
+        output = render({'path': '보고서/\ud800', 'body': '결정 \udfff',
+                         'context': {'\ud800': '\udfff'}})
+        output.encode('utf-8', errors='strict')
+        self.assertIn('보고서', output)
+        self.assertIn('결정', output)
+        self.assertIn('\\ud800', output)
+        self.assertIn('\\udfff', output)
+        self.assertEqual(json.loads(output)['body'], '결정 \udfff')
+
+    def test_surrogate_escape_expansion_is_included_in_stdout_budget(self):
+        self.note('sample', 'archive 보고서 ' * 200, title='\ud800' * 200)
+        process = subprocess.run(
+            [sys.executable, '-m', 'local_knowledge_wiki.cli', 'recall',
+             str(self.root), 'archive', '--max-chars', '2048'],
+            env={**os.environ, 'PYTHONIOENCODING': 'utf-8:strict',
+                 'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src')},
+            capture_output=True, timeout=10)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        stdout = process.stdout.decode('utf-8', errors='strict')
+        self.assertLessEqual(len(stdout), 2048)
+        output = json.loads(stdout)
+        self.assertEqual(output['matched'], 1)
+        self.assertEqual(output['state'], 'budget_omitted')
+        self.assertEqual(output['omitted_results'], 1)
 
     def test_strict_serialized_bounds_and_unknown_metadata(self):
         for i in range(10):

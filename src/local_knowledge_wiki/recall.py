@@ -10,7 +10,9 @@ from .storage import Store, WikiError, current_index
 
 
 def render(result):
-    return json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + '\n'
+    text = json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + '\n'
+    # YAML escapes can produce surrogates that strict UTF-8 stdout cannot encode.
+    return text.encode('utf-8', errors='backslashreplace').decode('utf-8')
 
 
 def words(text):

@@ -135,7 +135,9 @@ Exact-first can omit useful prefix candidates when an exact hit exists; request 
 The default limit is 5 (allowed 1..100). The default budget is 12000 (allowed 2048..1000000).
 `--max-chars` bounds the **entire successful stdout**, including JSON syntax, escaping,
 diagnostics and final newline, counted as Python Unicode code points, not bytes,
-grapheme clusters or tokens. The command may return fewer results than the limit.
+grapheme clusters or tokens. Surrogate code points decoded from YAML escapes are
+serialized as JSON `\uXXXX` escapes; Korean and other valid Unicode remain readable.
+Each six-character escape counts toward the budget. The command may return fewer results than the limit.
 It clips body context, then omits results that cannot fit. `matched` counts all selected-mode
 matches before bounds; `omitted_results` counts matches not returned. A result has `id`,
 `revision` and `path` for explicit `show`. `body_start`/`body_end` are original body code-point

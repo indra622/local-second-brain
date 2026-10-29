@@ -149,7 +149,8 @@ lexical에서 `rename`은 `renames`, `보고서`는 `보고서를`과 맞는다.
 
 결과 제한은 기본 5개, 범위 1..100이다. 문자 예산은 기본 12000, 범위 2048..1000000이다.
 `--max-chars`는 JSON 문법, escape, 진단과 마지막 줄바꿈을 포함한 **성공 stdout 전체**를
-Python Unicode 코드 포인트 수로 제한한다. 바이트, 글자 묶음이나 토큰 수가 아니다.
+Python Unicode 코드 포인트 수로 제한한다. 바이트, 글자 묶음이나 토큰 수가 아니다. YAML escape에서 나온 surrogate 코드 포인트는
+JSON `\uXXXX`로 출력하고 6자를 예산에 포함한다. 한글 등 유효한 Unicode는 그대로 표시한다.
 본문을 줄이고 그래도 맞지 않으면 결과를 생략하므로 요청한 개수보다 적게 나올 수 있다.
 `matched`는 제한 전 일치 수, `omitted_results`는 반환하지 못한 수다.
 `id`, `revision`, `path`로 정확한 `show` 대상을 지정한다. `body_start`, `body_end`는 원래
