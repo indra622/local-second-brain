@@ -7,6 +7,17 @@ Keep instructions, templates and prepared files outside the inspected knowledge 
 No product configuration or agent runtime is required. Start with the
 [guide and task template](../docs/agent-kit.md).
 
+For agent calls, put `--error-format json` before the command. Before each authorized
+capture/curate/review, save a new bundle-wide `--request-id` with the original payload.
+Retry that request only with the same ID, bytes and arguments. Keep referenced inputs.
+Use `curate --expect-current rNNNNNN` for the exact revision you read, or `absent` for
+new indexed concepts. Review already requires the exact read revision. Completed replay
+returns the old result before checking current selection, without moving the index.
+On a clean precondition failure, re-read and assess before a new request. On conflict,
+check the saved payload; on recovery-required, stop and inspect receipts/partial artifacts.
+Do not bypass pending requests with new IDs or delete locks. Receipts do not grant authority
+or authenticate review. See the [write contract](../docs/reference.md#agent-errors-and-write-requests).
+
 1. Run `recall BUNDLE QUERY --limit 5 --max-chars 12000` for bounded current context.
    Inspect match/fallback mode, state, omissions, status, trust, freshness and errors.
    Use `show BUNDLE ID --revision rNNNNNN` for full selected metadata/body, then inspect

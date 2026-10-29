@@ -202,6 +202,108 @@ This is not a complete OKF validator or a factual-verification service.
 See the exact [OKF subset](okf-subset.md) and [architecture and recovery limits](architecture.md).
 These detailed documents are currently in Korean.
 
+## Agent errors and write requests
+
+All commands accept global `--error-format json` **before the command**. It changes only
+failures on stderr, including argparse failures; successful stdout and exits remain the
+same. `--error-format=json` also works. If repeated before the command, the last value
+(`json` or `legacy`) wins for parser and runtime failures. After-command placement is
+unsupported. Default `legacy` preserves existing error shapes/messages and argparse text.
+Help remains text. Exit 2 means failure; `check` still emits its report on stdout and
+returns 1 for invalid metadata, not a structured error.
+
+Structured stderr is one ASCII-escaped, strict JSON object:
+
+```json
+{"error":{"code":"precondition_failed","message":"...","message_truncated":false,"action":"reread_then_new_request"}}
+```
+
+Messages are descriptive and limited to 1000 code points; use codes rather than matching
+message text. ASCII escaping handles surrogate values; non-finite values in exception
+messages are strings. Unexpected runtime exceptions become `internal_error`, without a
+traceback, in this mode. Guidance is not a promise that retrying is safe.
+
+| Code | Action |
+| --- | --- |
+| `arguments` | Correct command syntax. |
+| `invalid_input` | Correct IDs, metadata, query, timestamp or other domain input. |
+| `invalid_index` | Inspect the unavailable/malformed managed current index. |
+| `not_found` | Inspect missing input files or concepts/revisions. |
+| `already_exists` | Inspect existing target; do not overwrite it. |
+| `unsafe_path` | Inspect rejected path, symlink or nonregular file. |
+| `locked` | Wait for the active writer; inspect an abandoned lock. Never delete it blindly. |
+| `precondition_failed` | Re-read current, assess changes, then use a new authorized request. |
+| `request_conflict` | Restore original request payload, or assess a separate new operation. |
+| `recovery_required` | Stop and inspect receipts and bundle; do not re-execute blindly. |
+| `concurrent_change` | Stop and inspect; an external edit may have left an orphan revision. |
+| `io_error` | Inspect I/O and possible partial state. |
+| `internal_error` | Stop and inspect unexpected failure. |
+
+### Request identity and current-version preconditions
+
+`capture`, `curate` and `review` accept optional `--request-id ID`. IDs use the same
+1–64 lowercase ASCII letter/digit/hyphen rules as source IDs and are unique across all
+three commands **within one bundle**. Choose/persist a new ID and original payload before
+authorized execution. Without a request ID, writes retain their old behavior: an identical
+curate body still creates a new revision. Review declarations remain unauthenticated.
+
+`curate --expect-current rNNNNNN` requires that exact indexed revision; `absent` requires
+no current index entry for this concept, not absence of historical/orphan files. Omit it
+for ordinary unconditional curate. `review --revision` keeps its existing current-version
+precondition. Index read, receipt lookup, comparison and mutation occur under one bundle
+write lock. The lock refuses contention rather than waiting internally.
+
+A completed request with the same fingerprint returns its original successful result
+before testing the now-stale current precondition. It creates no new source, provenance,
+revision or review and never rolls the current index back. A later unrelated revision is
+allowed. Changing the command or payload with the same ID gives `request_conflict`.
+The generated capture/curate/review clock is excluded from identity. Fingerprints include:
+
+- Capture: source byte SHA-256, original basename (stored provenance), source ID, actor and origin.
+- Curate: prepared body byte SHA-256, ordered source IDs plus content/provenance byte hashes,
+  concept ID, actor, type, effective title, status, stale-after argument and expected-current argument.
+- Review: exact target revision byte hash, concept/revision, actor, supplied evidence argument
+  and resolved evidence reference, including local evidence byte hash. URLs are declarations, never fetched.
+
+File paths alone are not identity. Moving a prepared body with identical bytes is allowed;
+capture basename changes matter. Preserve the original inputs, source artifacts, review target
+and evidence for replay: they are read/validated again to identify the payload. Missing or invalid
+inputs can therefore fail before receipt lookup. The managed index must remain readable.
+Defaults are canonicalized for title; source order and exact deadline/evidence arguments matter.
+Do not change expected-current to the latest revision when replaying an old successful request.
+For a new decision, re-read and assess current, then save a new request ID and payload.
+
+### Receipt and failure limits
+
+Create-only records live in reserved root `.lkw-requests/ID/intent.json` and `result.json`.
+This root namespace is excluded from normal note enumeration/search/check/browsing;
+receipt access still uses descriptor-relative regular-file/no-symlink checks. Do not store
+knowledge or use receipts as review evidence. Do not edit or delete receipts to enable retries.
+Records contain a version, command/fingerprint, JSON result, result checksum and effect-file
+SHA-256 hashes. Replay validates canonical receipt shape/checksum and the exact created
+source/provenance or revision bytes. It does not require that revision to remain current.
+These are local integrity checks, not authentication or protection against deliberate tampering.
+
+Validation and clean CAS rejection precede intent reservation where possible. A request
+directory is reserved before creating/syncing the intent; mutation follows intent sync.
+The result record is created only after the mutation returns and its effect files are read.
+An existing request directory without intact matching completed records fails closed.
+Any failure after reservation conservatively returns `recovery_required`: there may be no
+knowledge effect, a source directory alone, content without provenance, a complete captured
+source, an orphan revision, or a revision already selected by the index. Result-write failure
+can leave a partial record. If final sync fails but a valid result and effect files are still
+present, a later replay can prove process-observed success and return it without another write.
+
+Do not infer rollback or retryability from exit 2. An invalid/pending receipt must not be
+bypassed with a new ID; stop for manual inspection of the request directory, sources,
+revisions, index and lock. No recovery/receipt/lock deletion command is provided. Lock
+contention itself reserves no request. Legacy unkeyed failures can also leave partial state.
+Receipt JSON has an 8 MB read/write limit; oversized review records are refused early where
+possible, but an unexpectedly oversized completion can still leave a pending request.
+There is no complete transaction, automatic reconciliation, crash rollback or power-loss
+recovery guarantee. Editors do not honor the lock; do not edit concurrently. Input parsing
+and hashing remain in memory. External permissions still govern file access and review.
+
 ## Agent and storage limits
 
 Start with the [portable agent guide and task template](agent-kit.md), then give your

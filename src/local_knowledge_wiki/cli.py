@@ -1,6 +1,5 @@
 """Minimal CLI; synthesis belongs to the user's agent."""
 
-import argparse
 import hashlib
 import json
 import re
@@ -8,21 +7,29 @@ import sys
 import unicodedata
 from collections import Counter
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
 import yaml
 
+from .errors import ErrorParser, emit_error, machine_errors
 from .format import inspect_bundle, nonempty, parse, timestamp, validate
 from .reading import browse, current_paths, human, json_compatible, read_note, revision_path
 from .recall import recall, render
+from .requests import digest, encoded, execute, expected_current, validate_expected
 from .storage import (Store, WikiError, capture, current_index, identifier, init,
                       read_input, render_entries)
 
 
-def curate(root, concept_id, body_file, sources, actor, now, kind, title, status, stale_after):
+def curate(root, concept_id, body_file, sources, actor, now, kind, title, status, stale_after,
+           request_id=None, expect_current=None):
+    if request_id is not None:
+        identifier(request_id)
+    validate_expected(expect_current)
     identifier(concept_id)
-    body = read_input(body_file).decode("utf-8")
+    body_bytes = read_input(body_file)
+    body = body_bytes.decode("utf-8")
     if body.startswith("---\n") or body.startswith("---\r\n"):
         raise WikiError("Pass a prepared Markdown body without YAML frontmatter")
     meta = {"type": kind, "title": title or concept_id, "status": status,
@@ -40,10 +47,22 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
         before = store.read("index.md")
         index = before.decode("utf-8")
         entries, start, end = current_index(index)
+        source_hashes = []
         for source in sources:
-            store.read(f"sources/{source}/content.raw")
-            store.read(f"sources/{source}/provenance.json")
-        return write_revision(store, concept_id, meta, body, before, index, entries, start, end)
+            content = store.read(f"sources/{source}/content.raw")
+            provenance = store.read(f"sources/{source}/provenance.json")
+            source_hashes.append([source, digest(content), digest(provenance)])
+        payload = {"id": concept_id, "body_sha256": digest(body_bytes), "sources": source_hashes,
+                   "actor": actor, "type": kind, "title": title or concept_id, "status": status,
+                   "stale_after": stale_after, "expect_current": expect_current}
+
+        def precondition():
+            expected_current(entries, concept_id, expect_current)
+            if request_id is not None:
+                store.files()
+
+        return execute(store, request_id, "curate", payload, precondition,
+                       lambda: write_revision(store, concept_id, meta, body, before, index, entries, start, end))
 
 
 def write_revision(store, concept_id, meta, body, before, index, entries, start, end):
@@ -96,7 +115,9 @@ def review_evidence(store, resource):
     return {"resource": "/" + path, "sha256": hashlib.sha256(data).hexdigest()}
 
 
-def review(root, concept_id, revision, actor, evidence):
+def review(root, concept_id, revision, actor, evidence, request_id=None):
+    if request_id is not None:
+        identifier(request_id)
     target = revision_path(concept_id, revision)
     if not re.fullmatch(r"(?:human:[^\s:/\\]+|process:[^\s:/\\]+|[^\s:/\\]+/[^\s:/\\]+)", actor) or any(
             unicodedata.category(c).startswith("C") for c in actor):
@@ -105,8 +126,8 @@ def review(root, concept_id, revision, actor, evidence):
         before = store.read("index.md")
         index = before.decode("utf-8")
         entries, start, end = current_index(index)
-        if entries.get(concept_id) != target:
-            raise WikiError("Review target must be the exact indexed current revision")
+        if request_id is None and entries.get(concept_id) != target:
+            raise WikiError("Review target must be the exact indexed current revision", "precondition_failed")
         original = store.read(target)
         meta, body = parse(original.decode("utf-8"))
         errors = validate(meta)
@@ -114,17 +135,31 @@ def review(root, concept_id, revision, actor, evidence):
             raise WikiError("; ".join(errors))
         json_compatible(meta)
         reference = review_evidence(store, evidence)
-        events = meta.get("verified", [])
-        events = [events] if isinstance(events, dict) else list(events)
-        events.append({"by": actor, "at": datetime.now(timezone.utc).isoformat(),
-                       "x-second-brain-target": {"resource": "/" + target,
-                                                 "sha256": hashlib.sha256(original).hexdigest()},
-                       "x-second-brain-evidence": reference})
-        meta["verified"] = events
-        if store.read(target) != original or store.read("index.md") != before:
-            raise WikiError("Review target or index.md changed during this operation")
-        path = write_revision(store, concept_id, meta, body, before, index, entries, start, end)
-    return {"revision": path, "verified": events}
+        payload = {"id": concept_id, "revision": revision, "actor": actor, "evidence": evidence,
+                   "reference": reference, "target_sha256": digest(original)}
+
+        def precondition():
+            if entries.get(concept_id) != target:
+                raise WikiError("Review target must be the exact indexed current revision", "precondition_failed")
+            if request_id is not None:
+                store.files()
+                if len(encoded(json_compatible(meta.get("verified", [])))) > 7000000:
+                    raise WikiError("Review records are too large for a request receipt")
+
+        def mutate():
+            events = meta.get("verified", [])
+            events = [events] if isinstance(events, dict) else list(events)
+            events.append({"by": actor, "at": datetime.now(timezone.utc).isoformat(),
+                           "x-second-brain-target": {"resource": "/" + target,
+                                                     "sha256": hashlib.sha256(original).hexdigest()},
+                           "x-second-brain-evidence": reference})
+            meta["verified"] = events
+            if store.read(target) != original or store.read("index.md") != before:
+                raise WikiError("Review target or index.md changed during this operation", "concurrent_change")
+            path = write_revision(store, concept_id, meta, body, before, index, entries, start, end)
+            return {"revision": path, "verified": json_compatible(events) if request_id else events}
+
+        return execute(store, request_id, "review", payload, precondition, mutate)
 
 
 def search(root, query, now, current_only=False, status=None, freshness=None):
@@ -156,8 +191,13 @@ def search(root, query, now, current_only=False, status=None, freshness=None):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="second-brain")
-    commands = parser.add_subparsers(dest="command", required=True)
+    argv = list(sys.argv[1:] if argv is None else argv)
+    machine = machine_errors(argv)
+    parser = ErrorParser(prog="second-brain", machine=machine)
+    parser.add_argument("--error-format", choices=("legacy", "json"), default="legacy",
+                        help="Error interface; put before COMMAND (default legacy); json includes parser errors")
+    commands = parser.add_subparsers(dest="command", required=True,
+                                    parser_class=partial(ErrorParser, machine=machine))
     p = commands.add_parser("init", help="Create an empty bundle")
     p.add_argument("bundle")
     p = commands.add_parser("capture", help="Copy source bytes and record provenance")
@@ -166,6 +206,7 @@ def main(argv=None):
     p.add_argument("--id", required=True)
     p.add_argument("--actor", required=True)
     p.add_argument("--resource", required=True)
+    p.add_argument("--request-id", help="Bundle-wide retry ID, 1..64 lowercase ASCII letters/digits/hyphens; preserve original payload")
     p = commands.add_parser("curate", help="Store a prepared body as a new revision")
     p.add_argument("bundle")
     p.add_argument("id")
@@ -176,11 +217,14 @@ def main(argv=None):
     p.add_argument("--title")
     p.add_argument("--status", choices=("draft", "stable", "deprecated"), default="draft")
     p.add_argument("--stale-after")
+    p.add_argument("--request-id", help="Bundle-wide retry ID; replay original result before checking expected current")
+    p.add_argument("--expect-current", help="Require indexed rNNNNNN or absent under the write lock")
     p = commands.add_parser("review", help="Record a declared review of the exact current revision; no factual check")
     p.add_argument("bundle")
     p.add_argument("id")
     p.add_argument("--revision", required=True, help="Exact indexed current revision rNNNNNN")
     p.add_argument("--actor", required=True, help="Declared human:ID, process:ID or PRODUCER/VERSION; not authenticated")
+    p.add_argument("--request-id", help="Bundle-wide retry ID; same exact revision/evidence/actor replays prior review")
     p.add_argument("--evidence", required=True, help="Absolute http(s) URL or bundle-root regular artifact path; never fetched or executed")
     p = commands.add_parser("recall", help="Bounded current context as JSON; exact-first with disclosed prefix fallback")
     p.add_argument("bundle")
@@ -227,13 +271,13 @@ def main(argv=None):
             result = {"bundle": args.bundle}
         elif args.command == "capture":
             result = {"source": capture(args.bundle, args.file, args.id, args.actor,
-                                         args.resource, now.isoformat())}
+                                         args.resource, now.isoformat(), args.request_id)}
         elif args.command == "curate":
             result = {"revision": curate(args.bundle, args.id, args.body, args.source,
                                          args.actor, now.isoformat(), args.type, args.title,
-                                         args.status, args.stale_after)}
+                                         args.status, args.stale_after, args.request_id, args.expect_current)}
         elif args.command == "review":
-            result = review(args.bundle, args.id, args.revision, args.actor, args.evidence)
+            result = review(args.bundle, args.id, args.revision, args.actor, args.evidence, args.request_id)
         elif args.command == "recall":
             result = recall(args.bundle, args.query, now, args.match, args.limit, args.max_chars)
             print(render(result), end="")
@@ -249,16 +293,25 @@ def main(argv=None):
             with Store(args.bundle) as store:
                 result = inspect_bundle(store, now)
         result = json_compatible(result)
-        if getattr(args, 'format', None) == 'text':
+        if getattr(args, 'request_id', None):
+            print(render(result), end="")
+        elif getattr(args, 'format', None) == 'text':
             print(human(result))
         else:
             print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
         return 1 if args.command == "check" and result["invalid"] else 0
     except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
-        if args.command == 'recall' or getattr(args, 'format', None) == 'json':
+        if machine:
+            emit_error(exc)
+        elif args.command == 'recall' or getattr(args, 'format', None) == 'json':
             print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         else:
             print(f"second-brain: {exc}", file=sys.stderr)
+        return 2
+    except Exception as exc:
+        if not machine:
+            raise
+        emit_error(exc)
         return 2
 
 

@@ -52,7 +52,7 @@ def browse(store, command, now, concept_id=None, revision=None, before=None, aft
              and (concept_id is None or REVISION_PATH.fullmatch(p)[1] == concept_id)]
     if command in ("list", "history"):
         if command == "history" and not paths:
-            raise WikiError(f"No CLI revisions for concept: {concept_id}")
+            raise WikiError(f"No CLI revisions for concept: {concept_id}", "not_found")
         notes = []
         for path in paths:
             note, _ = read_note(store, path, now, current)
@@ -62,15 +62,16 @@ def browse(store, command, now, concept_id=None, revision=None, before=None, aft
     if command == "show":
         path = revision_path(concept_id, revision) if revision else (current or {}).get(concept_id)
         if path is None:
-            raise WikiError(f"No indexed current revision for {concept_id}; use --revision rNNNNNN")
+            raise WikiError(f"No indexed current revision for {concept_id}; use --revision rNNNNNN",
+                            "invalid_index" if current is None else "not_found")
         if path not in paths:
-            raise WikiError(f"Revision not found: {path}")
+            raise WikiError(f"Revision not found: {path}", "not_found")
         return read_note(store, path, now, current)[0]
     old, new = revision_path(concept_id, before), revision_path(concept_id, after)
     notes, texts = [], []
     for path in (old, new):
         if path not in paths:
-            raise WikiError(f"Revision not found: {path}")
+            raise WikiError(f"Revision not found: {path}", "not_found")
         note, text = read_note(store, path, now, current)
         if note['metadata_errors']:
             raise WikiError(f"Cannot diff {path}: " + "; ".join(note['metadata_errors']))

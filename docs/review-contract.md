@@ -53,6 +53,10 @@ These choices follow [OKF 0.2 §§4.1, 5.2, 5.3 and 7](https://github.com/Google
 checked on 2026-10-28: preserve unknown fields, accept mapping/list review events, and
 separate generated and verified records. The `x-second-brain-*` fields are project extensions.
 
+Optional `--request-id` adds replay semantics: the original completed review result can
+be returned after current advances, without recording another declaration. New reviews
+still require the exact current target. See the [request contract](reference.md#agent-errors-and-write-requests).
+
 ## 검토 규칙
 
 `second-brain review BUNDLE ID --revision rNNNNNN --actor ACTOR --evidence RESOURCE`는
@@ -91,3 +95,6 @@ actor는 `human:ID`, `process:ID`, `PRODUCER/VERSION` 중 하나다. 각 구성�
 `curate`처럼 미연결 리비전이 남을 수 있다. crash transaction이나 자동 복구는 없다.
 검증 실패 시 리비전이나 인덱스를 바꾸지 않는다. 위 OKF 0.2 절을 2026-10-28에 확인했으며
 `x-second-brain-*`는 표준 필드가 아닌 프로젝트 확장이다.
+
+선택적 `--request-id`는 현재가 진행된 뒤에도 원래 완료 결과를 추가 검토 없이 반환할 수 있다.
+새 검토에는 여전히 정확한 현재 대상이 필요하다. [요청 규칙](reference.ko.md)을 따른다.

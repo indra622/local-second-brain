@@ -116,6 +116,28 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
             assert '달빛' in run(executable, command, bundle, *args, '--format', 'text')
         assert snapshot() == before, 'Read commands changed bundle artifacts'
         assert not (bundle / '.lkw.lock').exists()
+        def agent(command, *args):
+            return json.loads(run(executable, '--error-format', 'json', command, bundle, *args))
+
+        capture_args = (source, '--id', 'agent-source', '--actor', 'smoke/1',
+                        '--resource', 'synthetic:agent', '--request-id', 'capture-1')
+        saved = agent('capture', *capture_args)
+        assert agent('capture', *capture_args) == saved
+        prepared = ('agent-note', '--body', body, '--source', 'agent-source', '--actor', 'smoke/1',
+                    '--request-id', 'curate-1', '--expect-current', 'absent')
+        first_agent = agent('curate', *prepared)
+        review_args = ('agent-note', '--revision', 'r000001', '--actor', 'process:smoke',
+                       '--evidence', 'sources/agent-source/content.raw', '--request-id', 'review-1')
+        declared = agent('review', *review_args)
+        assert agent('curate', *prepared) == first_agent
+        assert agent('review', *review_args) == declared
+        assert len(cli('history', 'agent-note')) == 2
+        assert cli('check')['invalid'] == []
+        failed = subprocess.run([str(executable), '--error-format', 'json', 'curate'],
+                                cwd=root, env=env, capture_output=True, text=True, timeout=30)
+        assert failed.returncode == 2 and not failed.stdout
+        assert json.loads(failed.stderr)['error']['code'] == 'arguments'
+        print('Wheel agent writes: request replay + CAS + structured parser errors: PASS')
         print('Wheel smoke: isolated import + CLI workflow + review + reads + byte preservation: PASS')
 
 
