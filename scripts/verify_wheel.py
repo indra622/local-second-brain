@@ -146,6 +146,16 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
                                 cwd=root, env=env, capture_output=True, text=True, timeout=30)
         assert failed.returncode == 2 and not failed.stdout
         assert json.loads(failed.stderr)['error']['code'] == 'arguments'
+        blocked = root / 'blocked-namespace'
+        run(executable, 'init', blocked)
+        blocker = blocked / '.lkw-requests'
+        blocker.write_bytes(b'synthetic namespace blocker')
+        inventory = json.loads(run(executable, 'inspect-storage', blocked))
+        assert inventory['receipts']['namespace'] == {'state': 'invalid', 'type': 'regular_file'}
+        assert inventory['receipts']['total'] is None and not inventory['scan']['complete']
+        assert any(d['path'] == '.lkw-requests' for d in inventory['details']['diagnostics'])
+        assert blocker.read_bytes() == b'synthetic namespace blocker'
+        print('Wheel receipt namespace: non-directory blocker visible and unchanged: PASS')
         print('Wheel agent writes: request replay + CAS + structured parser errors: PASS')
         print('Wheel smoke: isolated import + CLI workflow + review + reads + byte preservation: PASS')
 

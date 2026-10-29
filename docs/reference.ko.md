@@ -322,6 +322,9 @@ rename 뒤 실패면 새 리비전이 이미 현재일 수 있다. keyed stage�
 진단하고 나머지 결과를 유지한다. 심볼릭 링크나 요청 속 URL을 따라가지 않는다.
 scan.complete가 false면 수는 관측한 부분 합계다.
 
+receipts.namespace는 absent/directory/invalid/unavailable/unchecked를 구분한다. 예약 루트가
+디렉터리가 아니면 실제 종류와 진단을 표시하고, 알 수 없는 요청 합계는 정상적인 0 대신 null이다.
+해당 경로를 따르지 않고 나머지 목록을 유지한다.
 인덱스 유효성, 없는/접근 불가 현재 대상, 현재/비현재 CLI 리비전 수, stage 종류/크기와 알 수 없는 소유권,
 잠금 및 요청 상태를 표시한다. 요청은 self_consistent, pending, incomplete, corrupt, effects_unchecked다.
 비현재에는 정상 이력도 있다. 완료 근거 없는 파일을 orphan으로 단정하지 않는다.

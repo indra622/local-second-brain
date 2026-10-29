@@ -367,6 +367,9 @@ A busy writer can legitimately have a pending receipt. Diagnostics retain useful
 results for unsafe or inaccessible entries and never follow symlinks/receipt URLs.
 `scan.complete: false` qualifies counts as observed partial totals, not complete totals.
 
+The report exposes `receipts.namespace`: absent, directory, invalid, unavailable, or unchecked.
+A non-directory reserved root has its actual type and a diagnostic; unavailable receipt totals
+are `null`, not a healthy zero. Useful inventory continues without following that entry.
 The report contains managed-index validity and missing/unavailable current targets,
 current versus non-current CLI revision counts, staging type/size and unknown ownership,
 lock state, and receipt states: `self_consistent`, `pending`, `incomplete`, `corrupt`, or

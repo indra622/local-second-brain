@@ -90,7 +90,7 @@ def inspect_storage(root):
               'index': {'state': 'unavailable', 'missing_current': 0, 'targets_unavailable': 0},
               'revisions': {'total': 0, 'current': None, 'non_current': None,
                             'non_current_with_completion_evidence': 0, 'unclassified_non_current': None},
-              'receipts': {'total': 0, 'checked': 0, 'states': {}}, 'staging': {'total': 0},
+              'receipts': {'namespace': {'state': 'unchecked'}, 'total': 0, 'checked': 0, 'states': {}}, 'staging': {'total': 0},
               'details': {'missing_current': [], 'revisions': [], 'receipts': [], 'staging': [], 'diagnostics': []},
               'omitted': {'missing_current': 0, 'revisions': 0, 'receipts': 0, 'staging': 0, 'diagnostics': 0},
               'scan': {'visited': 0, 'complete': True},
@@ -167,6 +167,15 @@ def inspect_storage(root):
                             info = entry.stat(follow_symlinks=False)
                             regular = stat.S_ISREG(info.st_mode)
                             directory = stat.S_ISDIR(info.st_mode)
+                            if prefix == '' and name == ROOT:
+                                kind = ('directory' if directory else 'regular_file' if regular else
+                                        'symlink' if stat.S_ISLNK(info.st_mode) else
+                                        'fifo' if stat.S_ISFIFO(info.st_mode) else 'other')
+                                report['receipts']['namespace'] = {'state': 'directory' if directory else 'invalid', 'type': kind}
+                                if not directory:
+                                    diagnostic(path, WikiError(f'Reserved receipt root must be a directory; observed {kind}', 'unsafe_path'))
+                                    report['scan']['complete'] = False
+                                    continue
                             if prefix == '' and (name == '.lkw-index.tmp' or STAGE_PATTERN.fullmatch(name)):
                                 report['staging']['total'] += 1
                                 detail('staging', {'path': path, 'type': 'regular' if regular else 'unsafe', 'bytes': info.st_size,
@@ -191,13 +200,19 @@ def inspect_storage(root):
                                 finally:
                                     os.close(child)
                         except (OSError, WikiError) as exc:
+                            if path == ROOT:
+                                report['receipts']['namespace'].update(state='unavailable')
                             diagnostic(path, exc)
                             report['scan']['complete'] = False
             except OSError as exc:
+                if prefix == ROOT + '/':
+                    report['receipts']['namespace'].update(state='unavailable')
                 diagnostic(prefix, exc)
                 report['scan']['complete'] = False
 
         walk(store.fd)
+        if report['receipts']['namespace']['state'] == 'unchecked' and report['scan']['complete']:
+            report['receipts']['namespace'] = {'state': 'absent'}
         for folder in sorted(receipts)[:RECEIPT_LIMIT]:
             state = 'corrupt'
             paths = []
@@ -240,6 +255,9 @@ def inspect_storage(root):
         report['receipts']['unexpected_entries'] = report['receipts']['total'] - len(receipts)
         report['receipts']['unchecked'] = unchecked
         report['omitted']['receipts'] += unchecked
+        if report['receipts']['namespace']['state'] not in ('absent', 'directory'):
+            for field in ('total', 'unexpected_entries', 'unchecked'):
+                report['receipts'][field] = None
         report['revisions']['total'] = len(revisions)
         if current is not None:
             selected = set(current.values())
