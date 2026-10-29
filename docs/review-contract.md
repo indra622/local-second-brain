@@ -43,6 +43,13 @@ are not evidence stores. URLs are never fetched; evidence is never executed. Evi
 references are declarations, not proof of truth. Digests identify observed bytes and are
 not cryptographic authentication. Evidence can later change or disappear.
 
+Concurrent CLI writers use a persistent exact-marked nonblocking flock; the marker stays
+after exit. Legacy/unknown markers are refused without conversion. Do not mix old/new writers.
+The owned index stage is synced before revision creation; one index is renamed and its root
+directory synced, but this is not a multi-file transaction or power-loss recovery. A post-rename
+error can leave the revision current; no revision is deleted on failure. `inspect-storage` is
+read-only and does not prove safe replay or deletion.
+
 Concurrent CLI writers are serialized. The target and index are rechecked before the new
 file is created, and the existing index replacement checks still apply. Noncooperating
 editors must not run concurrently. An I/O failure or concurrent index change after file
@@ -89,6 +96,11 @@ actor는 `human:ID`, `process:ID`, `PRODUCER/VERSION` 중 하나다. 각 구성�
 근거 저장 위치로 쓰지 않는다. URL에 접속하거나 근거를 실행하지 않는다.
 근거 참조는 선언이며 진실의 증거가 아니다. 해시는 관측한 바이트를 식별하며 신원 인증이 아니다.
 근거는 나중에 바뀌거나 없어질 수 있다.
+
+잠금은 종료 후에도 남는 정확한 영구 표식과 비차단 flock을 쓰며 구형/알 수 없는 표식은 바꾸지 않고 거부한다.
+구형/신형 작성자를 섞지 않는다. 리비전보다 먼저 소유한 index stage를 동기화하며 단일 인덱스를 rename한 뒤
+루트를 동기화하지만 다중 파일 트랜잭션이나 정전 복구는 아니다. rename 뒤 오류면 이미 현재일 수 있으므로
+실패 정리로 리비전을 삭제하지 않는다. inspect-storage는 읽기 전용이며 재시도/삭제 안전성의 증명이 아니다.
 
 새 파일 생성 전에 대상과 인덱스를 다시 확인하며 기존 인덱스 교체 검사도 적용한다.
 잠금을 따르지 않는 편집기를 동시에 실행하지 않는다. 생성 뒤 I/O 오류나 인덱스 변경이 있으면

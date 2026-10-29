@@ -15,7 +15,7 @@ import yaml
 
 from local_knowledge_wiki.cli import review
 from local_knowledge_wiki.format import parse, timestamp
-from local_knowledge_wiki.storage import Store, WikiError
+from local_knowledge_wiki.storage import LOCK_MARKER, Store, WikiError
 
 
 class ReviewTests(unittest.TestCase):
@@ -226,7 +226,7 @@ class ReviewTests(unittest.TestCase):
         before = self.snapshot()
         self.record(code=2)
         self.assertEqual(before, self.snapshot())
-        lock.unlink()
+        lock.write_bytes(LOCK_MARKER)
         orphan = self.target.with_name('r999999.md')
         orphan.write_bytes(self.target.read_bytes())
         before = self.snapshot()
@@ -264,7 +264,9 @@ class ReviewTests(unittest.TestCase):
                 with patch.object(Store, 'read', read), self.assertRaisesRegex(WikiError, 'changed'):
                     review(self.bundle, 'garden', 'r000001', 'human:test', self.evidence)
                 self.assertFalse(self.target.with_name('r000002.md').exists())
-                self.assertFalse((self.bundle / '.lkw.lock').exists())
+                self.assertEqual((self.bundle / '.lkw.lock').read_bytes(), LOCK_MARKER)
+                with Store(self.bundle) as store, store.lock():
+                    pass
                 (self.bundle / changed).write_bytes(original)
 
     def test_index_change_after_revision_creation_is_not_overwritten(self):
@@ -279,7 +281,9 @@ class ReviewTests(unittest.TestCase):
             review(self.bundle, 'garden', 'r000001', 'human:test', self.evidence)
         self.assertEqual(index.read_bytes(), changed)
         self.assertTrue(self.target.with_name('r000002.md').exists())
-        self.assertFalse((self.bundle / '.lkw.lock').exists())
+        self.assertEqual((self.bundle / '.lkw.lock').read_bytes(), LOCK_MARKER)
+        with Store(self.bundle) as store, store.lock():
+            pass
 
     def test_required_options_and_no_historical_timestamp_input(self):
         for options in ([], ['--revision', 'r000001'],

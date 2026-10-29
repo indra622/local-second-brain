@@ -18,6 +18,12 @@ check the saved payload; on recovery-required, stop and inspect receipts/partial
 Do not bypass pending requests with new IDs or delete locks. Receipts do not grant authority
 or authenticate review. See the [write contract](../docs/reference.md#agent-errors-and-write-requests).
 
+Storage uses a permanent marked lock; its presence alone does not mean a writer is active.
+Use `inspect-storage BUNDLE` after ambiguous interruption. Check consistency/omissions before
+using the inventory. Non-current revisions include normal history. Never delete a marker/temp
+or bypass a pending request based on inventory alone; legacy markers need offline inspection.
+See the [storage contract](../docs/reference.md#storage-interruption-and-read-only-inspection).
+
 1. Run `recall BUNDLE QUERY --limit 5 --max-chars 12000` for bounded current context.
    Inspect match/fallback mode, state, omissions, status, trust, freshness and errors.
    Use `show BUNDLE ID --revision rNNNNNN` for full selected metadata/body, then inspect

@@ -48,7 +48,9 @@ re-read and assess the newer note before authorizing a new request. On `request_
 check the saved original payload. On `recovery_required`, stop and inspect the request
 receipt and bundle; never switch IDs to bypass pending state, delete locks, or blindly retry.
 A `locked` error can be retried with the same request after the active writer exits;
-an abandoned lock requires inspection. Other I/O failures can leave partial state.
+the new permanent marker normally remains after exit. Legacy/unknown markers require inspection.
+Use `inspect-storage BUNDLE` for a read-only inventory before assessing recovery; it does
+not authorize deletion or prove retry eligibility. Other I/O failures can leave partial state.
 Keep prepared inputs and evidence available and unchanged for replay. Receipts are local
 completion records, not authenticated reviews or database transactions. See the
 [reference](reference.md#agent-errors-and-write-requests) for exact identity and failure rules.

@@ -54,6 +54,7 @@ There is no background learning loop or built-in LLM synthesis.
 | `show BUNDLE ID [--revision rNNNNNN]` | Read the indexed current revision, or an explicit revision. |
 | `history BUNDLE ID` | List revision summaries from oldest to newest. |
 | `diff BUNDLE ID BEFORE AFTER` | Compare two explicit revisions, including metadata and body. |
+| `inspect-storage BUNDLE` | Read-only bounded storage inventory with lock/receipt consistency qualifications. |
 | `check BUNDLE` | Check the supported metadata subset and report links and freshness. |
 
 IDs are 1–64 lowercase ASCII letters, digits, or hyphens, starting with a letter or digit.
@@ -182,7 +183,7 @@ invalid notes even when they did not match. An invalid index never falls back to
 Diagnostics offer a next action; a miss does not establish absence. States return exit 0;
 I/O/argument failures return 2 (operational errors are JSON on stderr; argparse syntax
 errors are text). The successful-output budget does not bound stderr, input size, parsing
-memory or runtime. No bundle snapshot is locked; avoid concurrent edits during inspection.
+memory or runtime. Recall does not lock a bundle snapshot; avoid concurrent edits during recall.
 
 ## Search and trust signals
 
@@ -246,7 +247,7 @@ traceback, in this mode. Guidance is not a promise that retrying is safe.
 | `not_found` | Inspect missing input files or concepts/revisions. |
 | `already_exists` | Inspect existing target; do not overwrite it. |
 | `unsafe_path` | Inspect rejected path, symlink or nonregular file. |
-| `locked` | Wait for the active writer; inspect an abandoned lock. Never delete it blindly. |
+| `locked` | Wait for the active recognized holder; the persistent marker remains when idle. |
 | `precondition_failed` | Re-read current, assess changes, then use a new authorized request. |
 | `request_conflict` | Restore original request payload, or assess a separate new operation. |
 | `recovery_required` | Stop and inspect receipts and bundle; do not re-execute blindly. |
@@ -318,6 +319,76 @@ possible, but an unexpectedly oversized completion can still leave a pending req
 There is no complete transaction, automatic reconciliation, crash rollback or power-loss
 recovery guarantee. Editors do not honor the lock; do not edit concurrently. Input parsing
 and hashing remain in memory. External permissions still govern file access and review.
+
+## Storage interruption and read-only inspection
+
+`inspect-storage BUNDLE` returns JSON without creating a lock or modifying any artifact.
+It never replays requests, promotes revisions, fetches references or deletes files.
+Use global `--error-format json` before the command for structured operational/parser errors.
+A useful inventory returns exit 0 even with diagnostics; an inaccessible bundle is an error.
+
+New writers use a permanent regular `.lkw.lock` containing exactly `lkw:flock:v1` plus LF.
+Native exclusive nonblocking `flock` serializes cooperating writers on supported local
+macOS/Linux filesystems. The marker's presence is normal: exit closes the descriptor,
+not the pathname. Its bytes/inode are never rewritten, truncated or unlinked after
+initialization. Killing the sole initialized holder releases its kernel lock; this does
+not prove that pending receipts or bundle artifacts are complete. Busy recognized locks
+return `locked`. Empty, partial, legacy or unknown markers return `recovery_required`
+without conversion, even if their advisory lock is available. Unsafe/nonregular,
+hard-linked or substituted lock paths are refused. Unsupported locking never falls
+back to an unprotected write. Initial marker creation can fail and need inspection.
+
+This is a writer-format upgrade, not mixed-version interoperability. The permanent
+marker intentionally blocks old O_EXCL writers, including when idle. Before an offline
+operator considers retiring a legacy sentinel, stop all old writers and inspect partial
+state. There is no migration/removal command; never blindly delete either marker to
+retry or downgrade. Do not fork while holding a Store lock: close-on-exec does not stop
+fork/dup inheritance, and another inherited descriptor may keep the lock after a death.
+Only local cooperative locking is supported; editors and hostile filesystem changes
+are outside this guarantee. `init` refuses nonempty targets before installing a lock.
+
+Revision writes now create a unique `.lkw-index.<32 lowercase hex>.tmp` before creating
+the revision. Ten exclusive-name attempts bound collisions. Existing fixed
+`.lkw-index.tmp` and other random artifacts are preserved. The owned stage is written
+and synced, then the revision is created/synced. Before one-index rename, original index
+bytes and stage inode/bytes are checked. The root directory is synced after rename.
+Cleanup removes only the invocation's still-present owned staging inode, never a revision.
+A failure after actual rename may mean the new revision is already current. Keyed staging
+starts after request intent, so an interrupted stage remains conservative
+`recovery_required`, even if no revision was created. A killed process may leave a temp.
+No multi-file atomicity, rollback or power-loss recovery is promised; index directory sync
+does not durably order every source/revision/receipt directory. Identity checks do not
+provide atomic conditional unlink against hostile concurrent entry replacement.
+
+Inspection takes a shared nonblocking lock on an existing recognized marker when possible.
+`consistency: shared_lock_held` excludes cooperating writers during the inventory;
+`best_effort` with absent/legacy/busy/unavailable lock does not establish a snapshot.
+A busy writer can legitimately have a pending receipt. Diagnostics retain useful partial
+results for unsafe or inaccessible entries and never follow symlinks/receipt URLs.
+`scan.complete: false` qualifies counts as observed partial totals, not complete totals.
+
+The report exposes `receipts.namespace`: absent, directory, invalid, unavailable, or unchecked.
+A non-directory reserved root has its actual type and a diagnostic; unavailable receipt totals
+are `null`, not a healthy zero. Useful inventory continues without following that entry.
+The report contains managed-index validity and missing/unavailable current targets,
+current versus non-current CLI revision counts, staging type/size and unknown ownership,
+lock state, and receipt states: `self_consistent`, `pending`, `incomplete`, `corrupt`, or
+`effects_unchecked`. Non-current includes ordinary history. Completion evidence can
+identify a previously completed operation; an unclassified file is not a proven orphan.
+A self-consistent receipt has canonical v1 schema/checksum and matching permitted effect
+bytes; without original payloads inspection does not certify replay eligibility.
+Intent v1 has no planned revision path, so pending requests cannot be reliably assigned
+to individual non-current files. Strict result/effect grammars precede artifact reads.
+
+Inspection bounds: 100 details per section, 240 code points per text field (with a
+truncation flag), 10000 visited entries, 16 directory levels, 100 receipts checked,
+8 MB per receipt/index read (size checked before allocation), 64 MB per effect hash
+and 128 MB total hashing. Receipts above the check cap remain unchecked. Oversized effects
+produce `effects_unchecked`; the report does not treat that as verified consistency.
+Details have omission counters; index targets beyond 10000 have a separate unchecked count.
+These are inspection limits, not new input limits on ordinary commands. A filename pattern
+never proves temp ownership or permission to remove it. Stop and inspect ambiguous state;
+there is no automatic recovery, lock deletion, receipt finalization or orphan cleanup.
 
 ## Agent and storage limits
 
