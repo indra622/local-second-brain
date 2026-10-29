@@ -6,6 +6,10 @@ Use these files to give a chosen agent a bounded task. No model, vendor, account
 API key is required by the kit. A person can prepare the same text. The CLI preserves
 bytes, stores prepared bodies, selects indexed current revisions and reports metadata.
 The person or agent supplies synthesis and judgment outside the CLI.
+`human-reviewed` and `machine-confirmed` are advisory self-declarations derived from actor
+labels, not authenticated identities or independent fact checking. The CLI does not upload
+notes; an external/cloud agent with access may send notes or recall output to its provider.
+You control folder access and provider choice. Local storage does not make inference fully offline.
 
 Install from the [source checkout](../README.md#quick-start), then keep that virtual
 environment active. The workflow, templates, fixtures and example program are checkout
@@ -41,6 +45,8 @@ its retry. For an update, replace `absent` with the exact revision you read, suc
 `r000001`. This comparison runs under the write lock. A successful replay returns the
 original revision even if current has advanced; it does not make that revision current again.
 Optional review accepts `--request-id` too; keep its original `--revision`, actor and evidence.
+Add `--now TIME` only to declare an event time with an explicit offset; it is normalized to UTC.
+Keep the original explicit/implicit mode and instant on retries. A declared time is not proof of review.
 
 Put `--error-format json` before the command. Read stderr `error.code` and `error.action`;
 successful stdout and exit codes keep their existing meaning. On `precondition_failed`,

@@ -112,7 +112,10 @@ Read-command operational errors are a JSON `{"error": "..."}` object on stderr i
 `review` requires the exact indexed current revision and refuses historical targets under the write lock.
 Actors must be `human:ID`, `process:ID`, or `PRODUCER/VERSION`, with nonempty components and no
 whitespace, controls, colon, slash or backslash inside a component. These are declarations.
-The CLI records its observed offset-aware UTC time; it accepts no historical review timestamp.
+Review defaults to the actual UTC clock. Optional `review --now TIME` instead declares an
+explicit-offset ISO8601 event time, validated before locking/reservation and normalized to
+UTC isoformat. It does not prove the actual review time. Read-command `--now` keeps its
+freshness-evaluation meaning. Equivalent Z/offset instants share a canonical event value.
 Evidence must be an absolute HTTP(S) URL with a host (no credentials, invalid ports/escapes or whitespace),
 or an existing nonempty regular artifact at a literal bundle-root path, optionally starting with `/`.
 Local spaces are allowed, but query/fragment syntax, traversal, backslashes, application directories
@@ -273,7 +276,10 @@ A completed request with the same fingerprint returns its original successful re
 before testing the now-stale current precondition. It creates no new source, provenance,
 revision or review and never rolls the current index back. A later unrelated revision is
 allowed. Changing the command or payload with the same ID gives `request_conflict`.
-The generated capture/curate/review clock is excluded from identity. Fingerprints include:
+The generated capture/curate/review clock is excluded from identity. Implicit review keeps
+the exact previous v1 payload without a time field; only explicit review `--now` adds canonical
+`declared_at`. Switching implicit/explicit mode or changing the instant conflicts; equivalent
+offset forms replay. Recorded event `at` equals that canonical value. Fingerprints include:
 
 - Capture: source byte SHA-256, original basename (stored provenance), source ID, actor and origin.
 - Curate: prepared body byte SHA-256, ordered source IDs plus content/provenance byte hashes,

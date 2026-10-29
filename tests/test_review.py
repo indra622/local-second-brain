@@ -285,11 +285,9 @@ class ReviewTests(unittest.TestCase):
         with Store(self.bundle) as store, store.lock():
             pass
 
-    def test_required_options_and_no_historical_timestamp_input(self):
+    def test_required_options_fail_without_effects(self):
         for options in ([], ['--revision', 'r000001'],
-                        ['--revision', 'r000001', '--actor', 'human:test'],
-                        ['--revision', 'r000001', '--actor', 'human:test', '--evidence', self.evidence,
-                         '--now', '2000-01-01T00:00:00Z']):
+                        ['--revision', 'r000001', '--actor', 'human:test']):
             before = self.snapshot()
             self.cli('review', self.bundle, 'garden', *options, code=2)
             self.assertEqual(before, self.snapshot())

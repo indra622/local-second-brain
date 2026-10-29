@@ -27,8 +27,21 @@ Each new `verified` event contains standard OKF `by` and `at`, plus these local 
   with a digest of the observed file bytes. Local references start at the bundle root,
   with an optional leading `/`; they are not relative to the new note or shell directory.
 
-`at` is the offset-aware UTC time observed by the local CLI while recording the event.
-There is no historical timestamp input. Actors must be `human:ID`, `process:ID`, or
+`at` defaults to the actual UTC clock observed while recording the event. Optional
+`--now TIME` declares the event time instead: require an explicit-offset ISO8601 instant,
+validate before locking/reservation, and normalize to UTC isoformat. Equivalent Z/offset
+forms share one value. This is a self-declared time, not proof of when review happened;
+read-command `--now` still only evaluates freshness. The Python function adds optional
+`now=None` after `request_id`, preserving old positional calls.
+
+Implicit-clock request payloads are byte-compatible with receipt v1: no timestamp field
+is added and the execution clock stays excluded. Explicit input adds only canonical
+`declared_at` to the fingerprint and records that same value in `at`. Same key/time
+replays before current-version checks even after later changes. A different instant or
+implicit/explicit mode gives `request_conflict`; preserve the original mode/time on retry.
+No history migration or separate event store is introduced.
+
+Actors must be `human:ID`, `process:ID`, or
 `PRODUCER/VERSION`; components are nonempty and contain no whitespace, control characters,
 colon, slash or backslash. This input convention does not authenticate identity.
 `human-reviewed` and `machine-confirmed` remain advisory labels derived from the declared
@@ -83,7 +96,15 @@ still require the exact current target. See the [request contract](reference.md#
 번들 기준 `/concepts/ID/rNNNNNN.md` 경로인 `resource`와 전체 바이트의 `sha256`을 넣는다.
 `x-second-brain-evidence`에는 URL인 `resource`, 또는 로컬 파일의 번들 기준 `/경로`와 관측한 바이트의
 `sha256`을 넣는다. 로컬 경로는 번들 루트 기준이며 앞의 `/`는 생략할 수 있다.
-`at`는 기록 시 CLI가 관측한 UTC 오프셋 포함 시각이다. 과거 시각을 입력하는 옵션은 없다.
+`at`는 기본적으로 기록할 때 관측한 실제 UTC 시각이다. 선택적 `--now TIME`은 이벤트 시각의 선언이다.
+명시적 UTC 오프셋이 있는 ISO8601을 잠금/요청 예약 전에 검사하고 UTC isoformat으로 통일한다.
+같은 순간의 Z/오프셋 표기는 같은 값이다. 실제 검토 시점의 증명이 아니며 읽기 명령의 --now는
+여전히 신선도 판정 시각일 뿐이다. Python 함수는 기존 request_id 뒤에 선택적 now=None을 받는다.
+
+암묵적 시계 모드는 기존 v1 요청과 같은 payload를 유지하고 시각 필드를 추가하지 않는다.
+명시적 입력만 UTC declared_at을 지문에 추가하고 같은 값을 at에 기록한다. 같은 키/시각은
+현재가 진행된 뒤에도 조건 검사 전에 원래 결과를 반환한다. 다른 순간이나 명시/암묵 모드 변경은
+request_conflict다. 재시도에는 원래 모드/시각을 유지한다. 이력 이전이나 별도 이벤트 저장소는 없다.
 
 actor는 `human:ID`, `process:ID`, `PRODUCER/VERSION` 중 하나다. 각 구성요소는 비어 있지 않아야 하며
 공백, 제어 문자, 콜론, 슬래시나 역슬래시를 포함할 수 없다. 이 규칙은 신원을 인증하지 않는다.

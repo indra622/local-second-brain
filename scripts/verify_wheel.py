@@ -133,8 +133,11 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
                     '--request-id', 'curate-1', '--expect-current', 'absent')
         first_agent = agent('curate', *prepared)
         review_args = ('agent-note', '--revision', 'r000001', '--actor', 'process:smoke',
-                       '--evidence', 'sources/agent-source/content.raw', '--request-id', 'review-1')
+                       '--evidence', 'sources/agent-source/content.raw', '--request-id', 'review-1',
+                       '--now', '2020-01-02T12:04:05+09:00')
         declared = agent('review', *review_args)
+        assert declared['verified'][-1]['at'] == '2020-01-02T03:04:05+00:00'
+        assert agent('review', *review_args[:-1], '2020-01-02T03:04:05Z') == declared
         assert agent('curate', *prepared) == first_agent
         assert agent('review', *review_args) == declared
         assert len(cli('history', 'agent-note')) == 2
