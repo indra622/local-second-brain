@@ -133,8 +133,20 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
                     '--request-id', 'curate-1', '--expect-current', 'absent')
         first_agent = agent('curate', *prepared)
         review_args = ('agent-note', '--revision', 'r000001', '--actor', 'process:smoke',
-                       '--evidence', 'sources/agent-source/content.raw', '--request-id', 'review-1')
+                       '--evidence', 'sources/agent-source/content.raw', '--request-id', 'review-1',
+                       '--now', '2020-01-02T12:04:05+09:00')
+        for overprecision in ('2020-01-02T03:04:05.1234561Z', '2020-01-02T03:04:05.1234569Z'):
+            before_precision = snapshot()
+            failed_precision = subprocess.run(
+                [str(executable), '--error-format', 'json', 'review', str(bundle),
+                 *map(str, review_args[:-1]), overprecision],
+                cwd=root, env=env, capture_output=True, text=True, timeout=30)
+            assert failed_precision.returncode == 2 and not failed_precision.stdout
+            assert json.loads(failed_precision.stderr)['error']['code'] == 'invalid_input'
+            assert snapshot() == before_precision, 'Rejected precision changed bundle or reserved request'
         declared = agent('review', *review_args)
+        assert declared['verified'][-1]['at'] == '2020-01-02T03:04:05+00:00'
+        assert agent('review', *review_args[:-1], '2020-01-02T03:04:05Z') == declared
         assert agent('curate', *prepared) == first_agent
         assert agent('review', *review_args) == declared
         assert len(cli('history', 'agent-note')) == 2

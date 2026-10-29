@@ -122,7 +122,15 @@ def review_evidence(store, resource):
     return {"resource": "/" + path, "sha256": hashlib.sha256(data).hexdigest()}
 
 
-def review(root, concept_id, revision, actor, evidence, request_id=None):
+def review(root, concept_id, revision, actor, evidence, request_id=None, now=None):
+    declared_at = None
+    if now is not None:
+        if isinstance(now, str) and re.search(r"\.\d{7}", now):
+            raise WikiError("Declared review time supports at most 6 fractional-second digits")
+        try:
+            declared_at = timestamp(now).astimezone(timezone.utc).isoformat()
+        except OverflowError as exc:
+            raise WikiError("Declared review time is outside the supported UTC range") from exc
     if request_id is not None:
         identifier(request_id)
     target = revision_path(concept_id, revision)
@@ -144,6 +152,8 @@ def review(root, concept_id, revision, actor, evidence, request_id=None):
         reference = review_evidence(store, evidence)
         payload = {"id": concept_id, "revision": revision, "actor": actor, "evidence": evidence,
                    "reference": reference, "target_sha256": digest(original)}
+        if declared_at is not None:
+            payload["declared_at"] = declared_at
 
         def precondition():
             if entries.get(concept_id) != target:
@@ -155,7 +165,7 @@ def review(root, concept_id, revision, actor, evidence, request_id=None):
 
         events = meta.get("verified", [])
         events = [events] if isinstance(events, dict) else list(events)
-        events.append({"by": actor, "at": datetime.now(timezone.utc).isoformat(),
+        events.append({"by": actor, "at": declared_at if declared_at is not None else datetime.now(timezone.utc).isoformat(),
                        "x-second-brain-target": {"resource": "/" + target,
                                                  "sha256": hashlib.sha256(original).hexdigest()},
                        "x-second-brain-evidence": reference})
@@ -235,6 +245,7 @@ def main(argv=None):
     p.add_argument("--actor", required=True, help="Declared human:ID, process:ID or PRODUCER/VERSION; not authenticated")
     p.add_argument("--request-id", help="Bundle-wide retry ID; same exact revision/evidence/actor replays prior review")
     p.add_argument("--evidence", required=True, help="Absolute http(s) URL or bundle-root regular artifact path; never fetched or executed")
+    p.add_argument("--now", help="Explicit-offset ISO8601 declared event time, at most 6 fractional-second digits; normalized to UTC; default actual UTC clock, not proof of review time")
     p = commands.add_parser("recall", help="Bounded current context as JSON; exact-first with disclosed prefix fallback")
     p.add_argument("bundle")
     p.add_argument("query")
@@ -273,7 +284,9 @@ def main(argv=None):
     p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
     args = parser.parse_args(argv)
     try:
-        now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
+        now = None
+        if args.command != "review":
+            now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
         for key in ("actor", "resource"):
             if hasattr(args, key) and not nonempty(getattr(args, key)):
                 raise WikiError(f"{key} must be a nonempty string")
@@ -288,7 +301,7 @@ def main(argv=None):
                                          args.actor, now.isoformat(), args.type, args.title,
                                          args.status, args.stale_after, args.request_id, args.expect_current)}
         elif args.command == "review":
-            result = review(args.bundle, args.id, args.revision, args.actor, args.evidence, args.request_id)
+            result = review(args.bundle, args.id, args.revision, args.actor, args.evidence, args.request_id, args.now)
         elif args.command == "inspect-storage":
             print(render(inspect_storage(args.bundle)), end="")
             return 0

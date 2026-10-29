@@ -101,6 +101,15 @@ upload data, change global configuration, or pipe remote installers into a shell
 Installation does not provide automatic memory or model integration.
 ```
 
+The CLI itself stores and searches locally without uploading content. If you give a cloud
+agent access, notes, sources and `recall` output it reads may be sent to that AI service.
+You choose which folders it may access and which AI service to use. Local storage does
+not mean the AI's reasoning also runs offline.
+
+`human-reviewed` and `machine-confirmed` are advisory labels based on the reviewer declared
+in the record. The CLI has not authenticated the reviewer or verified the content's facts.
+Specifying a review time does not prove that the review actually happened then.
+
 For later work with your own notes, use the [portable agent kit](docs/agent-kit.md)
 and its [workflow](workflows/AGENT-WORKFLOW.md).
 

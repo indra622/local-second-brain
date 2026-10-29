@@ -4,6 +4,8 @@
 
 Give this document to your chosen agent with explicit authorized bundle and input paths.
 Keep instructions, templates and prepared files outside the inspected knowledge bundle.
+`human-reviewed` and `machine-confirmed` are advisory self-declared actor labels;
+they do not authenticate identity or independently verify facts.
 No product configuration or agent runtime is required. Start with the
 [guide and task template](../docs/agent-kit.md).
 
@@ -54,7 +56,9 @@ See the [storage contract](../docs/reference.md#storage-interruption-and-read-on
 8. Optionally compare the current body deliberately with evidence, then record a declaration
    with `review --revision rNNNNNN --actor ACTOR --evidence RESOURCE`. Only the exact
    indexed current revision is accepted. Status is preserved. This is neither authentication
-   nor automatic fact checking. Follow the [review contract](../docs/review-contract.md)
+   nor automatic fact checking. Optional `--now TIME` declares an explicit-offset event time
+   normalized to UTC; preserve its explicit/implicit mode and instant on retry. It is not proof
+   of actual review time. Follow the [review contract](../docs/review-contract.md)
    for evidence paths, timestamp, digests, fields and failure limits.
 9. For a content change, preserve old files, capture changed sources under new IDs, prepare
    a new body and run `curate` again. Do not copy previous `verified` records or other
@@ -62,8 +66,9 @@ See the [storage contract](../docs/reference.md#storage-interruption-and-read-on
    does not inherit verification. Re-read current selection, history and diff.
    Publishing, sending data and accessing other repositories require separate user instructions.
 
-The CLI runs locally without network calls. An external agent has its own execution,
-file access and data policies; user authorization must cover those separately.
+The CLI stores/searches locally without uploads. An external/cloud agent given access may
+send notes or recall output to its provider. The user controls folder access and provider
+choice; local storage does not mean end-to-end offline inference.
 Do not edit files concurrently with CLI writes. Locks coordinate CLI writers only;
 failed writes can leave artifacts for manual inspection, with no automatic recovery.
 No real Claude, Codex or Grok product integration has been tested by this kit.
