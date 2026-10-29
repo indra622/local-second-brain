@@ -48,6 +48,7 @@ There is no background learning loop or built-in LLM synthesis.
 | `capture BUNDLE FILE --id ID --actor ACTOR --resource ORIGIN` | Preserve source bytes, origin, actor, capture time, and SHA-256. Refuse reused source IDs. |
 | `curate BUNDLE ID --body FILE --source SOURCE_ID --actor ACTOR` | Store a prepared UTF-8 body as a new revision. Repeat `--source` for multiple sources. |
 | `review BUNDLE ID --revision rNNNNNN --actor ACTOR --evidence RESOURCE` | Append a declared review in a new revision of the current body. |
+| `recall BUNDLE QUERY` | Bounded indexed-current context with explicit match diagnostics (JSON). |
 | `search BUNDLE QUERY` | Search titles and bodies across all concept revisions. |
 | `list BUNDLE` | List all CLI revision summaries, sorted by path. |
 | `show BUNDLE ID [--revision rNNNNNN]` | Read the indexed current revision, or an explicit revision. |
@@ -109,6 +110,62 @@ reviewers. The original file stays byte-for-byte intact. The new body and metada
 unknown YAML keys and original generation records, are preserved; new YAML formatting may differ.
 Existing mapping/list review events are retained in a list. Status is unchanged, and a later `curate`
 does not inherit reviews. See the bilingual [review contract](review-contract.md) for details and failure limits.
+
+## Bounded current recall
+
+`recall BUNDLE QUERY [--match auto|exact|lexical] [--limit N] [--max-chars N] [--now TIME]`
+is read-only and JSON-only. It has no `--format` option. Other commands retain their formats.
+It reads only CLI revisions selected by the current index, never the highest revision or
+historical substitutes. Imported generic notes remain accessible with search/check.
+
+Default `auto` tries exact Unicode `\w+` words after `casefold`, then lexical matching
+only if no current exact result exists. `exact` never expands; `lexical` explicitly allows
+each query word to match the start of a note word if it has at least three code points,
+or at least two characters consisting entirely of precomposed Hangul syllables (`가`..`힣`).
+Shorter terms still require equality. Every distinct query word must match the title or body.
+Scores sum matching word occurrences per query term; ties sort by path. No stemming,
+Unicode normalization, morphology, semantic search or source-text search occurs.
+`rename` matches `renames` and `보고서` matches `보고서를` with lexical matching;
+`xrename` and `중간보고서` do not match those queries. `port` can match unrelated
+`portable`. Two-syllable `규칙`/`결정` match `규칙을`/`결정을`, but also potentially
+unrelated `규칙성`/`결정체`; `불규칙한`/`미결정` do not match. One-syllable prefixes
+do not expand. Prefix matching is a candidate lookup, not proof of relevance.
+Exact-first can omit useful prefix candidates when an exact hit exists; request lexical deliberately.
+
+The default limit is 5 (allowed 1..100). The default budget is 12000 (allowed 2048..1000000).
+`--max-chars` bounds the **entire successful stdout**, including JSON syntax, escaping,
+diagnostics and final newline, counted as Python Unicode code points, not bytes,
+grapheme clusters or tokens. The command may return fewer results than the limit.
+It clips body context, then omits results that cannot fit. `matched` counts all selected-mode
+matches before bounds; `omitted_results` counts matches not returned. A result has `id`,
+`revision` and `path` for explicit `show`. `body_start`/`body_end` are original body code-point
+offsets; `body_chars` is its full length. The initial window starts up to 120 characters before
+the first matching body word, at most 1600 characters long, and can shrink under budget.
+It need not contain every query term; `body_truncated` indicates omitted body content.
+
+Selected fields include title, lifecycle, trust, freshness/deadline, metadata errors,
+generation/review declarations and source references. Nested declarations select only
+`id`, `resource`, `last_modified`, `by`, `at`, `sha256` and review target/evidence fields.
+Each selected string is limited to 240 characters, lists to 8 items, nesting to 4 levels.
+`selected_fields_truncated_or_omitted` reports these reductions. Non-finite YAML floats
+become JSON `null` with this flag set; metadata validation errors remain visible. `metadata_omitted` is always
+true: full metadata and unknown extensions are intentionally omitted. Use `show` for full evidence.
+Clipped references are not usable full paths. Source references are unvalidated declarations;
+recall does not resolve, fetch, authenticate or execute them. Keep path access within the
+separate task authority, and run `check` for supported link checks. Draft, deprecated,
+stale, unverified and invalid metadata notes can match; they are not silently promoted.
+Trust comes from stored declarations, not authenticated review. `stale: null` means unknown.
+
+Read `requested_match`, `match_mode` and `fallback_used` before interpreting results.
+`state` distinguishes `matches`, `no_match`, `empty_index`, `invalid_index`, `partial`
+(matches plus exclusions), `incomplete` (no match plus exclusions), and `budget_omitted`
+(matches exist but none fit). Exclusion counts identify unavailable/unsafe revisions,
+unsupported revision names and invalid UTF-8. `invalid_metadata_notes` counts inspected
+invalid notes even when they did not match. An invalid index never falls back to history.
+Diagnostics offer a next action; a miss does not establish absence. States return exit 0;
+I/O/argument failures return 2 (operational errors are JSON on stderr; argparse syntax
+errors are text). The successful-output budget does not bound stderr, input size, parsing
+memory or runtime. No bundle snapshot is locked; avoid concurrent edits during inspection.
 
 ## Search and trust signals
 

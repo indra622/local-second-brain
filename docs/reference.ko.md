@@ -39,6 +39,7 @@ GPU, DB, 서버, API 키, Obsidian 플러그인이나 특정 AI 서비스는 필
 | `capture BUNDLE FILE --id ID --actor ACTOR --resource ORIGIN` | 원문 바이트와 출처, 수집 주체, 시간, SHA-256을 보존한다. ID 재사용을 거부한다. |
 | `curate BUNDLE ID --body FILE --source SOURCE_ID --actor ACTOR` | 준비한 UTF-8 본문을 새 개념 리비전으로 저장한다. `--source`는 반복할 수 있다. |
 | `review BUNDLE ID --revision rNNNNNN --actor ACTOR --evidence RESOURCE` | 현재 본문을 유지한 새 리비전에 검토 선언을 덧붙인다. |
+| `recall BUNDLE QUERY` | 인덱스의 현재 맥락을 크기 제한과 검색 진단을 담은 JSON으로 읽는다. |
 | `search BUNDLE QUERY` | 모든 개념 리비전의 제목과 본문을 단어로 검색한다. |
 | `list BUNDLE` | 모든 CLI 리비전 요약을 경로순으로 표시한다. |
 | `show BUNDLE ID [--revision rNNNNNN]` | 현재 리비전 또는 지정한 리비전의 본문을 읽는다. |
@@ -126,6 +127,56 @@ URL 자격 증명, 잘못된 포트, escape, 공백, 다른 scheme, 로컬 query
 깨진 링크와 오래된 문서는 형식 오류와 별도이며, 이것만 있으면 종료 코드는 0이다.
 메타데이터 오류가 있으면 1, 입출력 실패나 안전상 거부, 잘못된 인자는 2다.
 정확한 검사 범위와 생략한 항목은 [검사 범위](okf-subset.md)에 적었다.
+
+## 크기를 제한한 현재 회상
+
+`recall BUNDLE QUERY [--match auto|exact|lexical] [--limit N] [--max-chars N] [--now TIME]`
+은 읽기 전용이며 JSON만 출력한다. `--format`은 받지 않는다. 기존 명령의 출력 형식은 유지한다.
+인덱스가 지정한 CLI 리비전만 읽으며 가장 큰 번호나 과거 버전으로 대신하지 않는다.
+가져온 일반 노트는 기존 search/check로 확인한다.
+
+기본 `auto`는 `casefold`한 Unicode `\w+` 단어가 모두 정확히 일치하는 노트를 찾는다.
+현재 정확한 결과가 하나도 없을 때만 lexical로 다시 찾는다. `exact`는 확장하지 않는다.
+`lexical`은 검색어가 3 코드 포인트 이상이거나 완성형 한글 음절(`가`..`힣`)만으로 된
+2글자 이상이면 노트 단어의 앞부분과 비교하고, 그보다 짧으면 정확히 비교한다.
+모든 검색 단어가 제목이나 본문에 있어야 한다. 점수는 각 검색어에 맞는 단어의 출현 횟수 합이며,
+같은 점수는 경로순이다. 형태소, 의미 검색, Unicode 정규화나 원문 검색은 없다.
+lexical에서 `rename`은 `renames`, `보고서`는 `보고서를`과 맞는다.
+`xrename`, `중간보고서`는 맞지 않는다. `port`가 관계없는 `portable`과 맞을 수 있으므로
+결과의 관련성은 판단해야 한다. `규칙`/`결정`은 `규칙을`/`결정을`과 맞지만 관계없는
+`규칙성`/`결정체`도 찾을 수 있다. `불규칙한`/`미결정`은 맞지 않으며 한 음절은 확장하지 않는다. 정확한 결과가 있으면 다른 접두어 후보는 생략한다.
+필요하면 `--match lexical`을 명시한다.
+
+결과 제한은 기본 5개, 범위 1..100이다. 문자 예산은 기본 12000, 범위 2048..1000000이다.
+`--max-chars`는 JSON 문법, escape, 진단과 마지막 줄바꿈을 포함한 **성공 stdout 전체**를
+Python Unicode 코드 포인트 수로 제한한다. 바이트, 글자 묶음이나 토큰 수가 아니다.
+본문을 줄이고 그래도 맞지 않으면 결과를 생략하므로 요청한 개수보다 적게 나올 수 있다.
+`matched`는 제한 전 일치 수, `omitted_results`는 반환하지 못한 수다.
+`id`, `revision`, `path`로 정확한 `show` 대상을 지정한다. `body_start`, `body_end`는 원래
+본문의 코드 포인트 위치이고 `body_chars`는 전체 본문 길이다. 첫 본문 일치 단어보다 최대 120자
+앞에서 시작하여 최대 1600자를 고른 뒤 예산에 맞게 줄인다. 모든 검색어를 담는다는 보장은 없다.
+`body_truncated`는 본문 생략을 표시한다.
+
+제목, 상태, 검토 수준, 신선도와 기한, 메타데이터 오류, 생성과 검토 선언 및 출처 참조를 고른다.
+중첩 선언에서는 `id`, `resource`, `last_modified`, `by`, `at`, `sha256`, 검토 대상과 근거 필드만
+고른다. 문자열은 240자, 목록은 8개, 중첩은 4단계로 제한한다.
+`selected_fields_truncated_or_omitted`는 이 제한에 따른 축소를 표시한다. YAML의 NaN이나
+무한대는 JSON `null`로 바꾸고 이 표시를 켜며 메타데이터 오류도 유지한다.
+전체 메타데이터와 알 수 없는 확장 필드는 생략하므로 `metadata_omitted`는 항상 true다.
+전체 근거는 `show`로 확인한다. 잘린 참조는 전체 경로로 쓸 수 없다. 출처 참조는 검증하지 않은
+선언이며 경로를 해석하거나 접속, 인증, 실행하지 않는다. 파일 접근은 별도 작업 권한을 따르고
+지원되는 링크 검사는 `check`로 한다. draft, deprecated, stale, unverified나 잘못된 메타데이터도
+일치하면 드러낸다. 검토 수준은 인증되지 않은 기록에서 계산한다. `stale: null`은 판단 불가다.
+
+`requested_match`, `match_mode`, `fallback_used`를 먼저 읽는다.
+`state`는 `matches`, `no_match`, `empty_index`, `invalid_index`, `partial`(일치와 제외가 함께 있음),
+`incomplete`(일치 없이 제외가 있음), `budget_omitted`(일치하지만 모두 예산으로 생략)를 구분한다.
+제외 수는 읽을 수 없거나 안전하지 않은 리비전, 지원하지 않는 리비전, UTF-8 오류를 구분한다.
+`invalid_metadata_notes`는 검색에 맞지 않은 노트도 포함한 메타데이터 오류 노트 수다.
+잘못된 인덱스를 과거 리비전으로 대신하지 않는다. 실패가 지식 부재의 증명은 아니며 진단 안내를 따른다.
+상태 결과는 종료 0, 입출력이나 인자 오류는 2다. 실행 오류는 stderr JSON, argparse 문법 오류는
+텍스트다. 예산은 stderr, 입력 크기, 파싱 메모리나 실행 시간을 제한하지 않는다.
+읽기에는 스냅샷 잠금이 없으므로 검사 중 파일을 동시에 편집하지 않는다.
 
 ## 에이전트와 저장 한계
 

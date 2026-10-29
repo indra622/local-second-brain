@@ -7,10 +7,13 @@
 특정 제품 설정이나 에이전트 런타임은 필요하지 않다.
 [사용 안내와 작업 템플릿](../docs/agent-kit.ko.md)부터 읽는다.
 
-1. `search BUNDLE QUERY --current-only`로 기존 현재 지식을 먼저 검색한다.
-   지정한 `index.md`를 읽고 `show`로 관련 개념을 확인한다. 사용하기 전에
-   `current`, `status`, `trust`, `stale`, `metadata_errors`를 확인한다.
-   검색은 의미가 아닌 정확한 단어를 비교하므로 관련 검색어도 확인한다.
+1. `recall BUNDLE QUERY --limit 5 --max-chars 12000`으로 크기를 제한한 현재 맥락을 찾는다.
+   검색 방식, 대체 검색 여부, 상태, 생략, 검토 수준, 신선도와 오류를 확인한다.
+   전체 메타데이터와 본문은 `show BUNDLE ID --revision rNNNNNN`으로 읽고 별도로 허용한
+   보존 원문을 확인한다. recall은 원문에 접속하지 않는다. 실패가 지식 부재의 증명은 아니다.
+   진단 안내에 따라 다른 단어로 찾거나 list/check를 확인한다. `--match exact`는 정확한
+   단어만 비교한다. 기본 auto는 정확한 결과가 없을 때만 단어 앞부분을 비교하며 관계없는
+   단어도 찾을 수 있다. 자세한 규칙은 명령 참고 문서를 따른다.
 2. 허용한 자료만 `capture`로 보존한다. `--resource`에는 자료의 출처나 합성 자료임을 적는다.
    `--actor`에는 실제 주체를 명시한다. 사람은 `human:ID`, 도구나 에이전트는
    `PRODUCER/VERSION`, 자동 처리는 `process:ID` 형식을 따른다. 이 표기는 신원을 인증하지 않는다.

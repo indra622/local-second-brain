@@ -15,6 +15,7 @@ import yaml
 
 from .format import inspect_bundle, nonempty, parse, timestamp, validate
 from .reading import browse, current_paths, human, json_compatible, read_note, revision_path
+from .recall import recall, render
 from .storage import (Store, WikiError, capture, current_index, identifier, init,
                       read_input, render_entries)
 
@@ -181,6 +182,15 @@ def main(argv=None):
     p.add_argument("--revision", required=True, help="Exact indexed current revision rNNNNNN")
     p.add_argument("--actor", required=True, help="Declared human:ID, process:ID or PRODUCER/VERSION; not authenticated")
     p.add_argument("--evidence", required=True, help="Absolute http(s) URL or bundle-root regular artifact path; never fetched or executed")
+    p = commands.add_parser("recall", help="Bounded current context as JSON; exact-first with disclosed prefix fallback")
+    p.add_argument("bundle")
+    p.add_argument("query")
+    p.add_argument("--match", choices=("auto", "exact", "lexical"), default="auto",
+                   help="auto: exact then lexical only on miss; lexical: word prefixes, 2+ Hangul syllables or 3+ other characters; all terms required")
+    p.add_argument("--limit", type=int, default=5, help="Maximum results, 1..100 (default 5)")
+    p.add_argument("--max-chars", type=int, default=12000,
+                   help="Entire JSON output budget including newline, Unicode code points, not tokens; 2048..1000000 (default 12000)")
+    p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
     p = commands.add_parser("search", help="Search every concept revision using exact words")
     p.add_argument("bundle")
     p.add_argument("query")
@@ -224,6 +234,10 @@ def main(argv=None):
                                          args.status, args.stale_after)}
         elif args.command == "review":
             result = review(args.bundle, args.id, args.revision, args.actor, args.evidence)
+        elif args.command == "recall":
+            result = recall(args.bundle, args.query, now, args.match, args.limit, args.max_chars)
+            print(render(result), end="")
+            return 0
         elif args.command == "search":
             result = search(args.bundle, args.query, now, args.current_only, args.status, args.freshness)
         elif args.command in ("list", "show", "history", "diff"):
@@ -241,7 +255,7 @@ def main(argv=None):
             print(json.dumps(result, ensure_ascii=False, indent=2, default=str))
         return 1 if args.command == "check" and result["invalid"] else 0
     except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
-        if getattr(args, 'format', None) == 'json':
+        if args.command == 'recall' or getattr(args, 'format', None) == 'json':
             print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         else:
             print(f"second-brain: {exc}", file=sys.stderr)
