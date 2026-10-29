@@ -156,6 +156,19 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
         assert any(d['path'] == '.lkw-requests' for d in inventory['details']['diagnostics'])
         assert blocker.read_bytes() == b'synthetic namespace blocker'
         print('Wheel receipt namespace: non-directory blocker visible and unchanged: PASS')
+        bundle_alias = root / 'bundle-alias'
+        bundle_alias.symlink_to(bundle, target_is_directory=True)
+        input_alias = root / 'input-parent-alias'
+        input_alias.symlink_to(root, target_is_directory=True)
+        assert json.loads(run(executable, 'list', bundle_alias)) == cli('list')
+        assert json.loads(run(executable, '--error-format', 'json', 'curate', bundle_alias,
+                              'agent-note', '--body', input_alias / body.name, '--source', 'agent-source',
+                              '--actor', 'smoke/1', '--request-id', 'curate-1', '--expect-current', 'absent')) == first_agent
+        assert json.loads(run(executable, 'capture', bundle_alias, input_alias / source.name,
+                              '--id', 'agent-source', '--actor', 'smoke/1', '--resource', 'synthetic:agent',
+                              '--request-id', 'capture-1')) == saved
+        assert (bundle_alias / '.lkw.lock').stat().st_ino == lock_inode
+        print('Wheel explicit directory aliases: reads + input parents + replay + same lock: PASS')
         print('Wheel agent writes: request replay + CAS + structured parser errors: PASS')
         print('Wheel smoke: isolated import + CLI workflow + review + reads + byte preservation: PASS')
 

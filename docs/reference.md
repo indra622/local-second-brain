@@ -390,6 +390,29 @@ These are inspection limits, not new input limits on ordinary commands. A filena
 never proves temp ownership or permission to remove it. Stop and inspect ambiguous state;
 there is no automatic recovery, lock deletion, receipt finalization or orphan cleanup.
 
+## Explicit directory aliases and internal links
+
+The directory root explicitly supplied by the caller is resolved once before opening its
+descriptor. Bundle aliases and source/body parent-directory aliases, including macOS `/tmp`,
+are supported. The final resolved directory still opens with `O_DIRECTORY | O_NOFOLLOW`;
+subsequent bundle paths remain descriptor-relative and no-follow. No `~` expansion or
+allowed-root policy is added. Loops, missing targets and non-directories fail with the
+existing structured error interface, including loop handling on Python 3.11/3.12.
+This resolution is not protection against hostile concurrent root or ancestor changes.
+
+Only the explicit directory is resolved. A final source/body file symlink is refused;
+original supplied basenames, source bytes and request fingerprints are preserved.
+Internal concept/source/evidence/receipt/staging/lock links are not resolved or followed.
+Full list/search/check/write scans still reject arbitrary internal symlinks rather than
+silently hiding them. Indexed recall retains its narrower behavior: unrelated links do
+not add a scan, and an indexed linked revision is excluded rather than followed.
+Use `inspect-storage` for a qualified useful inventory of an unsafe bundle.
+
+Aliases share the same target index, receipts and permanent lock inode. Replay-before-CAS
+and expected-current checks are unchanged. `init` can initialize an existing empty directory
+through an explicit alias; it refuses a nonempty target without changing it. Directory
+aliases are a caller-selected location, not permission to follow references from notes.
+
 ## Agent and storage limits
 
 Start with the [portable agent guide and task template](agent-kit.md), then give your
