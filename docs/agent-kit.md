@@ -55,6 +55,12 @@ Keep prepared inputs and evidence available and unchanged for replay. Receipts a
 completion records, not authenticated reviews or database transactions. See the
 [reference](reference.md#agent-errors-and-write-requests) for exact identity and failure rules.
 
+Caller-selected bundle and input-parent directory aliases are resolved once. Final input
+file links and bundle-internal links remain refused; do not pre-resolve those references
+to bypass checks. An alias shares its target's receipts and lock. Use `inspect-storage`
+for qualified diagnostics when full scans reject internal links. Root resolution does
+not protect against hostile concurrent path edits. See the [path contract](reference.md#explicit-directory-aliases-and-internal-links).
+
 ## Ready-to-use task template
 
 Copy this block, replace every placeholder and give it to the chosen agent. Provide

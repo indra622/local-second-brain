@@ -71,7 +71,12 @@ class Store:
         self.fd = None
 
     def __enter__(self):
-        self.fd = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            root = self.root.resolve(strict=True)
+        except RuntimeError as exc:
+            # Python 3.11/3.12 report resolution loops as RuntimeError, not ELOOP.
+            raise WikiError("Explicit directory root contains a symlink loop", "unsafe_path") from exc
+        self.fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         return self
 
     def __exit__(self, *args):
