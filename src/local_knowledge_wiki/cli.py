@@ -125,6 +125,8 @@ def review_evidence(store, resource):
 def review(root, concept_id, revision, actor, evidence, request_id=None, now=None):
     declared_at = None
     if now is not None:
+        if isinstance(now, str) and re.search(r"\.\d{7}", now):
+            raise WikiError("Declared review time supports at most 6 fractional-second digits")
         try:
             declared_at = timestamp(now).astimezone(timezone.utc).isoformat()
         except OverflowError as exc:
@@ -243,7 +245,7 @@ def main(argv=None):
     p.add_argument("--actor", required=True, help="Declared human:ID, process:ID or PRODUCER/VERSION; not authenticated")
     p.add_argument("--request-id", help="Bundle-wide retry ID; same exact revision/evidence/actor replays prior review")
     p.add_argument("--evidence", required=True, help="Absolute http(s) URL or bundle-root regular artifact path; never fetched or executed")
-    p.add_argument("--now", help="Explicit-offset ISO8601 declared event time, normalized to UTC; default actual UTC clock, not proof of review time")
+    p.add_argument("--now", help="Explicit-offset ISO8601 declared event time, at most 6 fractional-second digits; normalized to UTC; default actual UTC clock, not proof of review time")
     p = commands.add_parser("recall", help="Bounded current context as JSON; exact-first with disclosed prefix fallback")
     p.add_argument("bundle")
     p.add_argument("query")

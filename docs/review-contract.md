@@ -29,7 +29,10 @@ Each new `verified` event contains standard OKF `by` and `at`, plus these local 
 
 `at` defaults to the actual UTC clock observed while recording the event. Optional
 `--now TIME` declares the event time instead: require an explicit-offset ISO8601 instant,
-validate before locking/reservation, and normalize to UTC isoformat. Equivalent Z/offset
+accept at most six fractional-second digits (microseconds), validate before conversion/locking/
+reservation, and normalize to UTC isoformat. Longer fractions, including trailing zeros,
+are rejected rather than truncated. Datetime API values remain supported; the shared
+parser, historical metadata and read-command time inputs keep their existing rules. Equivalent Z/offset
 forms share one value. This is a self-declared time, not proof of when review happened;
 read-command `--now` still only evaluates freshness. The Python function adds optional
 `now=None` after `request_id`, preserving old positional calls.
@@ -97,7 +100,10 @@ still require the exact current target. See the [request contract](reference.md#
 `x-second-brain-evidence`에는 URL인 `resource`, 또는 로컬 파일의 번들 기준 `/경로`와 관측한 바이트의
 `sha256`을 넣는다. 로컬 경로는 번들 루트 기준이며 앞의 `/`는 생략할 수 있다.
 `at`는 기본적으로 기록할 때 관측한 실제 UTC 시각이다. 선택적 `--now TIME`은 이벤트 시각의 선언이다.
-명시적 UTC 오프셋이 있는 ISO8601을 잠금/요청 예약 전에 검사하고 UTC isoformat으로 통일한다.
+명시적 UTC 오프셋의 ISO8601 문자열은 소수 초 최대 6자리(마이크로초)까지 허용한다.
+변환/잠금/요청 예약 전에 검사하고 UTC isoformat으로 통일한다. 0을 덧붙인 경우도 6자리를 넘으면
+자르지 않고 거부한다. datetime API 값은 계속 허용하며 공유 파서, 과거 메타데이터와 읽기 명령의
+입력 규칙은 유지한다.
 같은 순간의 Z/오프셋 표기는 같은 값이다. 실제 검토 시점의 증명이 아니며 읽기 명령의 --now는
 여전히 신선도 판정 시각일 뿐이다. Python 함수는 기존 request_id 뒤에 선택적 now=None을 받는다.
 

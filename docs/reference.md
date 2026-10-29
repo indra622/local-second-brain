@@ -114,7 +114,11 @@ Actors must be `human:ID`, `process:ID`, or `PRODUCER/VERSION`, with nonempty co
 whitespace, controls, colon, slash or backslash inside a component. These are declarations.
 Review defaults to the actual UTC clock. Optional `review --now TIME` instead declares an
 explicit-offset ISO8601 event time, validated before locking/reservation and normalized to
-UTC isoformat. It does not prove the actual review time. Read-command `--now` keeps its
+UTC isoformat. Explicit review strings allow at most six fractional-second digits
+(microseconds); longer fractions, including extra zeros, are rejected before conversion
+or locking rather than truncated. Datetime API values remain supported. This review-only
+restriction does not change historical metadata or read-command time parsing.
+It does not prove the actual review time. Read-command `--now` keeps its
 freshness-evaluation meaning. Equivalent Z/offset instants share a canonical event value.
 Evidence must be an absolute HTTP(S) URL with a host (no credentials, invalid ports/escapes or whitespace),
 or an existing nonempty regular artifact at a literal bundle-root path, optionally starting with `/`.

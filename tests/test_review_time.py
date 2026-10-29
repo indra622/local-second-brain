@@ -158,8 +158,64 @@ class ReviewTimeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn(b'--now', result.stdout)
         self.assertIn(b'declared event time', result.stdout)
+        self.assertIn('at most 6 fractional-second digits', ' '.join(result.stdout.decode().split()))
         before = self.snapshot()
         for args in (['capture', self.bundle, self.source, '--id', 'new', '--actor', 'tool/1', '--resource', 'synthetic'],
                      ['curate', self.bundle, 'new', '--body', self.body, '--source', 'source', '--actor', 'tool/1']):
             self.assertEqual(self.cli(*args, '--now', TIME, code=2)['error']['code'], 'arguments')
+        self.assertEqual(before, self.snapshot())
+
+    def test_overprecision_cli_and_api_reject_before_conversion_lock_or_effects(self):
+        values = ('2020-01-02T03:04:05.1234561Z', '2020-01-02T03:04:05.1234569Z',
+                  '2020-01-02T03:04:05.123456789Z', '2020-01-02T03:04:05.1234560Z')
+        for key in (None, 'overprecision'):
+            for value in values:
+                with self.subTest(key=key, value=value):
+                    before = self.snapshot()
+                    args = ['review', self.bundle, 'rules', '--revision', 'r000001', '--actor', 'process:test',
+                            '--evidence', self.evidence, '--now', value]
+                    if key:
+                        args += ['--request-id', key]
+                    self.assertEqual(self.cli(*args, code=2)['error']['code'], 'invalid_input')
+                    with patch('local_knowledge_wiki.cli.timestamp', side_effect=AssertionError('No conversion')), \
+                         patch.object(Store, 'lock', side_effect=AssertionError('No lock')):
+                        with self.assertRaises(WikiError) as caught:
+                            self.record(key, value)
+                        self.assertEqual(caught.exception.code, 'invalid_input')
+                    self.assertEqual(before, self.snapshot())
+                    self.assertFalse((self.bundle / '.lkw-requests').exists())
+
+    def test_supported_zero_through_six_fractional_digits_record_exact_values(self):
+        for width in range(7):
+            fraction = '123456'[:width]
+            value = '2020-01-02T03:04:05' + ('.' + fraction if width else '') + 'Z'
+            expected = '2020-01-02T03:04:05' + ('.' + fraction.ljust(6, '0') if width else '') + '+00:00'
+            result = self.record(now=value, revision=f'r{width + 1:06d}')
+            self.assertEqual(result['verified'][-1]['at'], expected)
+
+    def test_supported_microseconds_preserve_identity_across_offsets_and_datetime_api(self):
+        value = '2020-01-02T03:04:05.123456Z'
+        result = self.record('microseconds', value)
+        self.assertEqual(result['verified'][-1]['at'], '2020-01-02T03:04:05.123456+00:00')
+        self.curate()
+        before = self.snapshot()
+        self.assertEqual(self.record('microseconds', datetime(2020, 1, 2, 3, 4, 5, 123456, tzinfo=timezone.utc)), result)
+        args = ['review', self.bundle, 'rules', '--revision', 'r000001', '--actor', 'process:test',
+                '--evidence', self.evidence, '--request-id', 'microseconds']
+        self.assertEqual(self.cli(*args, '--now', '2020-01-02T12:04:05.123456+09:00'), result)
+        self.assertEqual(self.cli(*args, '--now', '2020-01-02T03:04:05.123457Z', code=2)['error']['code'], 'request_conflict')
+        self.assertEqual(before, self.snapshot())
+
+    def test_shared_parser_historical_metadata_and_readonly_now_are_unchanged(self):
+        historical = '2020-01-02T03:04:05.1234569Z'
+        self.assertEqual(timestamp(historical).microsecond, 123456)
+        original = self.bundle / 'concepts/rules/r000001.md'
+        original.write_bytes(original.read_bytes().replace(b'type: Concept',
+            ('type: Concept\nverified: {by: "process:historical", at: "' + historical + '"}').encode()))
+        result = self.record(now='2020-01-02T03:04:05.123456Z')
+        self.assertEqual(result['verified'][0]['at'], historical)
+        before = self.snapshot()
+        shown = self.cli('show', self.bundle, 'rules', '--now', historical)
+        self.assertFalse(shown['stale'])
+        self.assertEqual(shown['verified'][0]['at'], historical)
         self.assertEqual(before, self.snapshot())
