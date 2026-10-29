@@ -63,6 +63,8 @@ including through the Python functions. LF, CR, CRLF, vertical tab, form feed, f
 separators, NEL, and Unicode line/paragraph separators are rejected as `invalid_input` before
 writes or request reservation. Ordinary spaces and Korean/English text are allowed.
 This writer policy does not reject multiline fields in imported historical metadata.
+Revision serialization double-quotes strings containing NEL to preserve its value;
+ordinary Korean and other Unicode text remain readable.
 
 Frontmatter delimiters are exact, unindented `---` lines with LF or CRLF; a closing `---`
 at EOF is also accepted. Spaces, lone CR and Unicode line separators do not delimit frontmatter.

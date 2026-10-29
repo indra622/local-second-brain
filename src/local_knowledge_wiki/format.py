@@ -85,9 +85,22 @@ def validate_revision(data, metadata, body):
         raise WikiError("Revision serialization must preserve valid metadata and the exact body")
 
 
+class RevisionDumper(yaml.SafeDumper):
+    pass
+
+
+def revision_string(dumper, value):
+    # YAML folds literal NEL in quoted multiline scalars into a space.
+    return dumper.represent_scalar('tag:yaml.org,2002:str', value,
+                                   style='"' if '\x85' in value else None)
+
+
+RevisionDumper.add_representer(str, revision_string)
+
+
 def serialize_revision(metadata, body):
     try:
-        data = ("---\n" + yaml.safe_dump(metadata, allow_unicode=True, sort_keys=False)
+        data = ("---\n" + yaml.dump(metadata, Dumper=RevisionDumper, allow_unicode=True, sort_keys=False)
                 + "---\n" + body).encode("utf-8")
         validate_revision(data, metadata, body)
         return data

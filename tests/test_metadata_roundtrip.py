@@ -14,7 +14,7 @@ from unittest.mock import patch
 import yaml
 
 from local_knowledge_wiki.cli import curate, review, write_revision
-from local_knowledge_wiki.format import parse, validate
+from local_knowledge_wiki.format import parse, same_metadata, serialize_revision, validate
 from local_knowledge_wiki.storage import Store, WikiError, capture, current_index, init
 
 
@@ -101,7 +101,7 @@ class MetadataRoundtripTests(unittest.TestCase):
         self.assertFalse((self.bundle / '.lkw-requests').exists())
 
     def test_serialize_corruption_rejected_before_curate_effects_or_intent(self):
-        real_dump = yaml.safe_dump
+        real_dump = yaml.dump
         for key in (None, 'bad-serialization'):
             for corruption in ('invalid', 'metadata', 'body'):
                 def corrupt(meta, **kwargs):
@@ -112,7 +112,7 @@ class MetadataRoundtripTests(unittest.TestCase):
                         return original.replace('draft', 'stable')
                     return original + '---\ninserted body\n'
                 before = self.snapshot()
-                with patch('local_knowledge_wiki.format.yaml.safe_dump', corrupt), self.assertRaises(WikiError) as caught:
+                with patch('local_knowledge_wiki.format.yaml.dump', corrupt), self.assertRaises(WikiError) as caught:
                     self.curate(key)
                 self.assertEqual(caught.exception.code, 'invalid_input')
                 self.assertEqual(before, self.snapshot())
@@ -120,12 +120,12 @@ class MetadataRoundtripTests(unittest.TestCase):
 
     def test_review_corruption_is_rejected_before_intent(self):
         self.curate()
-        real_dump = yaml.safe_dump
+        real_dump = yaml.dump
         def corrupt(meta, **kwargs):
             return real_dump(meta, **kwargs).replace('status: draft', 'status: stable')
         for key in (None, 'bad-review'):
             before = self.snapshot()
-            with patch('local_knowledge_wiki.format.yaml.safe_dump', corrupt), self.assertRaises(WikiError) as caught:
+            with patch('local_knowledge_wiki.format.yaml.dump', corrupt), self.assertRaises(WikiError) as caught:
                 review(self.bundle, 'rules', 'r000001', 'process:test', 'sources/source/content.raw', key)
             self.assertEqual(caught.exception.code, 'invalid_input')
             self.assertEqual(before, self.snapshot())
@@ -166,7 +166,7 @@ class MetadataRoundtripTests(unittest.TestCase):
         capture(self.bundle, self.source, 'space-actor', '도구 버전 1', 'synthetic', AT)
 
     def test_direct_revision_guard_rejects_changed_scalar_types_before_index_mutation(self):
-        real_dump = yaml.safe_dump
+        real_dump = yaml.dump
         for value, serialized in ((True, '1'), (float('nan'), '2.0')):
             meta = {'type': 'Concept', 'custom': value}
             def corrupt(metadata, **kwargs):
@@ -177,7 +177,7 @@ class MetadataRoundtripTests(unittest.TestCase):
                 before = store.read('index.md')
                 index = before.decode()
                 entries, start, end = current_index(index)
-                with patch('local_knowledge_wiki.format.yaml.safe_dump', corrupt), self.assertRaises(WikiError):
+                with patch('local_knowledge_wiki.format.yaml.dump', corrupt), self.assertRaises(WikiError):
                     write_revision(store, 'rules', meta, 'body', before, index, entries, start, end)
                 self.assertEqual(entries, {})
             self.assertEqual(before_files, self.snapshot())
@@ -193,3 +193,56 @@ class MetadataRoundtripTests(unittest.TestCase):
                                index, entries, start, end, b'---\ntype: Concept\n---\nchanged body')
             self.assertEqual(entries, {})
         self.assertEqual(before_files, self.snapshot())
+
+    def test_imported_nel_survives_keyed_and_unkeyed_real_review(self):
+        for key in (None, 'nel-review'):
+            concept = 'unkeyed-nel' if key is None else 'keyed-nel'
+            path = self.curate(concept_id=concept)
+            target = self.bundle / path
+            original = ('---\ntype: Concept\ntitle: 보고서\nstatus: draft\n'
+                        'description: "한글 a\\Nb"\ncustom: {"key\\Npart": "값\\Npart"}\n'
+                        '---\n' + self.body.read_bytes().decode()).encode()
+            target.write_bytes(original)
+            original_meta, original_body = parse(original.decode())
+            self.assertEqual(original_meta['description'], '한글 a\x85b')
+            command = [sys.executable, '-m', 'local_knowledge_wiki.cli', '--error-format', 'json',
+                       'review', str(self.bundle), concept, '--revision', 'r000001',
+                       '--actor', 'process:test', '--evidence', 'sources/source/content.raw']
+            if key:
+                command += ['--request-id', key]
+            before = self.snapshot()
+            result = subprocess.run(command, capture_output=True, timeout=10,
+                                    env={**os.environ, 'PYTHONIOENCODING': 'utf-8:strict'})
+            if result.returncode:
+                self.assertEqual(before, self.snapshot())
+                self.assertFalse((self.bundle / '.lkw-requests' / str(key)).exists())
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            stored_bytes = (self.bundle / json.loads(result.stdout)['revision']).read_bytes()
+            stored, body = parse(stored_bytes.decode())
+            stored.pop('verified')
+            self.assertTrue(same_metadata(original_meta, stored))
+            self.assertEqual(body, original_body)
+            self.assertEqual(target.read_bytes(), original)
+            self.assertIn('한글'.encode(), stored_bytes)
+            self.assertIn(b'\\N', stored_bytes)
+            for name, data in before.items():
+                if name != 'index.md':
+                    self.assertEqual(self.snapshot()[name], data)
+            after = self.snapshot()
+            replay = subprocess.run(command, capture_output=True, timeout=10)
+            self.assertEqual(replay.returncode, 0 if key else 2, replay.stderr)
+            if key:
+                self.assertEqual(json.loads(replay.stdout), json.loads(result.stdout))
+            else:
+                self.assertEqual(json.loads(replay.stderr)['error']['code'], 'precondition_failed')
+            self.assertEqual(after, self.snapshot())
+
+    def test_yaml_line_break_values_roundtrip_and_keep_readable_korean(self):
+        for separator in BREAKS:
+            with self.subTest(separator=separator):
+                meta = {'type': 'Concept', 'description': '한글 a' + separator + 'b'}
+                data = serialize_revision(meta, '본문\r\n---\n')
+                loaded, body = parse(data.decode())
+                self.assertTrue(same_metadata(meta, loaded))
+                self.assertEqual(body, '본문\r\n---\n')
+                self.assertIn('한글'.encode(), data)
