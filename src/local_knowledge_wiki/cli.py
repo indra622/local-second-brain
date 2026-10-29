@@ -11,15 +11,14 @@ from functools import partial
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
-import yaml
-
 from .errors import ErrorParser, emit_error, machine_errors
-from .format import inspect_bundle, nonempty, parse, timestamp, validate
+from .format import (inspect_bundle, nonempty, parse, serialize_revision, timestamp, validate,
+                     validate_revision)
 from .reading import browse, current_paths, human, json_compatible, read_note, revision_path
 from .recall import recall, render
 from .requests import digest, encoded, execute, expected_current, validate_expected
 from .storage import (Store, WikiError, capture, current_index, identifier, init,
-                      read_input, render_entries)
+                      read_input, render_entries, single_line)
 
 
 def curate(root, concept_id, body_file, sources, actor, now, kind, title, status, stale_after,
@@ -28,6 +27,10 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
         identifier(request_id)
     validate_expected(expect_current)
     identifier(concept_id)
+    single_line(kind, "type")
+    single_line(actor, "actor")
+    if title is not None:
+        single_line(title, "title")
     body_bytes = read_input(body_file)
     body = body_bytes.decode("utf-8")
     if body.startswith("---\n") or body.startswith("---\r\n"):
@@ -43,6 +46,7 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
     errors = validate(meta)
     if errors:
         raise WikiError("; ".join(errors))
+    data = serialize_revision(meta, body)
     with Store(root) as store, store.lock():
         before = store.read("index.md")
         index = before.decode("utf-8")
@@ -62,11 +66,13 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
                 store.files()
 
         return execute(store, request_id, "curate", payload, precondition,
-                       lambda: write_revision(store, concept_id, meta, body, before, index, entries, start, end))
+                       lambda: write_revision(store, concept_id, meta, body, before, index, entries, start, end, data))
 
 
-def write_revision(store, concept_id, meta, body, before, index, entries, start, end):
+def write_revision(store, concept_id, meta, body, before, index, entries, start, end, data=None):
     """Caller holds the bundle lock and has validated inputs."""
+    data = serialize_revision(meta, body) if data is None else data
+    validate_revision(data, meta, body)
     files = store.files()
     prefix = f"concepts/{concept_id}/r"
     numbers = [int(p[-9:-3]) for p in files
@@ -76,8 +82,6 @@ def write_revision(store, concept_id, meta, body, before, index, entries, start,
         raise WikiError("Revision limit reached")
     path = prefix + f"{revision:06}.md"
     entries[concept_id] = path
-    data = ("---\n" + yaml.safe_dump(meta, allow_unicode=True, sort_keys=False)
-            + "---\n" + body).encode("utf-8")
     store.create(path, data)
     store.replace_index(before, (index[:start] + render_entries(entries) + index[end:]).encode())
     return path
@@ -146,17 +150,19 @@ def review(root, concept_id, revision, actor, evidence, request_id=None):
                 if len(encoded(json_compatible(meta.get("verified", [])))) > 7000000:
                     raise WikiError("Review records are too large for a request receipt")
 
+        events = meta.get("verified", [])
+        events = [events] if isinstance(events, dict) else list(events)
+        events.append({"by": actor, "at": datetime.now(timezone.utc).isoformat(),
+                       "x-second-brain-target": {"resource": "/" + target,
+                                                 "sha256": hashlib.sha256(original).hexdigest()},
+                       "x-second-brain-evidence": reference})
+        meta["verified"] = events
+        data = serialize_revision(meta, body)
+
         def mutate():
-            events = meta.get("verified", [])
-            events = [events] if isinstance(events, dict) else list(events)
-            events.append({"by": actor, "at": datetime.now(timezone.utc).isoformat(),
-                           "x-second-brain-target": {"resource": "/" + target,
-                                                     "sha256": hashlib.sha256(original).hexdigest()},
-                           "x-second-brain-evidence": reference})
-            meta["verified"] = events
             if store.read(target) != original or store.read("index.md") != before:
                 raise WikiError("Review target or index.md changed during this operation", "concurrent_change")
-            path = write_revision(store, concept_id, meta, body, before, index, entries, start, end)
+            path = write_revision(store, concept_id, meta, body, before, index, entries, start, end, data)
             return {"revision": path, "verified": json_compatible(events) if request_id else events}
 
         return execute(store, request_id, "review", payload, precondition, mutate)
@@ -204,7 +210,7 @@ def main(argv=None):
     p.add_argument("bundle")
     p.add_argument("file")
     p.add_argument("--id", required=True)
-    p.add_argument("--actor", required=True)
+    p.add_argument("--actor", required=True, help="Declared actor, single line")
     p.add_argument("--resource", required=True)
     p.add_argument("--request-id", help="Bundle-wide retry ID, 1..64 lowercase ASCII letters/digits/hyphens; preserve original payload")
     p = commands.add_parser("curate", help="Store a prepared body as a new revision")
@@ -212,9 +218,9 @@ def main(argv=None):
     p.add_argument("id")
     p.add_argument("--body", required=True)
     p.add_argument("--source", action="append", required=True)
-    p.add_argument("--actor", required=True)
-    p.add_argument("--type", default="Concept")
-    p.add_argument("--title")
+    p.add_argument("--actor", required=True, help="Declared actor, single line")
+    p.add_argument("--type", default="Concept", help="Single-line type (default Concept)")
+    p.add_argument("--title", help="Single-line title (default concept ID)")
     p.add_argument("--status", choices=("draft", "stable", "deprecated"), default="draft")
     p.add_argument("--stale-after")
     p.add_argument("--request-id", help="Bundle-wide retry ID; replay original result before checking expected current")

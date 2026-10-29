@@ -1,5 +1,6 @@
 """A documented subset of OKF 0.2, not factual verification."""
 
+import math
 import posixpath
 import re
 from datetime import datetime
@@ -33,19 +34,78 @@ MetadataLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, u
 
 
 def parse(text):
-    lines = text.splitlines(keepends=True)
-    if not lines or lines[0].strip() != "---":
+    lines = text.split("\n")
+    if not text.startswith(("---\n", "---\r\n")):
         raise WikiError("Missing YAML frontmatter")
-    end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
+    end = next((i for i in range(1, len(lines))
+                if lines[i] == "---" or (lines[i] == "---\r" and i < len(lines) - 1)), None)
     if end is None:
         raise WikiError("Unclosed YAML frontmatter")
     try:
-        metadata = yaml.load("".join(lines[1:end]), Loader=MetadataLoader)
+        metadata = yaml.load("\n".join(lines[1:end]) + "\n", Loader=MetadataLoader)
     except (yaml.YAMLError, ValueError, RecursionError) as exc:
         raise WikiError(f"Invalid YAML: {exc}") from exc
     if not isinstance(metadata, dict):
         raise WikiError("Frontmatter must be a mapping")
-    return metadata, "".join(lines[end + 1:])
+    return metadata, "\n".join(lines[end + 1:])
+
+
+def yaml_key(value):
+    # SafeLoader mapping/set keys are scalars; NaN is not equal to itself.
+    return (type(value), None if isinstance(value, float) and math.isnan(value) else value)
+
+
+def same_metadata(left, right, seen=None):
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, float) and math.isnan(left):
+        return math.isnan(right)
+    if isinstance(left, (dict, list)):
+        seen = set() if seen is None else seen
+        pair = (id(left), id(right))
+        if pair in seen:
+            return True
+        seen.add(pair)
+        if len(left) != len(right):
+            return False
+        if isinstance(left, dict):
+            other = {yaml_key(key): value for key, value in right.items()}
+            return all(yaml_key(key) in other and same_metadata(value, other[yaml_key(key)], seen)
+                       for key, value in left.items())
+        return all(same_metadata(a, b, seen) for a, b in zip(left, right))
+    if isinstance(left, set):
+        return len(left) == len(right) and {yaml_key(value) for value in left} == {yaml_key(value) for value in right}
+    return left == right
+
+
+def validate_revision(data, metadata, body):
+    loaded, actual_body = parse(data.decode("utf-8"))
+    errors = validate(loaded)
+    if errors or actual_body != body or not same_metadata(metadata, loaded):
+        raise WikiError("Revision serialization must preserve valid metadata and the exact body")
+
+
+class RevisionDumper(yaml.SafeDumper):
+    pass
+
+
+def revision_string(dumper, value):
+    # YAML folds literal NEL in quoted multiline scalars into a space.
+    return dumper.represent_scalar('tag:yaml.org,2002:str', value,
+                                   style='"' if '\x85' in value else None)
+
+
+RevisionDumper.add_representer(str, revision_string)
+
+
+def serialize_revision(metadata, body):
+    try:
+        data = ("---\n" + yaml.dump(metadata, Dumper=RevisionDumper, allow_unicode=True, sort_keys=False)
+                + "---\n" + body).encode("utf-8")
+        validate_revision(data, metadata, body)
+        return data
+    except (yaml.YAMLError, UnicodeError, ValueError, TypeError, RecursionError) as exc:
+        raise WikiError("Revision serialization failed validation") from exc
 
 
 def timestamp(value):

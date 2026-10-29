@@ -58,6 +58,21 @@ There is no background learning loop or built-in LLM synthesis.
 
 IDs are 1–64 lowercase ASCII letters, digits, or hyphens, starting with a letter or digit.
 `curate` also accepts `--type`, `--title`, `--status`, and `--stale-after`.
+New `curate` titles, types and actors, and `capture` actors must be single-line strings,
+including through the Python functions. LF, CR, CRLF, vertical tab, form feed, file/group/record
+separators, NEL, and Unicode line/paragraph separators are rejected as `invalid_input` before
+writes or request reservation. Ordinary spaces and Korean/English text are allowed.
+This writer policy does not reject multiline fields in imported historical metadata.
+Revision serialization double-quotes strings containing NEL to preserve its value;
+ordinary Korean and other Unicode text remain readable.
+
+Frontmatter delimiters are exact, unindented `---` lines with LF or CRLF; a closing `---`
+at EOF is also accepted. Spaces, lone CR and Unicode line separators do not delimit frontmatter.
+Indented separators inside valid YAML scalars remain metadata; body fences remain body text.
+Before a revision is created, its UTF-8 serialization is parsed and validated with exact body
+and metadata meaning checks. Curate/review prepare these bytes before request reservation;
+a failed check creates no revision, index change or pending intent. Existing files are not repaired.
+
 `--actor` is a declared identity, not authentication. Only an explicit `review` adds `verified`; format validation never does.
 Relative body links resolve from the final revision file, not the prepared input file.
 

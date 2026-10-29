@@ -24,6 +24,11 @@ def identifier(value):
     return value
 
 
+def single_line(value, field):
+    if not isinstance(value, str) or any(c in "\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029" for c in value):
+        raise WikiError(f"{field} must be a single-line string")
+
+
 class Store:
     def __init__(self, root):
         self.root = Path(root)
@@ -163,6 +168,7 @@ def capture(root, source, source_id, actor, resource, at, request_id=None):
     if request_id is not None:
         identifier(request_id)
     identifier(source_id)
+    single_line(actor, "actor")
     # Explicit input files may live outside the bundle; no decoding or newline conversion.
     data = read_input(source)
     metadata = {"id": source_id, "original_name": Path(source).name,
