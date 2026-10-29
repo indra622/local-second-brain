@@ -9,8 +9,7 @@ from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 
 
-class WikiError(Exception):
-    pass
+from .errors import WikiError
 
 
 def read_input(path):
@@ -41,7 +40,7 @@ class Store:
     def parent(self, relative, create=False):
         path = PurePosixPath(relative)
         if path.is_absolute() or not path.parts or any(p in ("..", ".") for p in path.parts):
-            raise WikiError(f"Unsafe bundle path: {relative}")
+            raise WikiError(f"Unsafe bundle path: {relative}", "unsafe_path")
         fd = os.dup(self.fd)
         try:
             for part in path.parts[:-1]:
@@ -62,7 +61,7 @@ class Store:
             handle = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
             with os.fdopen(handle, "rb") as stream:
                 if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
-                    raise WikiError(f"Not a regular file: {relative}")
+                    raise WikiError(f"Not a regular file: {relative}", "unsafe_path")
                 return stream.read()
 
     def create(self, relative, data):
@@ -79,7 +78,7 @@ class Store:
         try:
             self.create(".lkw.lock", b"active local CLI write\n")
         except FileExistsError as exc:
-            raise WikiError("Bundle is locked; after a crash, inspect before removing .lkw.lock") from exc
+            raise WikiError("Bundle is locked; after a crash, inspect before removing .lkw.lock", "locked") from exc
         try:
             yield
         finally:
@@ -87,11 +86,11 @@ class Store:
 
     def replace_index(self, before, after):
         if self.read("index.md") != before:
-            raise WikiError("index.md changed during this operation")
+            raise WikiError("index.md changed during this operation", "concurrent_change")
         self.create(".lkw-index.tmp", after)
         try:
             if self.read("index.md") != before:
-                raise WikiError("index.md changed during this operation")
+                raise WikiError("index.md changed during this operation", "concurrent_change")
             os.replace(".lkw-index.tmp", "index.md", src_dir_fd=self.fd, dst_dir_fd=self.fd)
         finally:
             try:
@@ -102,12 +101,12 @@ class Store:
     def files(self):
         def walk(fd, prefix=""):
             for name in sorted(os.listdir(fd)):
-                if name in (".obsidian", ".git"):
+                if name in (".obsidian", ".git") or (not prefix and name == ".lkw-requests"):
                     continue
                 path = prefix + name
                 info = os.stat(name, dir_fd=fd, follow_symlinks=False)
                 if stat.S_ISLNK(info.st_mode):
-                    raise WikiError(f"Symlinks are not supported in bundles: {path}")
+                    raise WikiError(f"Symlinks are not supported in bundles: {path}", "unsafe_path")
                 if stat.S_ISDIR(info.st_mode):
                     child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
                     try:
@@ -117,7 +116,7 @@ class Store:
                 elif stat.S_ISREG(info.st_mode):
                     yield path
                 else:
-                    raise WikiError(f"Not a regular file: {path}")
+                    raise WikiError(f"Not a regular file: {path}", "unsafe_path")
         return list(walk(self.fd))
 
 
@@ -127,19 +126,19 @@ END = "<!-- lkw:current:end -->"
 
 def current_index(text):
     if text.count(START) != 1 or text.count(END) != 1:
-        raise WikiError("index.md must contain one intact lkw current block")
+        raise WikiError("index.md must contain one intact lkw current block", "invalid_index")
     start = text.index(START) + len(START)
     end = text.index(END)
     if end < start:
-        raise WikiError("Managed current block markers are reversed")
+        raise WikiError("Managed current block markers are reversed", "invalid_index")
     entries = {}
     for line in text[start:end].splitlines():
         match = re.fullmatch(r"- \[([a-z0-9][a-z0-9-]{0,63})\]\((concepts/\1/r[0-9]{6}\.md)\)", line)
         if not match or match[1] in entries:
-            raise WikiError("Managed current block was edited; refusing to replace it")
+            raise WikiError("Managed current block was edited; refusing to replace it", "invalid_index")
         entries[match[1]] = match[2]
     if text[start:end] != render_entries(entries):
-        raise WikiError("Managed current block was edited; refusing to replace it")
+        raise WikiError("Managed current block was edited; refusing to replace it", "invalid_index")
     return entries, start, end
 
 
@@ -158,7 +157,11 @@ def init(root):
                                   + START + END + "\n").encode())
 
 
-def capture(root, source, source_id, actor, resource, at):
+def capture(root, source, source_id, actor, resource, at, request_id=None):
+    from .requests import digest, execute
+
+    if request_id is not None:
+        identifier(request_id)
     identifier(source_id)
     # Explicit input files may live outside the bundle; no decoding or newline conversion.
     data = read_input(source)
@@ -166,11 +169,27 @@ def capture(root, source, source_id, actor, resource, at):
                 "resource": resource, "captured": {"by": actor, "at": at},
                 "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
     folder = f"sources/{source_id}"
+    provenance = (json.dumps(metadata, ensure_ascii=False, indent=2) + "\n").encode() if request_id is not None else None
     with Store(root) as store, store.lock():
         current_index(store.read("index.md").decode("utf-8"))
-        # Reserve the whole source directory before either file is written.
-        with store.parent(folder, create=True) as (fd, name):
-            os.mkdir(name, dir_fd=fd)
-        store.create(folder + "/content.raw", data)
-        store.create(folder + "/provenance.json", (json.dumps(metadata, ensure_ascii=False, indent=2) + "\n").encode())
-    return folder + "/content.raw"
+        def precondition():
+            if request_id is not None:
+                try:
+                    with store.parent(folder) as (fd, name):
+                        os.stat(name, dir_fd=fd, follow_symlinks=False)
+                except FileNotFoundError:
+                    return
+                raise WikiError("Source ID already exists", "already_exists")
+
+        def mutate():
+            # Reserve the whole source directory before either file is written.
+            with store.parent(folder, create=True) as (fd, name):
+                os.mkdir(name, dir_fd=fd)
+            store.create(folder + "/content.raw", data)
+            store.create(folder + "/provenance.json", provenance if provenance is not None else
+                         (json.dumps(metadata, ensure_ascii=False, indent=2) + "\n").encode())
+            return folder + "/content.raw"
+
+        payload = {"id": source_id, "actor": actor, "resource": resource,
+                   "original_name": Path(source).name, "sha256": digest(data)}
+        return execute(store, request_id, "capture", payload, precondition, mutate)
