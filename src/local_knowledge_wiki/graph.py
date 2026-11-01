@@ -49,8 +49,8 @@ def markdown_links(body):
         if start is None and remaining[length]:
             start, width = match.start(), length
         elif start is not None and length == width:
-            newlines = visible[start:match.end()].count('\n')
-            pieces.extend((visible[end:start], '\n' * newlines))
+            hidden = re.sub(r'[^\n]+', ' ', visible[start:match.end()])
+            pieces.extend((visible[end:start], hidden))
             end = match.end()
             start = None
     pieces.append(visible[end:])

@@ -3,6 +3,9 @@
 import contextlib
 import io
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -203,6 +206,38 @@ class GraphTests(unittest.TestCase):
                                 '``multiline', '[hidden](code.md)', '``', '[last](last.md)', ''])
             with self.subTest(ending=repr(ending)):
                 self.assertEqual(list(markdown_links(body)), [('../b/r000001.md', 4), ('last.md', 8)])
+
+    def test_cli_inline_code_cannot_manufacture_links_or_mutate_destinations(self):
+        self.note('a'); self.note('b')
+        target = self.bundle / 'concepts/a/r000001.md'
+        meta, _ = parse(target.read_text())
+        env = {**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src')}
+        cases = [('[label]`hidden`(../b/r000001.md)', False),
+                 ('[label](../b/`hidden`r000001.md)', False),
+                 ('[a`hidden`b](../b/r000001.md)', True)]
+        for ending in ('\n', '\r\n', '\r'):
+            for fragment, connected in cases:
+                body = ending.join(['~~~', 'ignored', '~~~', fragment, ''])
+                target.write_bytes(serialize_revision(meta, body))
+                before = self.snapshot()
+                with self.subTest(ending=repr(ending), fragment=fragment):
+                    for selector in (['--path', 'a', 'b'], [], ['--backlinks', 'b']):
+                        child = subprocess.run([sys.executable, '-m', 'local_knowledge_wiki.cli', 'graph',
+                            str(self.bundle), '--scope', 'a', '--scope', 'b', '--relation', 'link',
+                            '--max-chars', '1000000', *selector], env=env, capture_output=True, timeout=15)
+                        self.assertEqual(child.returncode, 0, child.stderr)
+                        result = json.loads(child.stdout)
+                        self.assertTrue(result['scan']['complete'])
+                        self.assertTrue(result['analysis_complete'])
+                        if selector[:1] == ['--path']:
+                            self.assertEqual(result['path_state'], 'found' if connected else 'no_path_within_depth')
+                            self.assertEqual(result['path_length'], 1 if connected else None)
+                            if connected:
+                                self.assertEqual(result['paths'][0]['steps'][0]['provenance'][0]['line'], 4)
+                        else:
+                            self.assertEqual(len(result['edges']), int(connected))
+                    self.assertEqual(list(markdown_links(body)), [('../b/r000001.md', 4)] if connected else [])
+                    self.assertEqual(before, self.snapshot())
 
     def test_section_local_readers_preserve_unrelated_valid_data(self):
         p = self.note('a', [relation()], ctx=True); self.note('b')
