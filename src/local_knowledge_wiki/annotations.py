@@ -62,10 +62,18 @@ def canonical_time(value):
         raise WikiError('Annotation time is outside the supported UTC range') from exc
 
 
-def json_bytes(value):
-    """Bound traversal before serializing owned YAML trees, including imported aliases."""
+def json_bytes(value, max_bytes=None, label='stored annotations'):
+    """Admit exact escaped UTF-8 size before encoding an alias-expanded owned tree."""
+    maximum = ROOT_BYTES if max_bytes is None else max_bytes
+    encoder = json.JSONEncoder(ensure_ascii=False, allow_nan=False, separators=(',', ':'))
     active = set()
     visited = 0
+    size = 0
+
+    def add(count):
+        nonlocal size
+        size += count
+        check_size(size, maximum, label)
 
     def visit(item, depth):
         nonlocal visited
@@ -77,26 +85,54 @@ def json_bytes(value):
             if identity in active:
                 raise WikiError('Cyclic annotation data is unsupported')
             active.add(identity)
+            add(2)
             if isinstance(item, dict):
                 if any(not isinstance(key, str) for key in item):
                     raise WikiError('Annotation keys must be strings')
-                for key, child in item.items():
+                for index, (key, child) in enumerate(item.items()):
+                    if index:
+                        add(1)
                     visit(key, depth + 1)
+                    add(1)
                     visit(child, depth + 1)
             else:
-                for child in item:
+                for index, child in enumerate(item):
+                    if index:
+                        add(1)
                     visit(child, depth + 1)
             active.remove(identity)
         elif isinstance(item, str):
-            check_size(len(item.encode('utf-8')), ROOT_BYTES, 'annotation string')
-        elif item is not None and type(item) not in (bool, int, float):
-            raise WikiError('Annotation values must be JSON-compatible')
-        elif isinstance(item, float) and not math.isfinite(item):
-            raise WikiError('Nonfinite annotation numbers are unsupported')
+            add(2)
+            for character in item:
+                code = ord(character)
+                if 0xD800 <= code <= 0xDFFF:
+                    raise UnicodeError('Surrogate annotation character')
+                if character in ('"', '\\'):
+                    add(2)
+                elif code < 0x20:
+                    add(2 if code in (8, 9, 10, 12, 13) else 6)
+                else:
+                    add(1 if code < 0x80 else 2 if code < 0x800 else 3 if code < 0x10000 else 4)
+        else:
+            if item is not None and type(item) not in (bool, int, float):
+                raise WikiError('Annotation values must be JSON-compatible')
+            if isinstance(item, float) and not math.isfinite(item):
+                raise WikiError('Nonfinite annotation numbers are unsupported')
+            if type(item) is int:
+                # A conservative decimal-digit lower bound rejects enormous integers
+                # before their decimal conversion; the encoder supplies exact length.
+                check_size(size + max(1, (item.bit_length() - 1) * 3 // 10 + 1)
+                           + (item < 0), maximum, label)
+            add(len(encoder.encode(item)))
 
     try:
         visit(value, 0)
-        return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode('utf-8')
+        output = bytearray()
+        for chunk in encoder.iterencode(value):
+            block = chunk.encode('utf-8')
+            check_size(len(output) + len(block), maximum, label)
+            output.extend(block)
+        return bytes(output)
     except (UnicodeError, ValueError, TypeError, RecursionError) as exc:
         raise WikiError('Annotation data must be bounded, valid UTF-8 JSON') from exc
 
@@ -198,18 +234,18 @@ def envelope(data, by, at):
         if 'at' in lesson['review']:
             lesson['review']['at'] = canonical_time(lesson['review']['at'])
     value = {'recorded_by': actor(by), 'recorded_at': canonical_time(at), 'data': data}
-    check_size(len(json_bytes(value)), SECTION_BYTES, 'stored context section')
+    json_bytes(value, SECTION_BYTES, 'stored context section')
     return value
 
 
 def stored_root(value):
     if not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] != 1:
         raise WikiError('Unsupported annotation root/version')
-    check_size(len(json_bytes(value)), ROOT_BYTES, 'stored annotations')
+    json_bytes(value, ROOT_BYTES, 'stored annotations')
     for name, section in value.items():
         if name == 'version':
             continue
-        check_size(len(json_bytes(section)), SECTION_BYTES, 'stored annotation section')
+        json_bytes(section, SECTION_BYTES, 'stored annotation section')
         if name == 'context':
             fields(section, ('recorded_by', 'recorded_at', 'data'))
             actor(section['recorded_by'])

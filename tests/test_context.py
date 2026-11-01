@@ -411,6 +411,90 @@ class ContextTests(unittest.TestCase):
         self.error('recovery_required', lambda: self.annotate('r000002', 'concurrent'))
         self.assertEqual(before, self.snapshot())
 
+    def test_alias_expansion_is_rejected_before_container_encoding(self):
+        original = json.JSONEncoder.iterencode
+        for length in (4, 16, 64):
+            for copies in (2, 8, 24):
+                shared = 'x' * length
+                value = {'version': 1, 'future': {'seed': shared, 'copies': [shared] * copies}}
+                expected = json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode()
+                def guard(encoder, item, *args, **kwargs):
+                    if item is value:
+                        raise AssertionError('Oversized alias tree reached container encoding')
+                    return original(encoder, item, *args, **kwargs)
+                with self.subTest(length=length, copies=copies):
+                    with patch.object(annotations, 'ROOT_BYTES', len(expected)):
+                        self.assertEqual(annotations.json_bytes(value), expected)
+                    with patch.object(annotations, 'ROOT_BYTES', len(expected) - 1), \
+                            patch.object(json.JSONEncoder, 'iterencode', guard):
+                        self.error('input_too_large', lambda: annotations.stored_root(value))
+
+    def test_json_encoding_exact_escaped_utf8_bytes_and_shared_container_identity(self):
+        values = [''.join(chr(n) for n in range(128)), chr(0x10ffff), 'plain', '가😀', 'quote" and slash\\', '\b\f\n\r\t\x00\x1f', '\u2028\u0085']
+        for value in values:
+            shared = {'key': value, 'scalars': [None, True, False, -123, 1.25]}
+            tree = [shared, shared]
+            expected = json.dumps(tree, ensure_ascii=False, allow_nan=False, separators=(',', ':')).encode()
+            with self.subTest(value=value):
+                with patch.object(annotations, 'ROOT_BYTES', len(expected)):
+                    self.assertEqual(annotations.json_bytes(tree), expected)
+                with patch.object(annotations, 'ROOT_BYTES', len(expected) - 1):
+                    self.error('input_too_large', lambda: annotations.json_bytes(tree))
+                self.assertIs(tree[0], tree[1])
+        for invalid in (float('inf'), float('nan'), '\ud800', {1: 'non-string key'}, {'date': date(2026, 1, 1)}):
+            with self.subTest(invalid=invalid):
+                self.error('invalid_input', lambda: annotations.json_bytes(invalid))
+
+    def test_author_section_rejects_escaped_overflow_before_envelope_encoding(self):
+        self.write({'version': 1, 'context': data('가\x00"\\' * 4)})
+        section = annotations.envelope(data('가\x00"\\' * 4), 'test/1', AT)
+        size = len(json.dumps(section, ensure_ascii=False, separators=(',', ':')).encode())
+        before = self.snapshot()
+        original = json.JSONEncoder.iterencode
+        def guard(encoder, item, *args, **kwargs):
+            if isinstance(item, dict) and 'recorded_by' in item:
+                raise AssertionError('Oversized section reached container encoding')
+            return original(encoder, item, *args, **kwargs)
+        with patch.object(annotations, 'SECTION_BYTES', size - 1), \
+                patch.object(json.JSONEncoder, 'iterencode', guard):
+            self.error('input_too_large', lambda: self.curate('oversized', 'no-intent', self.file, 'absent'))
+        self.assertEqual(before, self.snapshot())
+        with patch.object(annotations, 'SECTION_BYTES', size):
+            self.curate('exact', 'exact-input', self.file, 'absent')
+        self.curate('plain')
+        self.write(data('가\x00"\\' * 4))
+        before = self.snapshot()
+        with patch.object(annotations, 'SECTION_BYTES', size - 1), \
+                patch.object(json.JSONEncoder, 'iterencode', guard):
+            self.error('input_too_large', lambda: annotate(self.bundle, 'plain', 'r000001', 'context',
+                                                         self.file, 'test/1', AT, 'annotate-no-intent'))
+        self.assertEqual(before, self.snapshot())
+
+    def test_imported_alias_context_and_annotate_reject_before_expansion_without_effects(self):
+        self.curate()
+        path = self.bundle / 'concepts/work/r000001.md'
+        shared = '가\x01' * 16
+        raw = ('---\ntype: Concept\nx-second-brain-annotations:\n  version: 1\n  future:\n'
+               '    seed: &seed ' + json.dumps(shared, ensure_ascii=False) + '\n    copies: ['
+               + ', '.join(['*seed'] * 24) + ']\n---\nExact imported body\n')
+        path.write_text(raw, encoding='utf-8')
+        meta, _ = parse(raw)
+        future = meta[annotations.KEY]['future']
+        self.assertIs(future['seed'], future['copies'][0])
+        before = self.snapshot()
+        original = json.JSONEncoder.iterencode
+        def guard(encoder, item, *args, **kwargs):
+            if isinstance(item, dict) and item.get('version') == 1 and 'future' in item:
+                raise AssertionError('Oversized imported aliases reached container encoding')
+            return original(encoder, item, *args, **kwargs)
+        with patch.object(annotations, 'ROOT_BYTES', 1024), \
+                patch.object(json.JSONEncoder, 'iterencode', guard):
+            output = context(self.bundle, now=AT)
+            self.assertTrue(output['partial'])
+            self.assertEqual(output['diagnostics'][0]['code'], 'input_too_large')
+            self.error('input_too_large', lambda: self.annotate(key='alias-no-intent'))
+        self.assertEqual(before, self.snapshot())
+
     def test_new_cli_errors_and_no_other_sections(self):
         self.curate()
         for args in (['annotate', str(self.bundle), 'work', '--revision', 'r000001', '--section', 'relations',
