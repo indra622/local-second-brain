@@ -3,6 +3,9 @@
 import contextlib
 import io
 import json
+import os
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -14,7 +17,7 @@ from local_knowledge_wiki.cli import annotate, main
 from local_knowledge_wiki.context import context
 from local_knowledge_wiki.graph import graph
 from local_knowledge_wiki.health import health
-from local_knowledge_wiki.format import parse, serialize_revision
+from local_knowledge_wiki.format import parse, serialize_revision, validate
 from local_knowledge_wiki.recall import render
 from local_knowledge_wiki.storage import Store, capture
 
@@ -79,6 +82,24 @@ class HealthTests(unittest.TestCase):
         self.assertFalse(result['analysis_complete'])
         self.assertTrue(result['partial'])
         self.assertTrue(next(d for d in result['diagnostics'] if d['kind'] == 'invalid_context')['affects_analysis'])
+        self.assertEqual(before, self.snapshot())
+
+    def test_cli_legacy_minyear_offset_deadline_preserves_valid_value_and_bytes(self):
+        self.note('a')
+        target = self.bundle / 'concepts/a/r000001.md'
+        value = '0001-01-01T00:00:00+01:00'
+        target.write_text("---\ntype: Concept\nstale_after: '" + value + "'\n---\nSynthetic body\n")
+        self.assertEqual(validate(parse(target.read_text())[0]), [])
+        before = self.snapshot()
+        child = subprocess.run([sys.executable, '-m', 'local_knowledge_wiki.cli', '--error-format', 'json',
+                                'health', str(self.bundle), '--now', '2026-11-02T00:00:00Z'],
+                               env={**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parents[1] / 'src')},
+                               capture_output=True, timeout=15)
+        self.assertEqual(child.returncode, 0, child.stderr)
+        result = json.loads(child.stdout)
+        due = next(item for item in result['findings'] if item['kind'] == 'note_due')
+        self.assertEqual(due['observed'], value)
+        self.assertFalse(result['partial'])
         self.assertEqual(before, self.snapshot())
 
     def test_future_source_classification_and_unlinked_imported_assessments(self):

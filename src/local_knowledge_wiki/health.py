@@ -142,7 +142,12 @@ def health(root, scope=None, now=None, verify_source=None, max_chars=12000):
         nonlocal complete
         path = node['path']
         if 'stale_after' in meta and instant >= timestamp(meta['stale_after']):
-            finding(path, 'stale_after', 'note_due', 'reconsider_note_currency', timestamp(meta['stale_after']).astimezone(timezone.utc).isoformat())
+            deadline = timestamp(meta['stale_after'])
+            try:
+                observed = deadline.astimezone(timezone.utc).isoformat()
+            except OverflowError:
+                observed = deadline.isoformat()
+            finding(path, 'stale_after', 'note_due', 'reconsider_note_currency', observed)
         if annotations.KEY not in meta:
             finding(path, annotations.KEY, 'missing_declarations', 'declare_observation_or_pointer_when_needed', severity='info')
             return
