@@ -35,7 +35,12 @@ const fs = require('node:fs'); const path = require('node:path'); const assert =
       const caption = await p.locator('#scenario-caption').innerText();
       assert(!/choose|paste|골라|붙여/.test(caption), caption);
       assert(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-      await v.evaluate(v => { v.textTracks[0].mode = 'showing'; return v.play(); }); await p.waitForTimeout(450);
+      await v.evaluate(v => { v.textTracks[0].mode = 'showing'; return v.play(); }); try {
+        await p.waitForFunction(() => { const v=document.querySelector('video'); return !v.paused && v.currentTime > .1; }, null, {timeout:10000});
+      } catch (error) {
+        fs.writeFileSync(path.join(out, `playback-failure-${width}-${colorScheme}-${lang}.json`), JSON.stringify(await v.evaluate(v => ({time:v.currentTime, paused:v.paused, readyState:v.readyState, networkState:v.networkState, error:v.error?.message, src:v.currentSrc})), null, 2));
+        throw error;
+      }
       assert(await v.evaluate(v => v.currentTime > .1 && !v.paused));
       await v.evaluate(v => v.pause()); const paused = await v.evaluate(v => v.currentTime); await p.waitForTimeout(180);
       assert.equal(await v.evaluate(v => v.currentTime), paused);
@@ -45,7 +50,7 @@ const fs = require('node:fs'); const path = require('node:path'); const assert =
         if (width === 1440 && colorScheme === 'light') await v.screenshot({path: path.join(out, `boundary-${lang}-${time}.png`)});
       }
       assert(await v.evaluate(v => v.textTracks[0].activeCues.length > 0));
-      if (width === 1440 && colorScheme === 'light') {
+      {
         await v.evaluate(v => { v.currentTime = 36.8; return v.play(); });
         await p.waitForFunction(() => document.querySelector('video').ended, null, {timeout: 10000});
         assert.equal(await v.evaluate(v => v.currentTime), 37.5);
@@ -69,7 +74,7 @@ const fs = require('node:fs'); const path = require('node:path'); const assert =
       assert.equal(await p.locator('html').getAttribute('lang'), other);
       await p.screenshot({path: path.join(out, `video-${width}-${colorScheme}-${lang}-switched.png`), fullPage: true});
       assert.deepEqual(errors, []); assert(requests.every(url => url.startsWith(new URL(base).origin + '/')));
-      results.push(`${width} ${colorScheme} ${lang}: native controls, 1080p metadata, language-specific source/poster/captions/transcript, no autoplay or loop, play/pause/seek/boundaries${width === 1440 && colorScheme === 'light' ? '/ended' : ''}, captions active, keyboard focus, explorer and CLI replay regression, theme and locale toggle, no page errors or external requests PASS`);
+      results.push(`${width} ${colorScheme} ${lang}: native controls, 1080p metadata, language-specific source/poster/captions/transcript, no autoplay or loop, play/pause/seek/boundaries/ended, captions active, keyboard focus, explorer and CLI replay regression, theme and locale toggle, no page errors or external requests PASS`);
       await p.close();
     }
     console.log(results.join('\n')); fs.writeFileSync(path.join(out, 'agent-video-browser-results.txt'), results.join('\n') + '\n');

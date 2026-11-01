@@ -53,7 +53,7 @@ components:
 
 A new explanatory site for AI-assisted knowledge workers, attached to an existing CLI repository. Practical, bright workbench surfaces; no imitation of a named design system. Native static HTML/CSS/JS is intentional. DESIGN_VARIANCE=6, MOTION_INTENSITY=3, VISUAL_DENSITY=4.
 
-Existing README hero, benefit headings, examples and installation instructions remain intact. The generated mark supplied by the parent is preserved as logo-original.png; logo.png is a resized derivative, not new artwork.
+Existing README hero, benefit headings, examples and installation instructions remain intact. The generated mark supplied by the parent is preserved as archive/showcase/assets/logo-original.png; logo.png is a resized derivative, not new artwork.
 
 ## Colors
 

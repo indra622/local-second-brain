@@ -32,7 +32,7 @@ for lang in ('ko', 'en'):
     for public in (vtt, transcript):
         assert not re.search('[·—]', public.read_text()), public
     print(lang, json.dumps(probe, ensure_ascii=False), 'full decode, faststart, captions, transcript, poster, no private paths PASS')
-# The earlier manual-handoff clip, its captions, transcripts and source stay byte-identical to the adoption base.
-changed = subprocess.check_output(['git', 'diff', '--name-only', '5468457', '--'], cwd=ROOT, text=True).splitlines()
-assert not any(re.match(r'(site/(assets|data)/report-scenario-v1-|scripts/outcome-video/|site/data/(sample|replay-|transcript))', p) for p in changed), changed
-print('Earlier scenario assets, outcome-video source and sample data preserved PASS')
+# Preservation is checked at current archive paths by the shared verifier.
+import runpy
+runpy.run_path(str(ROOT / 'scripts/showcase/verify.py'), run_name='__main__')
+print('Current assets and archived bytes/source preservation PASS')

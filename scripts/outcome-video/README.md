@@ -1,4 +1,4 @@
-# Reproduce the report scenario
+# Archived v1 report scenario (34 seconds only)
 
 This is a silent, captioned 34-second scenario using fictional research, report criteria and a prepared outline. The pointer chooses three notes, then activates a manual handoff together with new material. No model runs, product GUI, automatic recall, or cloud service is represented. Existing CLI evidence is separate and unchanged.
 
@@ -13,7 +13,7 @@ export OUTCOME_LOGS="<absolute-external-evidence-directory>"
 node scripts/outcome-video/render.cjs
 ```
 
-The renderer pipes 816 PNG frames per locale to ffmpeg, at 24fps, H264/yuv420p with faststart, without audio. It saves a complete temporary clip externally before copying it into versioned site assets. It closes and kills its owned encoder on failure and closes its isolated headless browser. Asset budget: 6 MB per locale. Reproducibility covers scene layout and timing; installed font/Chrome/encoder versions may change exact bytes.
+The renderer pipes 816 PNG frames per locale to ffmpeg, at 24fps, H264/yuv420p with faststart, without audio. It saves a complete temporary clip externally before copying it into versioned archive/showcase assets. It closes and kills its owned encoder on failure and closes its isolated headless browser. Asset budget: 6 MB per locale. Reproducibility covers scene layout and timing; installed font/Chrome/encoder versions may change exact bytes.
 
 Verify with a loopback server that supports byte ranges, which native video seeking needs. The supplied development server binds only to 127.0.0.1 and serves the checkout; it is not deployed. In one terminal:
 
@@ -26,11 +26,17 @@ In another, with the same existing module and external logs variables:
 ```sh
 export SHOWCASE_URL="http://127.0.0.1:8938/"
 node scripts/outcome-video/verify.cjs
-SHOWCASE_LOGS="$OUTCOME_LOGS/regressions" node scripts/showcase/verify-browser.cjs
-python3 scripts/showcase/verify.py
 python3 scripts/outcome-video/verify-assets.py
 ```
 
-Stop the owned server with Ctrl-C after verification. Check both MP4s with ffprobe (codec, duration, dimensions, frame count), decode each fully with ffmpeg, and inspect contact sheets plus browser boundary screenshots. The browser verifier covers both widths, themes and languages, captions, transcript links, locale changes, reduced motion, native PLAY/PAUSE/SEEK and keyboard focus. Existing showcase verification retains sample/revision/filter/reset/replay/fallback and original evidence hashes. No CLI, sample fixture, source data or replay binding changes are needed.
+Stop the owned server with Ctrl-C after verification. verify-assets.py decodes the archived
+34-second pair and checks its encoding, frames, posters, captions and transcripts. The v1
+browser check measures old scene captions and archived native-video metadata only; it
+must not assert that the current site's player is34 seconds. Use the current QA route
+for1440/390 light/dark EN/KO interaction and37.5-second playback.
 
-The site uses native controls with no autoplay or loop. VTT is optional because readable main captions are already present in the video. README thumbnails link to the hosted MP4, with a separate link to the matching locale page and a descriptive transcript. Hosted links require publication of this commit; this worker does not deploy.
+The original v1 publication used linked README thumbnails. Those are historical details,
+not current README requirements. Old deployed v1 asset URLs intentionally retire; repository
+files remain in [the archive](../../archive/README.md). Current player QA/reproduction:
+[agent-outcome-video](../agent-outcome-video/README.md). The shared range server remains
+here and is unchanged.
