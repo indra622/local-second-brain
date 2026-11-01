@@ -82,7 +82,7 @@ def bm25_score(note, counts, terms, mode, occurrences, average, weights):
                for term, count, weight in zip(terms, occurrences, weights) if count)
 
 
-def recall(root, query, now, match='auto', limit=5, max_chars=12000, rank='frequency'):
+def recall_request(query, match='auto', limit=5, max_chars=12000, rank='frequency'):
     terms = sorted(set(words(query)))
     if not terms:
         raise WikiError('Query needs at least one word')
@@ -101,6 +101,11 @@ def recall(root, query, now, match='auto', limit=5, max_chars=12000, rank='frequ
     if rank == 'bm25':
         result['ranking'] = {'method': 'bm25', 'version': 1, 'k1': 1.2, 'b': 0.75,
                              'title_bonus': 1.0, 'corpus_notes': 0}
+    return terms, result
+
+
+def recall(root, query, now, match='auto', limit=5, max_chars=12000, rank='frequency'):
+    terms, result = recall_request(query, match, limit, max_chars, rank)
     with Store(root) as store:
         try:
             current = current_index(store.read('index.md').decode('utf-8'))[0]
@@ -131,6 +136,10 @@ def recall(root, query, now, match='auto', limit=5, max_chars=12000, rank='frequ
             counts = Counter(words((note['title'] if isinstance(note['title'], str) else '') + '\n' + note['body']))
             notes.append((identity, note, counts))
 
+    return recall_result(result, current, notes, terms, match, limit, max_chars, rank)
+
+
+def recall_result(result, current, notes, terms, match, limit, max_chars, rank):
     if rank == 'bm25':
         result['ranking']['corpus_notes'] = len(notes)
 

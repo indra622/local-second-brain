@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "target_mode": "current_id",
+  "cases": [
+    {"id":"pilot-decision","query":"report decision","gold":[{"id":"task-report-pilot"}]},
+    {"id":"absent-control","query":"absentexamplezzzz","gold":[],"expect_no_match":true}
+  ]
+}

@@ -102,3 +102,13 @@ proof of falsehood. Use `--verify-source SOURCE_ID` only for authorized captured
 Prepare [health section data](../docs/health.md) and record new declarations through existing
 curate/annotate when the task calls for it. Never substitute review time for an observation,
 fetch a pointer automatically, or treat matched hashes as authenticated facts.
+
+## Complete task-local reuse loop
+
+Use the [begin/resume/end prompt](../templates/task-workflow.md) with a distinct stable
+concept ID per task/workstream. Obtain explicit context scope from the prior task record;
+work_id is data, not an implemented query. Preserve a searchable prepared Markdown summary
+because old recall does not index annotations. Inspect graph/health within access authority,
+record proposed or declared-reviewed lessons without global promotion, then compare
+[explicit judged retrieval cases](../docs/retrieval-evaluation.md) on the same manifest.
+No host installation, automatic label generation or per-command extra human gate is added.

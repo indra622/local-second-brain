@@ -15,6 +15,7 @@ from . import annotations
 from .context import context
 from .graph import EDGE_TYPES, graph
 from .health import health
+from .evaluation import MODES, evaluate
 from .inspection import inspect_storage
 from .limits import BODY_BYTES, INDEX_BYTES, check_size
 from .platform import require_capabilities
@@ -342,6 +343,15 @@ def main(argv=None):
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--now")
     p.add_argument("--max-chars", type=int, default=12000, help="Entire JSON code-point budget including newline; 2048..1000000")
+    p = commands.add_parser("eval-retrieval", help="Explicit judged cases against frozen delivered recall; no generated labels")
+    p.add_argument("bundle")
+    p.add_argument("--cases", required=True)
+    p.add_argument("--scope", action="append")
+    p.add_argument("--mode", action="append", choices=MODES)
+    p.add_argument("--k", action="append", type=int)
+    p.add_argument("--result-max-chars", type=int, default=12000)
+    p.add_argument("--max-chars", type=int, default=12000)
+    p.add_argument("--now")
     p = commands.add_parser("health", help="Read-only freshness/evidence diagnostics; no truth verification or repair")
     p.add_argument("bundle")
     p.add_argument("--scope", action="append")
@@ -399,7 +409,7 @@ def main(argv=None):
     try:
         require_capabilities()
         now = None
-        if args.command not in ("review", "annotate", "context", "graph", "health"):
+        if args.command not in ("review", "annotate", "context", "graph", "health", "eval-retrieval"):
             now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
         for key in ("actor", "resource"):
             if hasattr(args, key) and not nonempty(getattr(args, key)):
@@ -422,6 +432,10 @@ def main(argv=None):
         elif args.command == "context":
             result = context(args.bundle, args.scope, args.recipient, args.since, args.limit, args.now, args.max_chars)
             print(render(result), end="")
+            return 0
+        elif args.command == "eval-retrieval":
+            print(render(evaluate(args.bundle, args.cases, args.scope, args.mode, args.k,
+                                  args.result_max_chars, args.max_chars, args.now)), end="")
             return 0
         elif args.command == "health":
             print(render(health(args.bundle, args.scope, args.now, args.verify_source, args.max_chars)), end="")
@@ -458,7 +472,7 @@ def main(argv=None):
     except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
         if machine:
             emit_error(exc)
-        elif args.command in ('recall', 'inspect-storage', 'context', 'graph', 'health') or getattr(args, 'format', None) == 'json':
+        elif args.command in ('recall', 'inspect-storage', 'context', 'graph', 'health', 'eval-retrieval') or getattr(args, 'format', None) == 'json':
             print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         else:
             print(f"second-brain: {exc}", file=sys.stderr)

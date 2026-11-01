@@ -480,3 +480,10 @@ PyPI 배포는 아직 없으므로 프로젝트 소스로 설치한다.
 읽기 전용 `health`와 명시적 freshness/source_evidence 선언으로 노트 기한·관측·현재 포인터·
 근거 분류를 구분한다. [스키마·선택적 원문 검사·완전성](health.ko.md)을 참고한다.
 진단은 권고이며 사실 확인이나 자동 복구가 아니다.
+
+## 명시적 검색 평가
+
+`eval-retrieval BUNDLE --cases FILE`로 실제 recall 출력과 명시한 정답을 비교한다.
+[지표·null 집계·코퍼스·출력 한도](retrieval-evaluation.ko.md)와
+[작업별 프롬프트](../templates/task-workflow.ko.md)를 참고한다. 라벨이나 호스트 자동화를
+생성하지 않으며 기존 recall 기본값은 유지한다.
