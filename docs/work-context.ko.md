@@ -18,7 +18,7 @@ second-brain context BUNDLE --scope HANDOFF_ID --recipient codex --limit 50 --ma
 ```
 
 `--annotations`를 생략하면 기존 메타데이터·출력·요청 fingerprint를 그대로 유지한다.
-이번 버전은 context 작성만 지원한다. 중복 JSON 키, 알 수 없는 입력 필드, NaN/무한대,
+context와 [relations 작성](graph.ko.md)을 지원한다. 중복 JSON 키, 알 수 없는 입력 필드, NaN/무한대,
 지원하지 않는 버전은 거부한다. 저장 필드는 `x-second-brain-annotations`이며 version 1과
 `context: {recorded_by, recorded_at, data}`를 담는다. 기록 시각과 주체는 선언이다.
 
@@ -83,3 +83,5 @@ scope는 긴 ID 목록 대신 요청 수와 목록 해시를 담는다. 처음/�
 표시한다. 같아도 파일시스템 스냅샷이나 외부 편집 부재를 증명하지 않는다. 읽기는 잠금 파일,
 커서, 로그나 캐시를 만들지 않는다. 유효한 부분 보고서는 종료 0, 인자·index·루트의 치명적
 오류는 기존 error-format 규칙으로 종료 2다.
+
+알려진 relations 스키마 오류는 진단하지만 유효한 context를 지우지 않는다. 루트의 전체 안전 한도는 유지한다.

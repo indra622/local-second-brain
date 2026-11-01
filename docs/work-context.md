@@ -33,7 +33,7 @@ second-brain context BUNDLE --scope HANDOFF_ID --recipient codex --limit 50 --ma
 ```
 
 Omitting `--annotations` preserves old metadata, results and request fingerprints.
-Only context authoring is supported in this release. Strict JSON rejects duplicates,
+Context and relations authoring are supported; see [typed graph](graph.md). Strict JSON rejects duplicates,
 unknown fields, nonfinite numbers and unsupported versions. It is stored as YAML under
 `x-second-brain-annotations: {version: 1, context: {recorded_by, recorded_at, data}}`.
 Recording times are UTC declarations. Curate uses its existing operation time.
@@ -101,7 +101,7 @@ reads have their existing separate byte cap. No total RAM/runtime guarantee is i
 Inspect scan.complete, analysis_complete, output_complete, partial and omitted. Missing,
 unreadable or invalid notes and unsupported owned sections produce diagnostics. Such
 coverage does not establish absence; matched_total is null when coverage/analysis is
-incomplete, while matched_observed counts matches actually inspected. Unknown imported
+incomplete, while matched_observed counts matches actually inspected. Known relation-schema errors are diagnosed without erasing valid context; global root safety still applies. Unknown imported
 sections are reported as unsupported; existing readers/check do not gain new validation.
 
 The whole successful JSON, including escaping and final newline, fits max-chars (default

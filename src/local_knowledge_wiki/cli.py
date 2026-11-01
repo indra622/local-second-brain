@@ -13,6 +13,7 @@ from urllib.parse import urlsplit
 
 from . import annotations
 from .context import context
+from .graph import EDGE_TYPES, graph
 from .inspection import inspect_storage
 from .limits import BODY_BYTES, INDEX_BYTES, check_size
 from .platform import require_capabilities
@@ -50,7 +51,7 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
         meta["sources"].append({"id": source, "resource": f"../../sources/{source}/content.raw"})
     annotation_raw = None
     if annotations_file is not None:
-        annotation_raw, meta[annotations.KEY] = annotations.author_root(annotations_file, actor, now)
+        annotation_raw, meta[annotations.KEY] = annotations.author_root(annotations_file, actor, now, concept_id)
     errors = validate(meta)
     if errors:
         raise WikiError("; ".join(errors))
@@ -207,13 +208,13 @@ def review(root, concept_id, revision, actor, evidence, request_id=None, now=Non
 def annotate(root, concept_id, revision, section, input_file, actor, now=None, request_id=None):
     target = revision_path(concept_id, revision)
     annotations.actor(actor)
-    if section != 'context':
-        raise WikiError('Only the context annotation section is supported')
+    if section not in annotations.SECTIONS:
+        raise WikiError('Unsupported annotation section')
     if request_id is not None:
         identifier(request_id)
     declared_at = annotations.canonical_time(now) if now is not None else None
     raw, section_data = annotations.load_input(input_file)
-    annotations.context_data(section_data)
+    annotations.section_data(section, section_data, concept_id)
     with Store(root) as store, store.lock():
         before = store.read('index.md')
         index = before.decode('utf-8')
@@ -232,11 +233,11 @@ def annotate(root, concept_id, revision, section, input_file, actor, now=None, r
             errors = validate(meta)
             if errors:
                 raise WikiError('; '.join(errors))
-            root_value = annotations.stored_root(meta[annotations.KEY]) if annotations.KEY in meta else {'version': 1}
+            root_value = annotations.stored_root(meta[annotations.KEY], concept_id) if annotations.KEY in meta else {'version': 1}
             updated = dict(root_value)
             at = declared_at if declared_at is not None else datetime.now(timezone.utc).isoformat()
-            updated[section] = annotations.envelope(section_data, actor, at)
-            annotations.stored_root(updated)
+            updated[section] = annotations.envelope(section_data, actor, at, section, concept_id)
+            annotations.stored_root(updated, concept_id)
             meta = {**meta, annotations.KEY: updated}
             meta.pop('verified', None)
             data = serialize_revision(meta, body)
@@ -312,7 +313,7 @@ def main(argv=None):
     p.add_argument("--title", help="Single-line title (default concept ID)")
     p.add_argument("--status", choices=("draft", "stable", "deprecated"), default="draft")
     p.add_argument("--stale-after")
-    p.add_argument("--annotations", help="Strict JSON context declarations; omitted preserves legacy identity")
+    p.add_argument("--annotations", help="Strict JSON context/relations declarations; omitted preserves legacy identity")
     p.add_argument("--request-id", help="Bundle-wide retry ID; replay original result before checking expected current")
     p.add_argument("--expect-current", help="Require indexed rNNNNNN or absent under the write lock")
     p = commands.add_parser("review", help="Record a declared review of the exact current revision; no factual check")
@@ -323,11 +324,11 @@ def main(argv=None):
     p.add_argument("--request-id", help="Bundle-wide retry ID; same exact revision/evidence/actor replays prior review")
     p.add_argument("--evidence", required=True, help="Absolute http(s) URL or bundle-root regular artifact path; never fetched or executed")
     p.add_argument("--now", help="Explicit-offset ISO8601 declared event time, at most 6 fractional-second digits; normalized to UTC; default actual UTC clock, not proof of review time")
-    p = commands.add_parser("annotate", help="Replace declared context in a new exact-current revision; clears inherited verified")
+    p = commands.add_parser("annotate", help="Replace a declared annotation section in a new exact-current revision; clears inherited verified")
     p.add_argument("bundle")
     p.add_argument("id")
     p.add_argument("--revision", required=True)
-    p.add_argument("--section", choices=("context",), required=True)
+    p.add_argument("--section", choices=annotations.SECTIONS, required=True)
     p.add_argument("--file", required=True)
     p.add_argument("--actor", required=True)
     p.add_argument("--now", help="Declared explicit-offset time, at most 6 fractional digits; not authenticated")
@@ -340,6 +341,15 @@ def main(argv=None):
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--now")
     p.add_argument("--max-chars", type=int, default=12000, help="Entire JSON code-point budget including newline; 2048..1000000")
+    p = commands.add_parser("graph", help="Bounded declared/current structure; no semantic inference or target fetch")
+    p.add_argument("bundle")
+    p.add_argument("--scope", action="append")
+    selector = p.add_mutually_exclusive_group()
+    selector.add_argument("--backlinks")
+    selector.add_argument("--path", nargs=2, metavar=("FROM", "TO"))
+    p.add_argument("--relation", action="append", choices=EDGE_TYPES)
+    p.add_argument("--max-depth", type=int)
+    p.add_argument("--max-chars", type=int, default=12000)
     p = commands.add_parser("recall", help="Bounded current context as JSON; exact-first with disclosed prefix fallback")
     p.add_argument("bundle")
     p.add_argument("query")
@@ -382,7 +392,7 @@ def main(argv=None):
     try:
         require_capabilities()
         now = None
-        if args.command not in ("review", "annotate", "context"):
+        if args.command not in ("review", "annotate", "context", "graph"):
             now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
         for key in ("actor", "resource"):
             if hasattr(args, key) and not nonempty(getattr(args, key)):
@@ -404,6 +414,10 @@ def main(argv=None):
                               args.actor, args.now, args.request_id)
         elif args.command == "context":
             result = context(args.bundle, args.scope, args.recipient, args.since, args.limit, args.now, args.max_chars)
+            print(render(result), end="")
+            return 0
+        elif args.command == "graph":
+            result = graph(args.bundle, args.scope, args.backlinks, args.path, args.relation, args.max_depth, args.max_chars)
             print(render(result), end="")
             return 0
         elif args.command == "inspect-storage":
@@ -434,7 +448,7 @@ def main(argv=None):
     except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
         if machine:
             emit_error(exc)
-        elif args.command in ('recall', 'inspect-storage', 'context') or getattr(args, 'format', None) == 'json':
+        elif args.command in ('recall', 'inspect-storage', 'context', 'graph') or getattr(args, 'format', None) == 'json':
             print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         else:
             print(f"second-brain: {exc}", file=sys.stderr)

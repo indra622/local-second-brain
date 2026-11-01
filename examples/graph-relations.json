@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "relations": {
+    "items": [
+      {"id":"basis","type":"depends_on","target":{"id":"reference"},"expectation":"required","evidence":[]},
+      {"id":"next","type":"relates_to","target":{"id":"next-step"},"expectation":"wanted","evidence":[]}
+    ]
+  }
+}

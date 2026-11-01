@@ -228,39 +228,90 @@ def context_data(value):
     return value
 
 
-def envelope(data, by, at):
-    context_data(data)
-    for lesson in data['lessons']:
-        if 'at' in lesson['review']:
-            lesson['review']['at'] = canonical_time(lesson['review']['at'])
-    value = {'recorded_by': actor(by), 'recorded_at': canonical_time(at), 'data': data}
-    json_bytes(value, SECTION_BYTES, 'stored context section')
+RELATION_TYPES = ('relates_to', 'depends_on', 'supersedes', 'contradicts', 'supports')
+SECTIONS = ('context', 'relations')
+
+
+def relations_data(value, owner_id=None):
+    fields(value, ('items',))
+    if not isinstance(value['items'], list) or len(value['items']) > 128:
+        raise WikiError('Relations must contain at most 128 items')
+    ids = set()
+    for item in value['items']:
+        fields(item, ('id', 'type', 'target', 'expectation', 'evidence'))
+        local_id(item['id'])
+        if item['id'] in ids:
+            raise WikiError('Duplicate relation ID')
+        ids.add(item['id'])
+        if item['type'] not in RELATION_TYPES:
+            raise WikiError('Unknown declared relation type')
+        fields(item['target'], ('id',), ('revision',))
+        local_id(item['target']['id'])
+        if item['target']['id'] == owner_id:
+            raise WikiError('Self-concept relations are unsupported')
+        if 'revision' in item['target']:
+            revision = item['target']['revision']
+            if not isinstance(revision, str) or not re.fullmatch(r'r(?!000000)[0-9]{6}', revision):
+                raise WikiError('Relation revision must be r000001 through r999999')
+        if item['expectation'] not in ('required', 'wanted'):
+            raise WikiError('Relation expectation must be required or wanted')
+        if item['expectation'] == 'wanted' and 'revision' in item['target']:
+            raise WikiError('Wanted relations require an unversioned concept target')
+        evidence(item['evidence'])
     return value
 
 
-def stored_root(value):
+def section_data(name, value, owner_id=None):
+    if name == 'context':
+        return context_data(value)
+    if name == 'relations':
+        return relations_data(value, owner_id)
+    raise WikiError('Unsupported annotation section')
+
+
+def envelope(data, by, at, section='context', owner_id=None):
+    section_data(section, data, owner_id)
+    for lesson in data.get('lessons', []) if section == 'context' else []:
+        if 'at' in lesson['review']:
+            lesson['review']['at'] = canonical_time(lesson['review']['at'])
+    value = {'recorded_by': actor(by), 'recorded_at': canonical_time(at), 'data': data}
+    json_bytes(value, SECTION_BYTES, 'stored ' + section + ' section')
+    return value
+
+
+def stored_root(value, owner_id=None, *, section_errors=None):
     if not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] != 1:
         raise WikiError('Unsupported annotation root/version')
     json_bytes(value, ROOT_BYTES, 'stored annotations')
     for name, section in value.items():
         if name == 'version':
             continue
-        json_bytes(section, SECTION_BYTES, 'stored annotation section')
-        if name == 'context':
-            fields(section, ('recorded_by', 'recorded_at', 'data'))
-            actor(section['recorded_by'])
-            if not isinstance(section['recorded_at'], str):
-                raise WikiError('recorded_at must be a timestamp string')
-            canonical_time(section['recorded_at'])
-            context_data(section['data'])
+        try:
+            json_bytes(section, SECTION_BYTES, 'stored annotation section')
+            if name in SECTIONS:
+                fields(section, ('recorded_by', 'recorded_at', 'data'))
+                actor(section['recorded_by'])
+                if not isinstance(section['recorded_at'], str):
+                    raise WikiError('recorded_at must be a timestamp string')
+                canonical_time(section['recorded_at'])
+                section_data(name, section['data'], owner_id)
+        except (WikiError, UnicodeError, ValueError, TypeError, RecursionError) as exc:
+            if section_errors is None or name not in SECTIONS:
+                raise
+            section_errors[name] = exc
     return value
 
 
-def author_root(path, by, at):
+def author_root(path, by, at, owner_id=None):
     raw, value = load_input(path)
-    fields(value, ('version', 'context'))
+    fields(value, ('version',), SECTIONS)
     if type(value['version']) is not int or value['version'] != 1:
         raise WikiError('Annotation version must be integer 1')
-    result = {'version': 1, 'context': envelope(value['context'], by, at)}
-    stored_root(result)
+    if not any(name in value for name in SECTIONS):
+        raise WikiError('Annotation input needs an implemented section')
+    result = {'version': 1}
+    for name in SECTIONS:
+        if name in value:
+            result[name] = envelope(value[name], by, at, name, owner_id)
+    stored_root(result, owner_id)
     return raw, result

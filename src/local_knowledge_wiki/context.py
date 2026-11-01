@@ -47,12 +47,15 @@ def context(root, scope=None, recipient=None, since=None, limit=50, now=None, ma
     scan = report['scan']
     records = []
 
-    def diagnostic(path, kind, exc=None):
-        report['analysis_complete'] = False
+    def diagnostic(path, kind, exc=None, affects_analysis=True):
+        if affects_analysis:
+            report['analysis_complete'] = False
         if len(report['diagnostics']) >= DIAGNOSTIC_LIMIT:
             report['omitted']['diagnostics'] += 1
             return
         item = {'path': path, 'kind': kind}
+        if not affects_analysis:
+            item['affects_analysis'] = False
         if exc is not None:
             message = str(exc)
             item.update(code=error_code(exc), message=message[:240], message_truncated=len(message) > 240)
@@ -100,8 +103,13 @@ def context(root, scope=None, recipient=None, since=None, limit=50, now=None, ma
                     raise WikiError('; '.join(errors))
                 if KEY not in meta:
                     continue
-                annotations = stored_root(meta[KEY])
-                if annotations.keys() - {'version', 'context'}:
+                section_errors = {}
+                annotations = stored_root(meta[KEY], identity[1], section_errors=section_errors)
+                if 'context' in section_errors:
+                    raise section_errors['context']
+                if 'relations' in section_errors:
+                    diagnostic(path, 'invalid_relations', section_errors['relations'], affects_analysis=False)
+                if annotations.keys() - {'version', 'context', 'relations'}:
                     diagnostic(path, 'unsupported_sections')
                 if 'context' not in annotations:
                     continue

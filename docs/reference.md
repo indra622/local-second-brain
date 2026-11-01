@@ -535,3 +535,10 @@ Use optional `curate --annotations FILE`, exact-current `annotate --section cont
 and bounded read-only `context` for completed work, decisions, questions and lessons.
 See [schema, replay and limits](work-context.md). Omission preserves old write identity;
 lesson acceptance is a declaration and never promotes global rules or authenticates review.
+
+## Typed graph
+
+Use `annotate --section relations` or explicit curate annotation input to declare relations,
+then `graph` for bounded overview, backlinks or an explained directed path.
+See [schema, parser coverage and partial-result limits](graph.md). This structural view
+never fetches targets or changes recall ranking.
