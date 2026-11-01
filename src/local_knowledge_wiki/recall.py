@@ -53,23 +53,33 @@ def selected(value, omitted, depth=0):
     return text
 
 
-def bm25_scores(notes, terms, mode, term_counts):
-    """BM25-v1 over readable indexed notes, plus a distinct-title-term hint."""
+def matching_counts(counts, terms, mode):
+    return [sum(count for word, count in counts.items() if matches(term, word, mode))
+            for term in terms]
+
+
+def bm25_statistics(notes, terms, mode):
+    """Collect corpus statistics without retaining counts for every note/query pair."""
     size = len(notes)
     average = sum(sum(counts.values()) for _, _, counts in notes) / size if size else 0
     average = average or 1.0
-    frequencies = [sum(counts[i] > 0 for counts in term_counts) for i in range(len(terms))]
+    frequencies = [0] * len(terms)
+    for _, _, counts in notes:
+        for i, count in enumerate(matching_counts(counts, terms, mode)):
+            if count:
+                frequencies[i] += 1
     weights = [math.log1p((size - df + 0.5) / (df + 0.5)) for df in frequencies]
-    scores = []
-    for (_, note, counts), occurrences in zip(notes, term_counts):
-        length = sum(counts.values())
-        title = words(note['title']) if isinstance(note['title'], str) else []
-        normalization = 1.2 * (1 - 0.75 + 0.75 * length / average)
-        score = sum(weight * (count * 2.2 / (count + normalization)
-                              + (1.0 if any(matches(term, word, mode) for word in title) else 0.0))
-                    for term, count, weight in zip(terms, occurrences, weights) if count)
-        scores.append(score)
-    return scores
+    return average, weights
+
+
+def bm25_score(note, counts, terms, mode, occurrences, average, weights):
+    """BM25-v1 over one readable indexed note, plus a distinct-title-term hint."""
+    length = sum(counts.values())
+    title = words(note['title']) if isinstance(note['title'], str) else []
+    normalization = 1.2 * (1 - 0.75 + 0.75 * length / average)
+    return sum(weight * (count * 2.2 / (count + normalization)
+                         + (1.0 if any(matches(term, word, mode) for word in title) else 0.0))
+               for term, count, weight in zip(terms, occurrences, weights) if count)
 
 
 def recall(root, query, now, match='auto', limit=5, max_chars=12000, rank='frequency'):
@@ -125,13 +135,15 @@ def recall(root, query, now, match='auto', limit=5, max_chars=12000, rank='frequ
         result['ranking']['corpus_notes'] = len(notes)
 
     def retrieve(mode):
-        term_counts = [[sum(count for word, count in counts.items() if matches(t, word, mode))
-                        for t in terms] for _, _, counts in notes]
-        scores = (bm25_scores(notes, terms, mode, term_counts) if rank == 'bm25'
-                  else [sum(counts) for counts in term_counts])
-        hits = [(score, identity, note)
-                for (identity, note, _), counts, score in zip(notes, term_counts, scores)
-                if all(counts)]
+        if rank == 'bm25':
+            average, weights = bm25_statistics(notes, terms, mode)
+        hits = []
+        for identity, note, counts in notes:
+            occurrences = matching_counts(counts, terms, mode)
+            if all(occurrences):
+                score = (bm25_score(note, counts, terms, mode, occurrences, average, weights)
+                         if rank == 'bm25' else sum(occurrences))
+                hits.append((score, identity, note))
         return sorted(hits, key=lambda hit: (-hit[0], hit[2]['path']))
 
     mode = 'lexical' if match == 'lexical' else 'exact'

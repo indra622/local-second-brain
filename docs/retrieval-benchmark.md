@@ -59,7 +59,7 @@ establish general relevance improvement. See the exact formula and corpus rules 
 
 ## Scale: startup-inclusive wall time and per-child memory
 
-One local study used 10, 100 and 1000 current notes, each with three revisions.
+The original study at commit `02dd584` used 10, 100 and 1000 current notes, each with three revisions.
 Current bodies vary from 12 to 5000 filler tokens plus the two query words;
 current-file bytes total 65,740 / 442,118 / 4,421,162. Short historical bodies also contain
 the query. Every sample validates success, indexed/matched counts, current revision,
@@ -103,3 +103,30 @@ access also contributed. Profiling changes timing and excludes CLI startup, so t
 numbers are only evidence of where full-scan work occurs, not comparable latency.
 The study supplies no cache necessity threshold. Every recall still reads and parses
 current-note bodies; no SQLite, FTS service or persistent cache was introduced.
+
+## Long-query memory correction
+
+Review found that `02dd584` retained a note-by-query-term count matrix, including
+for default frequency ranking. A follow-up restores per-note frequency scoring.
+BM25 now collects document frequencies in one pass and recomputes each note's
+counts while scoring in a second pass. This removes the retained cross-note matrix
+without changing BM25-v1 scores, candidate rules, or query limits. It retains the
+existing note bodies and token counters; this is not a general RAM or time bound.
+
+The same synthetic memory probe used 3000 distinct query terms and tiny readable
+notes. All runs returned zero matches. With 3000 notes, five reviewer trials of
+`02dd584` measured peak child RSS of 117,243,904–117,309,440 bytes (median
+117,243,904). Five trials after correction measured 30,507,008–30,965,760 bytes
+(median 30,638,080). The same rerun's pre-ranking baseline measured
+31,522,816–31,997,952 bytes. These are per-child Darwin `wait4` byte measurements
+for default frequency, not timing comparisons or universal memory ceilings.
+
+The 10/100/1000-note benchmark was rerun after the correction, with five subsequent
+samples per method. Its entire quality and title-ablation result matches the
+original, including the misleading-title regression. The original timing table
+above remains historical: the follow-up ran alongside local validation, so its
+wall times do not support a before/after latency claim. At 1000 notes, subsequent
+medians were 245.61 ms frequency, 245.19 ms BM25 and 550.15 ms search. First runs
+remain uncontrolled-cache observations. No speedup is claimed. A long-query
+allocation regression test covers both modes using Python-traced allocations,
+without elapsed-time or host-RSS assertions in CI.

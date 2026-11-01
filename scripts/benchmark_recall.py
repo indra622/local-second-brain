@@ -8,7 +8,6 @@ import argparse
 import cProfile
 import importlib
 import json
-import math
 import os
 import platform
 import statistics
@@ -45,16 +44,10 @@ def corpus(root, notes):
             'current_bytes': sum((root / path).stat().st_size for path in entries.values())}
 
 
-def no_title_scores(notes, terms, mode, term_counts):
+def no_title_score(note, counts, terms, mode, occurrences, average, weights):
     # Ablation only: the production BM25-v1 formula with the title hint removed.
-    size = len(notes)
-    average = sum(sum(counts.values()) for _, _, counts in notes) / size if size else 1
-    average = average or 1
-    weights = [math.log1p((size - sum(c[i] > 0 for c in term_counts) + .5)
-                         / (sum(c[i] > 0 for c in term_counts) + .5)) for i in range(len(terms))]
-    return [sum(w * count * 2.2 / (count + 1.2 * (.25 + .75 * sum(counts.values()) / average))
-                for count, w in zip(occurrences, weights) if count)
-            for (_, _, counts), occurrences in zip(notes, term_counts)]
+    return sum(w * count * 2.2 / (count + 1.2 * (.25 + .75 * sum(counts.values()) / average))
+               for count, w in zip(occurrences, weights) if count)
 
 
 def quality(root):
@@ -66,7 +59,7 @@ def quality(root):
         row = dict(case, variants={})
         candidates = None
         for method in ('frequency', 'bm25-no-title', 'bm25'):
-            with patch.object(module, 'bm25_scores', no_title_scores if method == 'bm25-no-title' else module.bm25_scores):
+            with patch.object(module, 'bm25_score', no_title_score if method == 'bm25-no-title' else module.bm25_score):
                 result = recall(root, case['query'], NOW, case.get('match', 'auto'), 100, 1000000,
                                 'frequency' if method == 'frequency' else 'bm25')
             assert result['indexed'] == info['current_notes'] and not any(result['excluded'].values()), result

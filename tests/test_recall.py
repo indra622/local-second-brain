@@ -1,6 +1,7 @@
 """Synthetic current-note retrieval, compatibility, bounds and evidence tests."""
 
 import contextlib
+import gc
 import io
 import json
 import math
@@ -8,6 +9,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import tracemalloc
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -276,6 +278,30 @@ class RecallTests(unittest.TestCase):
             main(['recall', '--help'])
         self.assertIn('not tokens', out.getvalue())
         self.assertNotIn('--format', out.getvalue())
+
+    def test_long_query_allocation_does_not_multiply_by_note_count(self):
+        for i in range(160):
+            self.note(f'long-query-{i:03}', 'needle')
+
+        def peak_for(terms, rank):
+            query = 'needle ' + ' '.join(f'unmatched{i}' for i in range(terms - 1))
+            gc.collect()
+            tracemalloc.start()
+            try:
+                output = self.call(query, match='exact', rank=rank)
+                _, peak = tracemalloc.get_traced_memory()
+            finally:
+                tracemalloc.stop()
+            self.assertEqual((output['state'], output['indexed'], output['matched']),
+                             ('no_match', 160, 0))
+            return peak
+
+        for rank in ('frequency', 'bm25'):
+            with self.subTest(rank=rank):
+                small = peak_for(32, rank)
+                large = peak_for(3000, rank)
+                # Allow query token/state growth, but not a corpus-wide count matrix.
+                self.assertLess(large - small, 2 * 1024 * 1024)
 
     def test_rank_default_positional_compatibility_and_frequency_alias(self):
         self.note('b', 'needle needle')
