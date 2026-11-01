@@ -107,9 +107,10 @@ def context(root, scope=None, recipient=None, since=None, limit=50, now=None, ma
                 annotations = stored_root(meta[KEY], identity[1], section_errors=section_errors)
                 if 'context' in section_errors:
                     raise section_errors['context']
-                if 'relations' in section_errors:
-                    diagnostic(path, 'invalid_relations', section_errors['relations'], affects_analysis=False)
-                if annotations.keys() - {'version', 'context', 'relations'}:
+                for name, exc in sorted(section_errors.items()):
+                    if name != 'context':
+                        diagnostic(path, 'invalid_' + name, exc, affects_analysis=False)
+                if annotations.keys() - {'version', 'context', 'relations', 'freshness', 'source_evidence'}:
                     diagnostic(path, 'unsupported_sections')
                 if 'context' not in annotations:
                     continue

@@ -84,12 +84,11 @@ def resource_target(path, resource, source=False):
 def pack(report, records, max_chars):
     """Select deterministic whole-record prefixes with logarithmic formatting passes."""
     totals = {name: len(items) for name, items in records.items()}
-    dropped_diagnostics = report['omitted']['diagnostics']
+    dropped = {name: report['omitted'].get(name, 0) for name in records}
 
     def update():
         for name, total in totals.items():
-            report['omitted'][name] = total - len(report[name])
-        report['omitted']['diagnostics'] += dropped_diagnostics
+            report['omitted'][name] = total - len(report[name]) + dropped[name]
         report['output_complete'] = not any(report['omitted'].values())
         report['partial'] = not (report['scan']['complete'] and report['analysis_complete'] and report['output_complete'])
 
@@ -111,7 +110,7 @@ def pack(report, records, max_chars):
     return report
 
 
-def graph(root, scope=None, backlinks=None, path=None, relation=None, max_depth=None, max_chars=12000):
+def _graph(root, scope=None, backlinks=None, path=None, relation=None, max_depth=None, max_chars=12000, observer=None, return_raw=False):
     if type(max_chars) is not int or not 2048 <= max_chars <= 1000000:
         raise WikiError('max-chars must be 2048..1000000')
     if backlinks is not None and path is not None:
@@ -234,6 +233,8 @@ def graph(root, scope=None, backlinks=None, path=None, relation=None, max_depth=
                 diagnostic(note_path, 'invalid_note', exc)
                 continue
             node['availability'] = 'readable'
+            if observer is not None:
+                observer(node, meta)
             if any(value in annotations.RELATION_TYPES for value in types) and annotations.KEY in meta:
                 try:
                     section_errors = {}
@@ -346,5 +347,11 @@ def graph(root, scope=None, backlinks=None, path=None, relation=None, max_depth=
                         'nodes_total': len(nodes) if complete else None,
                         'edges_total': len(groups) if complete else None}
     diagnostics.sort(key=lambda item: (item['path'] or '', item['kind']))
+    if return_raw:
+        return report, edges, diagnostics
     return pack(report, {'paths': paths, 'diagnostics': diagnostics, 'edges': edges,
                          'nodes': [nodes[key] for key in sorted(nodes)]}, max_chars)
+
+
+def graph(root, scope=None, backlinks=None, path=None, relation=None, max_depth=None, max_chars=12000):
+    return _graph(root, scope, backlinks, path, relation, max_depth, max_chars)

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 from .errors import WikiError
-from .format import timestamp
+from .format import local_target, timestamp
 from .limits import check_size
 from .storage import identifier, read_input, single_line
 
@@ -229,7 +229,7 @@ def context_data(value):
 
 
 RELATION_TYPES = ('relates_to', 'depends_on', 'supersedes', 'contradicts', 'supports')
-SECTIONS = ('context', 'relations')
+SECTIONS = ('context', 'relations', 'freshness', 'source_evidence')
 
 
 def relations_data(value, owner_id=None):
@@ -261,16 +261,74 @@ def relations_data(value, owner_id=None):
     return value
 
 
-def section_data(name, value, owner_id=None):
+def freshness_data(value):
+    if not isinstance(value, dict):
+        raise WikiError('Freshness must be an object')
+    form = value.get('form')
+    if form == 'observation':
+        fields(value, ('form', 'observed_at', 'evidence'))
+    elif form == 'pointer':
+        fields(value, ('form', 'target', 'evidence'), ('last_observed_at', 'recheck_after'))
+        evidence([value['target']])
+    elif form == 'reference':
+        fields(value, ('form', 'evidence'))
+    else:
+        raise WikiError('Freshness form must be observation, pointer or reference')
+    for key in ('observed_at', 'last_observed_at', 'recheck_after'):
+        if key in value:
+            if not isinstance(value[key], str):
+                raise WikiError('Freshness timestamps must be strings')
+            canonical_time(value[key])
+    evidence(value['evidence'])
+    return value
+
+
+def source_key(resource, note_path):
+    text(resource, 'source resource', 2048, line=True)
+    if resource.startswith(('./', '../', '/')):
+        target = local_target(note_path, resource)
+        evidence([{'resource': '/' + target}])
+        return '/' + target
+    return resource
+
+
+def source_evidence_data(value, sources=None, note_path=None):
+    fields(value, ('items',))
+    if not isinstance(value['items'], list) or len(value['items']) > 32:
+        raise WikiError('Source evidence must contain at most 32 items')
+    keys = None if sources is None else {source_key(s['resource'], note_path) for s in sources}
+    for item in value['items']:
+        fields(item, ('resource', 'provenance_basis', 'retained_scope', 'rationale', 'evidence'))
+        key = source_key(item['resource'], note_path)
+        if keys is not None and key not in keys:
+            raise WikiError('Source assessment must identify a declared note source')
+        if item['provenance_basis'] not in ('primary_record', 'direct_document', 'derived', 'unknown'):
+            raise WikiError('Unsupported declared provenance basis')
+        if item['retained_scope'] not in ('complete', 'excerpt', 'locator_only', 'unknown'):
+            raise WikiError('Unsupported declared retained scope')
+        text(item['rationale'], 'source assessment rationale')
+        evidence(item['evidence'])
+    return value
+
+
+def section_data(name, value, owner_id=None, sources=None):
     if name == 'context':
         return context_data(value)
     if name == 'relations':
         return relations_data(value, owner_id)
+    if name == 'freshness':
+        return freshness_data(value)
+    if name == 'source_evidence':
+        return source_evidence_data(value, sources, f'concepts/{owner_id}/r000001.md')
     raise WikiError('Unsupported annotation section')
 
 
-def envelope(data, by, at, section='context', owner_id=None):
-    section_data(section, data, owner_id)
+def envelope(data, by, at, section='context', owner_id=None, sources=None):
+    section_data(section, data, owner_id, sources)
+    if section == 'freshness':
+        for key in ('observed_at', 'last_observed_at', 'recheck_after'):
+            if key in data:
+                data[key] = canonical_time(data[key])
     for lesson in data.get('lessons', []) if section == 'context' else []:
         if 'at' in lesson['review']:
             lesson['review']['at'] = canonical_time(lesson['review']['at'])
@@ -279,7 +337,7 @@ def envelope(data, by, at, section='context', owner_id=None):
     return value
 
 
-def stored_root(value, owner_id=None, *, section_errors=None):
+def stored_root(value, owner_id=None, *, section_errors=None, sources=None):
     if not isinstance(value, dict) or type(value.get('version')) is not int or value['version'] != 1:
         raise WikiError('Unsupported annotation root/version')
     json_bytes(value, ROOT_BYTES, 'stored annotations')
@@ -294,7 +352,7 @@ def stored_root(value, owner_id=None, *, section_errors=None):
                 if not isinstance(section['recorded_at'], str):
                     raise WikiError('recorded_at must be a timestamp string')
                 canonical_time(section['recorded_at'])
-                section_data(name, section['data'], owner_id)
+                section_data(name, section['data'], owner_id, sources)
         except (WikiError, UnicodeError, ValueError, TypeError, RecursionError) as exc:
             if section_errors is None or name not in SECTIONS:
                 raise
@@ -302,7 +360,7 @@ def stored_root(value, owner_id=None, *, section_errors=None):
     return value
 
 
-def author_root(path, by, at, owner_id=None):
+def author_root(path, by, at, owner_id=None, sources=None):
     raw, value = load_input(path)
     fields(value, ('version',), SECTIONS)
     if type(value['version']) is not int or value['version'] != 1:
@@ -312,6 +370,6 @@ def author_root(path, by, at, owner_id=None):
     result = {'version': 1}
     for name in SECTIONS:
         if name in value:
-            result[name] = envelope(value[name], by, at, name, owner_id)
-    stored_root(result, owner_id)
+            result[name] = envelope(value[name], by, at, name, owner_id, sources)
+    stored_root(result, owner_id, sources=sources)
     return raw, result

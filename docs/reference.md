@@ -542,3 +542,10 @@ Use `annotate --section relations` or explicit curate annotation input to declar
 then `graph` for bounded overview, backlinks or an explained directed path.
 See [schema, parser coverage and partial-result limits](graph.md). This structural view
 never fetches targets or changes recall ranking.
+
+## Knowledge health
+
+Use read-only `health` and explicit freshness/source_evidence annotations to distinguish
+note deadlines, dated observations, current pointers and declared evidence quality.
+See [schemas, opt-in source checks and completeness](health.md). Findings are recommendations,
+not factual verification or automatic repair.
