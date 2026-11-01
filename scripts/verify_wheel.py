@@ -46,7 +46,7 @@ assert package.is_relative_to(Path(sysconfig.get_path('purelib')).resolve()), pa
 assert package.is_relative_to(prefix), package
 assert not package.is_relative_to(Path(sys.argv[2]).resolve()), package
 modules = {name: str(Path(importlib.import_module('local_knowledge_wiki.' + name).__file__).resolve())
-           for name in ('cli', 'annotations', 'context', 'graph', 'health')}
+           for name in ('cli', 'annotations', 'context', 'graph', 'health', 'evaluation')}
 assert all(Path(path).is_relative_to(Path(sysconfig.get_path('purelib')).resolve()) for path in modules.values()), modules
 print(json.dumps({'installed_package': str(package), 'installed_modules': modules, 'venv': str(prefix)}))
 ''', isolated, project), end='')
@@ -248,6 +248,18 @@ print(json.dumps({'installed_package': str(package), 'installed_modules': module
         assert not report['partial']
         assert len(run(executable, 'health', bundle, '--max-chars', '2048')) <= 2048
         assert snapshot() == health_before
+        cases_input = root / 'evaluation-cases.json'
+        cases_input.write_text(json.dumps({'version': 1, 'target_mode': 'current_id', 'cases': [
+            {'id': 'judged', 'query': '달빛', 'gold': [{'id': 'handoff'}]},
+            {'id': 'control', 'query': 'absentzzzz', 'gold': [], 'expect_no_match': True}]}))
+        eval_before = snapshot()
+        evaluated = cli('eval-retrieval', '--cases', cases_input, '--scope', 'handoff',
+                        '--mode', 'auto:frequency', '--mode', 'auto:bm25', '--max-chars', '1000000')
+        assert evaluated['analysis_complete'] and evaluated['scan']['processed'] == 1
+        assert all(s['metrics']['recall_at']['1'] == 1 and s['no_match_accuracy'] == 1 for s in evaluated['summaries'])
+        assert len(run(executable, 'eval-retrieval', bundle, '--cases', cases_input, '--max-chars', '2048')) <= 2048
+        assert snapshot() == eval_before
+        print('Wheel evaluation: frozen current corpus + judged metrics/control + comparison + bounded output: PASS')
         print('Wheel health: immutable observation + bounded diagnostics + explicit source hash: PASS')
         print('Wheel typed graph: relation revision/replay + directed path + backlinks + scoped budget + context: PASS')
         print('Wheel work context: annotation input + immutable update + replay + bounded scoped read: PASS')

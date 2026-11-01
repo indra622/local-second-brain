@@ -92,3 +92,12 @@ curate나 정확한 현재 대상의 annotate로 선언한다. 재실행 입력�
 `--verify-source SOURCE_ID`로 요청한다. [선언 데이터](../docs/health.ko.md)는 기존 curate/
 annotate로 새 리비전에 남긴다. 검토 시각을 관측으로 대신하거나 포인터를 자동 접속하지 않고,
 해시 일치를 인증된 사실로 해석하지 않는다.
+
+## 작업별 재사용 순서
+
+[시작·재개·마무리 프롬프트](../templates/task-workflow.ko.md)를 작업마다 별도의 안정된 개념
+ID로 쓴다. 이전 기록에서 명시적 context scope를 얻고 work_id를 검색 기능으로 오해하지
+않는다. 기존 recall은 annotation을 검색하지 않으므로 Markdown 요약도 남긴다. 허가된
+범위에서 graph/health를 확인하고 교훈은 전역 승격 없이 선언으로 기록한 뒤
+[명시적으로 판단한 검색 사례](../docs/retrieval-evaluation.ko.md)를 같은 manifest에서 비교한다.
+호스트 설치·자동 라벨 생성·명령마다 추가 사람 승인 절차는 없다.

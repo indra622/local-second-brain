@@ -549,3 +549,10 @@ Use read-only `health` and explicit freshness/source_evidence annotations to dis
 note deadlines, dated observations, current pointers and declared evidence quality.
 See [schemas, opt-in source checks and completeness](health.md). Findings are recommendations,
 not factual verification or automatic repair.
+
+## Explicit retrieval evaluation
+
+Use `eval-retrieval BUNDLE --cases FILE` to compare delivered recall against explicit
+judgments. See [metrics, null aggregates, corpus and budget limits](retrieval-evaluation.md)
+and the [task-local prompt](../templates/task-workflow.md). No labels or host automation
+are generated; existing recall defaults remain unchanged.
