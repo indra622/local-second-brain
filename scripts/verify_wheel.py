@@ -46,7 +46,7 @@ assert package.is_relative_to(Path(sysconfig.get_path('purelib')).resolve()), pa
 assert package.is_relative_to(prefix), package
 assert not package.is_relative_to(Path(sys.argv[2]).resolve()), package
 modules = {name: str(Path(importlib.import_module('local_knowledge_wiki.' + name).__file__).resolve())
-           for name in ('cli', 'annotations', 'context', 'graph')}
+           for name in ('cli', 'annotations', 'context', 'graph', 'health')}
 assert all(Path(path).is_relative_to(Path(sysconfig.get_path('purelib')).resolve()) for path in modules.values()), modules
 print(json.dumps({'installed_package': str(package), 'installed_modules': modules, 'venv': str(prefix)}))
 ''', isolated, project), end='')
@@ -235,6 +235,20 @@ print(json.dumps({'installed_package': str(package), 'installed_modules': module
         assert cli('context', '--scope', 'handoff')['results'][0]['data']['work_id'] == 'synthetic-task'
         assert snapshot() == before_graph
         assert cli('inspect-storage')['receipts']['states'] == {'self_consistent': 6}
+        freshness_input = root / 'freshness.json'
+        freshness_input.write_text(json.dumps({'form': 'observation', 'observed_at': '2000-01-01T00:00:00Z',
+                                               'evidence': []}))
+        fresh = agent('annotate', 'handoff', '--revision', 'r000003', '--section', 'freshness',
+                      '--file', freshness_input, '--actor', 'process:smoke', '--now',
+                      '2026-11-01T12:00:00Z', '--request-id', 'handoff-freshness')
+        assert fresh['revision'] == 'concepts/handoff/r000004.md'
+        health_before = snapshot()
+        report = cli('health', '--scope', 'handoff', '--now', '2026-11-01T12:00:00Z', '--verify-source', 'agent-source')
+        assert report['verification'][0]['state'] == 'matched'
+        assert not report['partial']
+        assert len(run(executable, 'health', bundle, '--max-chars', '2048')) <= 2048
+        assert snapshot() == health_before
+        print('Wheel health: immutable observation + bounded diagnostics + explicit source hash: PASS')
         print('Wheel typed graph: relation revision/replay + directed path + backlinks + scoped budget + context: PASS')
         print('Wheel work context: annotation input + immutable update + replay + bounded scoped read: PASS')
         print('Wheel explicit directory aliases: reads + input parents + replay + same lock: PASS')

@@ -93,3 +93,12 @@ resolution, completeness and omitted explanations. A path is not semantic eviden
 Prepare [relations data](../docs/graph.md) outside the bundle and use existing curate or
 exact-current annotate to record a declaration. Preserve input/key/time mode for replay.
 No reverse edge, target edit, host rule or source fetch is automatic.
+
+## Inspect knowledge health
+
+Run `health BUNDLE --scope ID --now TIME` for declared observation/pointer/evidence gaps.
+Read findings and completeness separately; due or limited evidence is not a failed scan or
+proof of falsehood. Use `--verify-source SOURCE_ID` only for authorized captured-byte checks.
+Prepare [health section data](../docs/health.md) and record new declarations through existing
+curate/annotate when the task calls for it. Never substitute review time for an observation,
+fetch a pointer automatically, or treat matched hashes as authenticated facts.

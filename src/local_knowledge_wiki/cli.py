@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 from . import annotations
 from .context import context
 from .graph import EDGE_TYPES, graph
+from .health import health
 from .inspection import inspect_storage
 from .limits import BODY_BYTES, INDEX_BYTES, check_size
 from .platform import require_capabilities
@@ -51,7 +52,7 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
         meta["sources"].append({"id": source, "resource": f"../../sources/{source}/content.raw"})
     annotation_raw = None
     if annotations_file is not None:
-        annotation_raw, meta[annotations.KEY] = annotations.author_root(annotations_file, actor, now, concept_id)
+        annotation_raw, meta[annotations.KEY] = annotations.author_root(annotations_file, actor, now, concept_id, meta["sources"])
     errors = validate(meta)
     if errors:
         raise WikiError("; ".join(errors))
@@ -233,11 +234,11 @@ def annotate(root, concept_id, revision, section, input_file, actor, now=None, r
             errors = validate(meta)
             if errors:
                 raise WikiError('; '.join(errors))
-            root_value = annotations.stored_root(meta[annotations.KEY], concept_id) if annotations.KEY in meta else {'version': 1}
+            root_value = annotations.stored_root(meta[annotations.KEY], concept_id, sources=meta.get("sources", [])) if annotations.KEY in meta else {'version': 1}
             updated = dict(root_value)
             at = declared_at if declared_at is not None else datetime.now(timezone.utc).isoformat()
-            updated[section] = annotations.envelope(section_data, actor, at, section, concept_id)
-            annotations.stored_root(updated, concept_id)
+            updated[section] = annotations.envelope(section_data, actor, at, section, concept_id, meta.get("sources", []))
+            annotations.stored_root(updated, concept_id, sources=meta.get("sources", []))
             meta = {**meta, annotations.KEY: updated}
             meta.pop('verified', None)
             data = serialize_revision(meta, body)
@@ -341,6 +342,12 @@ def main(argv=None):
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--now")
     p.add_argument("--max-chars", type=int, default=12000, help="Entire JSON code-point budget including newline; 2048..1000000")
+    p = commands.add_parser("health", help="Read-only freshness/evidence diagnostics; no truth verification or repair")
+    p.add_argument("bundle")
+    p.add_argument("--scope", action="append")
+    p.add_argument("--now")
+    p.add_argument("--verify-source", action="append")
+    p.add_argument("--max-chars", type=int, default=12000)
     p = commands.add_parser("graph", help="Bounded declared/current structure; no semantic inference or target fetch")
     p.add_argument("bundle")
     p.add_argument("--scope", action="append")
@@ -392,7 +399,7 @@ def main(argv=None):
     try:
         require_capabilities()
         now = None
-        if args.command not in ("review", "annotate", "context", "graph"):
+        if args.command not in ("review", "annotate", "context", "graph", "health"):
             now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
         for key in ("actor", "resource"):
             if hasattr(args, key) and not nonempty(getattr(args, key)):
@@ -415,6 +422,9 @@ def main(argv=None):
         elif args.command == "context":
             result = context(args.bundle, args.scope, args.recipient, args.since, args.limit, args.now, args.max_chars)
             print(render(result), end="")
+            return 0
+        elif args.command == "health":
+            print(render(health(args.bundle, args.scope, args.now, args.verify_source, args.max_chars)), end="")
             return 0
         elif args.command == "graph":
             result = graph(args.bundle, args.scope, args.backlinks, args.path, args.relation, args.max_depth, args.max_chars)
@@ -448,7 +458,7 @@ def main(argv=None):
     except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
         if machine:
             emit_error(exc)
-        elif args.command in ('recall', 'inspect-storage', 'context', 'graph') or getattr(args, 'format', None) == 'json':
+        elif args.command in ('recall', 'inspect-storage', 'context', 'graph', 'health') or getattr(args, 'format', None) == 'json':
             print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         else:
             print(f"second-brain: {exc}", file=sys.stderr)
