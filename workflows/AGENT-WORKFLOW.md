@@ -84,3 +84,12 @@ with [the context schema](../docs/work-context.md), using optional curate annota
 exact-current annotation revision. Preserve bytes/key/time mode on retry. Annotate clears
 inherited verified only on the new revision; it never promotes lessons to global agent rules.
 No additional human gate, host hook, read cursor, scheduler or source fetch is installed.
+
+## Inspect declared connections
+
+Use `graph BUNDLE --scope ID ...`, `--backlinks ID` or `--path FROM TO` when the task
+needs structural context. Choose authorized scope explicitly; inspect parser coverage,
+resolution, completeness and omitted explanations. A path is not semantic evidence.
+Prepare [relations data](../docs/graph.md) outside the bundle and use existing curate or
+exact-current annotate to record a declaration. Preserve input/key/time mode for replay.
+No reverse edge, target edit, host rule or source fetch is automatic.

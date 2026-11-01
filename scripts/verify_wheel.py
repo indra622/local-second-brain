@@ -46,7 +46,7 @@ assert package.is_relative_to(Path(sysconfig.get_path('purelib')).resolve()), pa
 assert package.is_relative_to(prefix), package
 assert not package.is_relative_to(Path(sys.argv[2]).resolve()), package
 modules = {name: str(Path(importlib.import_module('local_knowledge_wiki.' + name).__file__).resolve())
-           for name in ('cli', 'annotations', 'context')}
+           for name in ('cli', 'annotations', 'context', 'graph')}
 assert all(Path(path).is_relative_to(Path(sysconfig.get_path('purelib')).resolve()) for path in modules.values()), modules
 print(json.dumps({'installed_package': str(package), 'installed_modules': modules, 'venv': str(prefix)}))
 ''', isolated, project), end='')
@@ -215,6 +215,27 @@ print(json.dumps({'installed_package': str(package), 'installed_modules': module
         assert cli('show', 'handoff', '--revision', 'r000001')['path'] == created['revision']
         assert snapshot() == before_context
         assert cli('inspect-storage')['receipts']['states'] == {'self_consistent': 5}
+        relation_input = root / 'relations-section.json'
+        relation_input.write_text(json.dumps({'items': [{'id': 'uses', 'type': 'depends_on',
+            'target': {'id': 'agent-note'}, 'expectation': 'required', 'evidence': []}]}))
+        relation_args = ('handoff', '--revision', 'r000002', '--section', 'relations',
+                         '--file', relation_input, '--actor', 'process:smoke', '--now',
+                         '2026-11-01T12:00:00Z', '--request-id', 'handoff-relations')
+        related = agent('annotate', *relation_args)
+        assert related['revision'] == 'concepts/handoff/r000003.md'
+        before_graph = snapshot()
+        assert agent('annotate', *relation_args) == related
+        route = cli('graph', '--scope', 'handoff', '--scope', 'agent-note', '--path',
+                    'handoff', 'agent-note', '--relation', 'depends_on', '--max-chars', '1000000')
+        assert route['path_state'] == 'found' and route['path_length'] == 1
+        assert route['paths'][0]['steps'][0]['from']['path'] == related['revision']
+        incoming = cli('graph', '--backlinks', 'agent-note', '--relation', 'depends_on')
+        assert len(incoming['edges']) == 1 and incoming['edges'][0]['origin'] == 'annotation'
+        assert len(run(executable, 'graph', bundle, '--scope', 'handoff', '--max-chars', '2048')) <= 2048
+        assert cli('context', '--scope', 'handoff')['results'][0]['data']['work_id'] == 'synthetic-task'
+        assert snapshot() == before_graph
+        assert cli('inspect-storage')['receipts']['states'] == {'self_consistent': 6}
+        print('Wheel typed graph: relation revision/replay + directed path + backlinks + scoped budget + context: PASS')
         print('Wheel work context: annotation input + immutable update + replay + bounded scoped read: PASS')
         print('Wheel explicit directory aliases: reads + input parents + replay + same lock: PASS')
         print('Wheel agent writes: request replay + CAS + structured parser errors: PASS')
