@@ -18,8 +18,10 @@ const path = require('node:path');
       ? 'AI에게 같은 배경을 매번 처음부터 설명하는 일을 줄이세요.'
       : 'Spend less time explaining the same background to AI.');
     assert.match(await page.locator('[data-t=outcomeMechanism]').innerText(), language === 'ko'
-      ? /출처가 있는 노트.*필요한 노트를 골라 AI에게 전달/
-      : /notes with their sources.*choose the relevant notes and give them to your AI/);
+      ? /출처가 있는 노트.*허용한 에이전트.*노트를 찾아 읽/
+      : /notes with their sources.*agent you authorize.*find/);
+    assert.match(await page.locator('[data-t=filesBody]').innerText(), language === 'ko'
+      ? /허용한 에이전트.*승인된 폴더.*이어/ : /agent you authorize.*folder you allow/);
     assert.equal(await outcomes.locator('.situations h3').count(),3);
     for (const text of await outcomes.locator('[data-t]').allTextContents()) assert(text.trim().length > 0);
     for (const item of await outcomes.locator('.situations>div').all()) {

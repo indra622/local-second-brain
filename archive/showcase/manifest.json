@@ -1,0 +1,83 @@
+{
+  "base": "9efad1ca5cfd9398b5f1fd06470a9528dee605fc",
+  "files": [
+    {
+      "old_path": "site/assets/banner.png",
+      "archive_path": "archive/showcase/assets/banner.png",
+      "sha256": "eede2cf68c1c38b667c85b6e32d13e0027f969d248d101c249d8e9ac57aa96a0",
+      "bytes": 58368,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/assets/logo-original.png",
+      "archive_path": "archive/showcase/assets/logo-original.png",
+      "sha256": "cbba092199a872f5c75e90ed06612ad1101fa727616ee488fe57ab99a0114a8d",
+      "bytes": 281118,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/assets/report-scenario-v1-en.jpg",
+      "archive_path": "archive/showcase/assets/report-scenario-v1-en.jpg",
+      "sha256": "484082bdcbb9d1ff55ca0c93c3b47cd35214a3fea1115713e735705f09f2aa60",
+      "bytes": 47857,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/assets/report-scenario-v1-en.mp4",
+      "archive_path": "archive/showcase/assets/report-scenario-v1-en.mp4",
+      "sha256": "e8330ee04c00dda4b0c68311ae79ba88f397831de4e282fe371a8689b499399a",
+      "bytes": 457468,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/assets/report-scenario-v1-ko.jpg",
+      "archive_path": "archive/showcase/assets/report-scenario-v1-ko.jpg",
+      "sha256": "521ee556ef74720e80174f4fc02bbcc39d2ca62f7f6f808307e0fa786e325c6c",
+      "bytes": 40425,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/assets/report-scenario-v1-ko.mp4",
+      "archive_path": "archive/showcase/assets/report-scenario-v1-ko.mp4",
+      "sha256": "fc825a7790a25dcfa1f49c5599f759e7bfa266c33d19d5668f7828bc53cb4963",
+      "bytes": 354251,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/assets/second-brain-vision-v01.webp",
+      "archive_path": "archive/showcase/assets/second-brain-vision-v01.webp",
+      "sha256": "e4ba9cbb856d5b80021042e5ac6407e10c485c29e714f6e639315938671f7771",
+      "bytes": 162570,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/data/report-scenario-v1-en.txt",
+      "archive_path": "archive/showcase/data/report-scenario-v1-en.txt",
+      "sha256": "65817f4c22d10591c1357767707a70898a200b9817c64b7a9f0d7cc4a8983a2f",
+      "bytes": 1794,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/data/report-scenario-v1-en.vtt",
+      "archive_path": "archive/showcase/data/report-scenario-v1-en.vtt",
+      "sha256": "4e8780dee195249731b8e892de2e35626e2f5f8d3030691907befd4957cc3b7f",
+      "bytes": 522,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/data/report-scenario-v1-ko.txt",
+      "archive_path": "archive/showcase/data/report-scenario-v1-ko.txt",
+      "sha256": "d254f0ec2ea001015ba71b0158f2922e9beeb39376f25247f0634994eb329a57",
+      "bytes": 2171,
+      "mode": "100644"
+    },
+    {
+      "old_path": "site/data/report-scenario-v1-ko.vtt",
+      "archive_path": "archive/showcase/data/report-scenario-v1-ko.vtt",
+      "sha256": "efa6e00a4999d4afa6a740e9a955fb1fc802e5da700e1088bac4a96e7c01d6c3",
+      "bytes": 578,
+      "mode": "100644"
+    }
+  ],
+  "total_bytes": 1407122
+}

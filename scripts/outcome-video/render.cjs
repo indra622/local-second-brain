@@ -21,7 +21,7 @@ const {once} = require('node:events');
       const page = await browser.newPage({viewport: {width: 1280, height: 720}, deviceScaleFactor: 1});
       await page.goto(pathToFileURL(path.join(__dirname, 'scene.html')).href + '?lang=' + lang);
       await page.evaluate(() => document.fonts.ready);
-      const stem = path.join(root, `site/assets/report-scenario-v1-${lang}`);
+      const stem = path.join(root, `archive/showcase/assets/report-scenario-v1-${lang}`);
       // A failed render must leave the last complete public clip intact.
       const pending = path.join(logs, `pending-${lang}.mp4`);
       const ff = spawn(ffmpeg, ['-y', '-f', 'image2pipe', '-vcodec', 'png', '-framerate', '24', '-i', '-',
@@ -58,7 +58,7 @@ const {once} = require('node:events');
       const caps = await page.evaluate(() => captions);
       const ends = [0, 5, 11, 17, 23, 29, 34];
       const stamp = s => `00:${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}.000`;
-      fs.writeFileSync(path.join(root, `site/data/report-scenario-v1-${lang}.vtt`), 'WEBVTT\n\n' + caps.map((s, i) =>
+      fs.writeFileSync(path.join(root, `archive/showcase/data/report-scenario-v1-${lang}.vtt`), 'WEBVTT\n\n' + caps.map((s, i) =>
         `${stamp(ends[i])} --> ${stamp(ends[i + 1])} line:76%\n${s}${i === 5 ? (lang === 'ko' ? ' 지난 작업을 출발점으로.' : ' then build on what changed.') : ''}\n`).join('\n'));
       await page.close();
       console.log('COMPLETE ' + stem + '.mp4');

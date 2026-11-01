@@ -1,0 +1,74 @@
+{
+  "site/assets/agent-report-v2-ko.jpg": {
+    "sha256": "89bfbd69acade6018611c73ed8ce60720d2e2a1754c98e9c2b5ed84a3411408f",
+    "bytes": 124863
+  },
+  "site/assets/agent-report-v2-en.mp4": {
+    "sha256": "692d979646e002849ebac4e415aef89b06ccf871af2359e2bab809c453c300fd",
+    "bytes": 2272612
+  },
+  "site/assets/agent-report-v2-en.jpg": {
+    "sha256": "c27ee13a5fc801d758d63b1ba68f70c5b9c8a99c1a8f4032b0015d280a1e5dd6",
+    "bytes": 134537
+  },
+  "site/assets/logo.png": {
+    "sha256": "8ec3467ff215d04ec3ce5e5336cb7f4eb7b356ad158635168fb1c0cf1018f535",
+    "bytes": 14588
+  },
+  "site/assets/agent-report-v2-ko.mp4": {
+    "sha256": "332ee070a61c90a91231a1f15d3d5975deb9b0c7ba935e063f828b5fadeaa398",
+    "bytes": 2036124
+  },
+  "site/assets/cli-poster.png": {
+    "sha256": "2d4f6a24d83b1d1b15ef27adda38c1f92b293f57494c994a904d1a8285489907",
+    "bytes": 95604
+  },
+  "site/assets/cli-demo.gif": {
+    "sha256": "957bc04226e22de8fff585f4c8f1f230a731ec19d0be5eb259890831019baa48",
+    "bytes": 53445
+  },
+  "site/data/agent-report-v2-ko.txt": {
+    "sha256": "9b8dfe046b112f25ee9db8fd49dad07f913a6c2f25bb7464223eec8a8ee63798",
+    "bytes": 4964
+  },
+  "site/data/agent-report-v2-ko.vtt": {
+    "sha256": "69237d1f17564e9629de0956b812f38b2fb99db658b0ae6520c9ee09b6a1e7cf",
+    "bytes": 623
+  },
+  "site/data/transcript.txt": {
+    "sha256": "ce88b7e9a87e925926fef35132b5b4dce79ace396cf789f990f0d2281e653661",
+    "bytes": 2294
+  },
+  "site/data/sample.json": {
+    "sha256": "6892f22eb09330820f3a0e96279be25e5562f79155b60982f728c277128411f5",
+    "bytes": 8570
+  },
+  "site/data/replay-sha256.json": {
+    "sha256": "7dedc0fcb825e95f7127c8f011235955d57f838297d272c251c0fe9e62046dfa",
+    "bytes": 474
+  },
+  "site/data/replay-selection.json": {
+    "sha256": "841de1db3915df579e606dfbfceed8ca6027633a8b6b6369ce485b2d058cef39",
+    "bytes": 1508
+  },
+  "site/data/agent-report-v2-en.vtt": {
+    "sha256": "a2f18793ac26cd47a10feb664e4aab62b05e6268c52b1485361f8a4312c27102",
+    "bytes": 558
+  },
+  "site/data/agent-report-v2-en.txt": {
+    "sha256": "2f94d3142e993bab53295e26ec6d964d626c5eb0dfe417ff4fafc908c84b4af3",
+    "bytes": 4380
+  },
+  "scripts/outcome-video/scene.html": {
+    "sha256": "7205e3e50f85e52c480705835995abb0973be9f5b52b4eb4a7800a9f66f3d838",
+    "bytes": 7778
+  },
+  "scripts/outcome-video/serve.cjs": {
+    "sha256": "52ee30b77264fd1b9df73f20394443283e27c76c33a2883417136e88f9b3326d",
+    "bytes": 1571
+  },
+  "scripts/agent-outcome-video/scene.html": {
+    "sha256": "125403a57ca38d80c8681c34128200fc5f1c53b6efd05873a80a225fce465044",
+    "bytes": 27845
+  }
+}
