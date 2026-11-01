@@ -11,6 +11,8 @@ from functools import partial
 from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
+from . import annotations
+from .context import context
 from .inspection import inspect_storage
 from .limits import BODY_BYTES, INDEX_BYTES, check_size
 from .platform import require_capabilities
@@ -25,7 +27,7 @@ from .storage import (Store, WikiError, capture, current_index, identifier, init
 
 
 def curate(root, concept_id, body_file, sources, actor, now, kind, title, status, stale_after,
-           request_id=None, expect_current=None):
+           request_id=None, expect_current=None, annotations_file=None):
     if request_id is not None:
         identifier(request_id)
     validate_expected(expect_current)
@@ -46,6 +48,9 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
     for source in sources:
         identifier(source)
         meta["sources"].append({"id": source, "resource": f"../../sources/{source}/content.raw"})
+    annotation_raw = None
+    if annotations_file is not None:
+        annotation_raw, meta[annotations.KEY] = annotations.author_root(annotations_file, actor, now)
     errors = validate(meta)
     if errors:
         raise WikiError("; ".join(errors))
@@ -63,11 +68,18 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
                    "actor": actor, "type": kind, "title": title or concept_id, "status": status,
                    "stale_after": stale_after, "expect_current": expect_current}
 
+        if annotation_raw is not None:
+            payload['annotations_input'] = {'version': 1, 'sha256': digest(annotation_raw)}
+
         def precondition():
             expected_current(entries, concept_id, expect_current)
             if request_id is not None:
                 store.files()
-            write_revision(store, concept_id, meta, body, before, index, entries, start, end, data, dry_run=True)
+            path = write_revision(store, concept_id, meta, body, before, index, entries, start, end, data, dry_run=True)
+            if annotation_raw is not None and request_id is not None:
+                intent = {'version': 1, 'command': 'curate',
+                          'fingerprint': digest(encoded({'command': 'curate', 'payload': payload}))}
+                completion_record(intent, path, {path: digest(data)})
 
         return execute(store, request_id, "curate", payload, precondition,
                        lambda: write_revision(store, concept_id, meta, body, before, index, entries, start, end, data))
@@ -192,6 +204,59 @@ def review(root, concept_id, revision, actor, evidence, request_id=None, now=Non
         return execute(store, request_id, "review", payload, precondition, mutate)
 
 
+def annotate(root, concept_id, revision, section, input_file, actor, now=None, request_id=None):
+    target = revision_path(concept_id, revision)
+    annotations.actor(actor)
+    if section != 'context':
+        raise WikiError('Only the context annotation section is supported')
+    if request_id is not None:
+        identifier(request_id)
+    declared_at = annotations.canonical_time(now) if now is not None else None
+    raw, section_data = annotations.load_input(input_file)
+    annotations.context_data(section_data)
+    with Store(root) as store, store.lock():
+        before = store.read('index.md')
+        index = before.decode('utf-8')
+        entries, start, end = current_index(index)
+        original = store.read(target)
+        payload = {'id': concept_id, 'revision': revision, 'section': section,
+                   'input_sha256': digest(raw), 'target_sha256': digest(original), 'actor': actor}
+        if declared_at is not None:
+            payload['declared_at'] = declared_at
+        prepared = {}
+
+        def precondition():
+            if entries.get(concept_id) != target:
+                raise WikiError('Annotation target must be the exact indexed current revision', 'precondition_failed')
+            meta, body = parse(original.decode('utf-8'))
+            errors = validate(meta)
+            if errors:
+                raise WikiError('; '.join(errors))
+            root_value = annotations.stored_root(meta[annotations.KEY]) if annotations.KEY in meta else {'version': 1}
+            updated = dict(root_value)
+            at = declared_at if declared_at is not None else datetime.now(timezone.utc).isoformat()
+            updated[section] = annotations.envelope(section_data, actor, at)
+            annotations.stored_root(updated)
+            meta = {**meta, annotations.KEY: updated}
+            meta.pop('verified', None)
+            data = serialize_revision(meta, body)
+            path = write_revision(store, concept_id, meta, body, before, index, entries, start, end, data, dry_run=True)
+            if request_id is not None:
+                intent = {'version': 1, 'command': 'annotate',
+                          'fingerprint': digest(encoded({'command': 'annotate', 'payload': payload}))}
+                completion_record(intent, {'revision': path}, {path: digest(data)})
+            prepared.update(meta=meta, body=body, data=data)
+
+        def mutate():
+            if store.read(target) != original or store.read('index.md') != before:
+                raise WikiError('Annotation target or index changed during this operation', 'concurrent_change')
+            path = write_revision(store, concept_id, prepared['meta'], prepared['body'], before,
+                                  index, entries, start, end, prepared['data'])
+            return {'revision': path}
+
+        return execute(store, request_id, 'annotate', payload, precondition, mutate)
+
+
 def search(root, query, now, current_only=False, status=None, freshness=None):
     terms = set(re.findall(r"\w+", query.casefold()))
     if not terms:
@@ -247,6 +312,7 @@ def main(argv=None):
     p.add_argument("--title", help="Single-line title (default concept ID)")
     p.add_argument("--status", choices=("draft", "stable", "deprecated"), default="draft")
     p.add_argument("--stale-after")
+    p.add_argument("--annotations", help="Strict JSON context declarations; omitted preserves legacy identity")
     p.add_argument("--request-id", help="Bundle-wide retry ID; replay original result before checking expected current")
     p.add_argument("--expect-current", help="Require indexed rNNNNNN or absent under the write lock")
     p = commands.add_parser("review", help="Record a declared review of the exact current revision; no factual check")
@@ -257,6 +323,23 @@ def main(argv=None):
     p.add_argument("--request-id", help="Bundle-wide retry ID; same exact revision/evidence/actor replays prior review")
     p.add_argument("--evidence", required=True, help="Absolute http(s) URL or bundle-root regular artifact path; never fetched or executed")
     p.add_argument("--now", help="Explicit-offset ISO8601 declared event time, at most 6 fractional-second digits; normalized to UTC; default actual UTC clock, not proof of review time")
+    p = commands.add_parser("annotate", help="Replace declared context in a new exact-current revision; clears inherited verified")
+    p.add_argument("bundle")
+    p.add_argument("id")
+    p.add_argument("--revision", required=True)
+    p.add_argument("--section", choices=("context",), required=True)
+    p.add_argument("--file", required=True)
+    p.add_argument("--actor", required=True)
+    p.add_argument("--now", help="Declared explicit-offset time, at most 6 fractional digits; not authenticated")
+    p.add_argument("--request-id")
+    p = commands.add_parser("context", help="Bounded indexed-current work declarations as JSON; no cursor or rule promotion")
+    p.add_argument("bundle")
+    p.add_argument("--scope", action="append", help="Exact indexed concept ID allowlist; repeat for several IDs")
+    p.add_argument("--recipient")
+    p.add_argument("--since")
+    p.add_argument("--limit", type=int, default=50)
+    p.add_argument("--now")
+    p.add_argument("--max-chars", type=int, default=12000, help="Entire JSON code-point budget including newline; 2048..1000000")
     p = commands.add_parser("recall", help="Bounded current context as JSON; exact-first with disclosed prefix fallback")
     p.add_argument("bundle")
     p.add_argument("query")
@@ -299,7 +382,7 @@ def main(argv=None):
     try:
         require_capabilities()
         now = None
-        if args.command != "review":
+        if args.command not in ("review", "annotate", "context"):
             now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
         for key in ("actor", "resource"):
             if hasattr(args, key) and not nonempty(getattr(args, key)):
@@ -313,9 +396,16 @@ def main(argv=None):
         elif args.command == "curate":
             result = {"revision": curate(args.bundle, args.id, args.body, args.source,
                                          args.actor, now.isoformat(), args.type, args.title,
-                                         args.status, args.stale_after, args.request_id, args.expect_current)}
+                                         args.status, args.stale_after, args.request_id, args.expect_current, args.annotations)}
         elif args.command == "review":
             result = review(args.bundle, args.id, args.revision, args.actor, args.evidence, args.request_id, args.now)
+        elif args.command == "annotate":
+            result = annotate(args.bundle, args.id, args.revision, args.section, args.file,
+                              args.actor, args.now, args.request_id)
+        elif args.command == "context":
+            result = context(args.bundle, args.scope, args.recipient, args.since, args.limit, args.now, args.max_chars)
+            print(render(result), end="")
+            return 0
         elif args.command == "inspect-storage":
             print(render(inspect_storage(args.bundle)), end="")
             return 0
@@ -344,7 +434,7 @@ def main(argv=None):
     except (WikiError, OSError, UnicodeError, ValueError, TypeError) as exc:
         if machine:
             emit_error(exc)
-        elif args.command in ('recall', 'inspect-storage') or getattr(args, 'format', None) == 'json':
+        elif args.command in ('recall', 'inspect-storage', 'context') or getattr(args, 'format', None) == 'json':
             print(json.dumps({"error": str(exc)}, ensure_ascii=False), file=sys.stderr)
         else:
             print(f"second-brain: {exc}", file=sys.stderr)

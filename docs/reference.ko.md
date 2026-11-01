@@ -461,3 +461,10 @@ PyPI 배포는 아직 없으므로 프로젝트 소스로 설치한다.
 ## 파일 인터페이스
 
 내부 Python 모듈은 `local_knowledge_wiki`를 유지한다. 기존 번들은 변환할 필요가 없다.
+
+## 작업 맥락 선언
+
+선택적 `curate --annotations FILE`, 정확한 현재 대상의 `annotate --section context`,
+읽기 전용 `context`로 완료 작업·결정·질문·교훈을 기록하고 읽는다.
+[스키마·재실행·한도](work-context.ko.md)를 참고한다. 생략하면 기존 요청 식별값을 유지하며,
+교훈 accepted는 선언일 뿐 전역 규칙 승격이나 검토 인증이 아니다.

@@ -528,3 +528,10 @@ No PyPI package release is available. Install from the source checkout.
 ## File interface
 
 The internal Python module remains `local_knowledge_wiki`; existing bundles need no migration.
+
+## Work context declarations
+
+Use optional `curate --annotations FILE`, exact-current `annotate --section context`,
+and bounded read-only `context` for completed work, decisions, questions and lessons.
+See [schema, replay and limits](work-context.md). Omission preserves old write identity;
+lesson acceptance is a declaration and never promotes global rules or authenticates review.
