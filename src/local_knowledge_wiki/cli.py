@@ -262,6 +262,8 @@ def main(argv=None):
     p.add_argument("query")
     p.add_argument("--match", choices=("auto", "exact", "lexical"), default="auto",
                    help="auto: exact then lexical only on miss; lexical: word prefixes, 2+ Hangul syllables or 3+ other characters; all terms required")
+    p.add_argument("--rank", choices=("frequency", "bm25"), default="frequency",
+                   help="frequency: unchanged occurrence scores; bm25: opt-in BM25-v1 with length normalization and title hint")
     p.add_argument("--limit", type=int, default=5, help="Maximum results, 1..100 (default 5)")
     p.add_argument("--max-chars", type=int, default=12000,
                    help="Entire JSON output budget including newline, Unicode code points, not tokens; 2048..1000000 (default 12000)")
@@ -318,7 +320,7 @@ def main(argv=None):
             print(render(inspect_storage(args.bundle)), end="")
             return 0
         elif args.command == "recall":
-            result = recall(args.bundle, args.query, now, args.match, args.limit, args.max_chars)
+            result = recall(args.bundle, args.query, now, args.match, args.limit, args.max_chars, args.rank)
             print(render(result), end="")
             return 0
         elif args.command == "search":

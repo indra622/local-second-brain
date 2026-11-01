@@ -1,12 +1,15 @@
 """Synthetic current-note retrieval, compatibility, bounds and evidence tests."""
 
 import contextlib
+import gc
 import io
 import json
+import math
 import os
 import subprocess
 import sys
 import tempfile
+import tracemalloc
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -15,7 +18,7 @@ import yaml
 
 from local_knowledge_wiki.cli import main, search
 from local_knowledge_wiki.recall import recall, render
-from local_knowledge_wiki.storage import END, START, init, render_entries
+from local_knowledge_wiki.storage import END, START, WikiError, init, render_entries
 
 
 NOW = datetime(2026, 10, 29, tzinfo=timezone.utc)
@@ -275,6 +278,123 @@ class RecallTests(unittest.TestCase):
             main(['recall', '--help'])
         self.assertIn('not tokens', out.getvalue())
         self.assertNotIn('--format', out.getvalue())
+
+    def test_long_query_allocation_does_not_multiply_by_note_count(self):
+        for i in range(160):
+            self.note(f'long-query-{i:03}', 'needle')
+
+        def peak_for(terms, rank):
+            query = 'needle ' + ' '.join(f'unmatched{i}' for i in range(terms - 1))
+            gc.collect()
+            tracemalloc.start()
+            try:
+                output = self.call(query, match='exact', rank=rank)
+                _, peak = tracemalloc.get_traced_memory()
+            finally:
+                tracemalloc.stop()
+            self.assertEqual((output['state'], output['indexed'], output['matched']),
+                             ('no_match', 160, 0))
+            return peak
+
+        for rank in ('frequency', 'bm25'):
+            with self.subTest(rank=rank):
+                small = peak_for(32, rank)
+                large = peak_for(3000, rank)
+                # Allow query token/state growth, but not a corpus-wide count matrix.
+                self.assertLess(large - small, 2 * 1024 * 1024)
+
+    def test_rank_default_positional_compatibility_and_frequency_alias(self):
+        self.note('b', 'needle needle')
+        self.note('a', 'needle needle')
+        self.note('c', 'needle')
+        expected = self.call('needle')
+        self.assertNotIn('ranking', expected)
+        self.assertEqual([(n['id'], n['score']) for n in expected['results']],
+                         [('a', 2), ('b', 2), ('c', 1)])
+        self.assertEqual(expected, recall(self.root, 'needle', NOW, 'auto', 5, 12000))
+        self.assertEqual(expected, self.call('needle', rank='frequency'))
+
+    def test_bm25_title_focus_and_stable_finite_scores(self):
+        self.note('focused', 'report decision: run the pilot.', title='Report decision')
+        self.note('repeated', 'report decision miscellaneous ' * 1200, title='Meeting transcript')
+        result = self.call('report decision', rank='bm25')
+        self.assertEqual(self.call('report decision')['results'][0]['id'], 'repeated')
+        self.assertEqual(result['results'][0]['id'], 'focused')
+        self.assertEqual(result['ranking']['version'], 1)
+        self.assertEqual(result['ranking']['corpus_notes'], 2)
+        self.assertEqual(result, self.call('report report decision', rank='bm25'))
+        self.assertEqual(result, self.call('report decision', rank='bm25'))
+        self.note('tie-b', 'quartz audit')
+        self.note('tie-a', 'quartz audit')
+        tied = self.call('quartz audit', rank='bm25')['results']
+        self.assertEqual([n['id'] for n in tied], ['tie-a', 'tie-b'])
+        self.assertEqual(tied[0]['score'], tied[1]['score'])
+        self.assertTrue(all(math.isfinite(n['score']) for n in result['results'] + tied))
+
+    def test_bm25_membership_modes_index_history_and_metadata_unchanged(self):
+        self.note('exact', 'rename archive 결정 보고서', sources=[{'resource': '../../sources/raw'}],
+                  verified={'by': 'human:synthetic', 'at': NOW.isoformat()})
+        self.note('prefix', 'renames archives 결정을 보고서를')
+        self.note('false-prefix', '결정체 보고서식')
+        self.note('past', 'rename archive', revision='r000001')
+        self.note('past', 'unrelated', revision='r000003')
+        self.entries['past'] = 'concepts/past/r000001.md'
+        (self.root / 'index.md').write_text(START + render_entries(self.entries) + END)
+        before = {p.relative_to(self.root): p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
+        legacy_search = search(self.root, 'rename archive', NOW)
+        for query in ('rename archive', '결정 보고서', 'rename rename archives', 're archive'):
+            for mode in ('auto', 'exact', 'lexical'):
+                old = self.call(query, match=mode)
+                new = self.call(query, match=mode, rank='bm25')
+                self.assertEqual({n['id'] for n in old['results']}, {n['id'] for n in new['results']})
+                for key in ('state', 'match_mode', 'fallback_used', 'matched', 'excluded', 'guidance'):
+                    self.assertEqual(old[key], new[key])
+                old_notes = {n['id']: {k: v for k, v in n.items() if k != 'score'} for n in old['results']}
+                new_notes = {n['id']: {k: v for k, v in n.items() if k != 'score'} for n in new['results']}
+                self.assertEqual(old_notes, new_notes)
+        self.assertEqual(legacy_search, search(self.root, 'rename archive', NOW))
+        self.assertEqual(before, {p.relative_to(self.root): p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
+
+    def test_bm25_empty_invalid_corpora_exclusions_and_invalid_metadata(self):
+        self.assertEqual(self.call('needle', rank='bm25')['state'], 'empty_index')
+        self.note('empty', '')
+        self.assertEqual(self.call('needle', rank='bm25')['state'], 'no_match')
+        target = self.note('invalid', 'needle', title=float('inf'))
+        output = self.call('needle', rank='bm25')
+        self.assertEqual(output['invalid_metadata_notes'], 1)
+        self.assertEqual(output['results'][0]['trust'], 'invalid-metadata')
+        self.assertTrue(math.isfinite(output['results'][0]['score']))
+        target.write_bytes(b'\xff')
+        self.assertEqual(self.call('needle', rank='bm25')['excluded']['invalid_utf8'], 1)
+        target.unlink()
+        self.assertEqual(self.call('needle', rank='bm25')['excluded']['unavailable'], 1)
+        (self.root / 'index.md').write_text('broken')
+        result = self.call('needle', rank='bm25')
+        self.assertEqual(result['state'], 'invalid_index')
+        self.assertEqual(result['ranking']['corpus_notes'], 0)
+
+    def test_bm25_disclosure_fits_serialized_budget_and_cli_parser_contract(self):
+        self.note('sample', 'needle 결정 ' * 2000, title='needle ' + '\ud800' * 200)
+        for budget in (2048, 3000, 12000):
+            result = self.call('needle', rank='bm25', max_chars=budget)
+            self.assertLessEqual(len(render(result)), budget)
+            self.assertEqual(result['ranking']['method'], 'bm25')
+            self.assertEqual(result['matched'], 1)
+        for flag in ('bm25', 'frequency', 'unknown'):
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                try:
+                    code = main(['--error-format', 'json', 'recall', str(self.root), 'needle', '--rank', flag])
+                except SystemExit as exc:
+                    code = exc.code
+            if flag == 'unknown':
+                self.assertEqual(code, 2)
+                self.assertEqual(json.loads(err.getvalue())['error']['code'], 'arguments')
+            else:
+                self.assertEqual(code, 0, err.getvalue())
+                self.assertEqual('ranking' in json.loads(out.getvalue()), flag == 'bm25')
+        with self.assertRaisesRegex(WikiError, 'Rank must be'):
+            self.call('needle', rank='unknown')
 
 
 if __name__ == '__main__':
