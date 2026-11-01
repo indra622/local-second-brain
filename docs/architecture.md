@@ -65,3 +65,14 @@ macOS `/tmp` 같은 명시한 부모 별칭도 지원한다. 루트 해석은 �
 POSIX 파일 API가 필요하다. 로컬 macOS와 호스팅된 macOS/Ubuntu CI에서 검증했으며 Windows에서는 실행하지 않았다.
 Windows는 현재 지원하지 않는다. 이 프로젝트의 구현과 문서는 [MIT 라이선스](../LICENSE)를 따른다.
 제3자 자료에는 각각의 라이선스가 적용된다. 패키지 배포는 후속 결정 사항이다.
+
+## Work context design inspiration
+
+The optional structured handoff/lesson declarations independently adopt concepts from
+[Eugeniu Ghelbur's obsidian-second-brain](https://github.com/eugeniughelbur/obsidian-second-brain/tree/f79c64f3f03ee25ec1660c8a30ebe7f4f8e044ff),
+pinned at `f79c64f3f03ee25ec1660c8a30ebe7f4f8e044ff` (MIT, copyright 2026 Eugeniu Ghelbur).
+No upstream implementation, installer, hook or global rule writer is copied or executed.
+Annotations reuse immutable concept revisions, the index, marked writer lock and receipts.
+They do not introduce a parallel log store or change journal/review-event migration scope.
+See [the explicit schema and limits](work-context.md). Any future substantial source copying
+must retain upstream's MIT copyright and permission notice in the distributed material.

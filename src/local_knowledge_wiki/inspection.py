@@ -25,7 +25,7 @@ ID = r'[a-z0-9][a-z0-9-]{0,63}'
 def valid_intent(value):
     return (isinstance(value, dict) and set(value) == {'version', 'command', 'fingerprint'}
             and type(value['version']) is int and value['version'] == 1
-            and value['command'] in ('capture', 'curate', 'review')
+            and value['command'] in ('capture', 'curate', 'review', 'annotate')
             and isinstance(value['fingerprint'], str)
             and re.fullmatch(r'[0-9a-f]{64}', value['fingerprint']) is not None)
 
@@ -38,7 +38,7 @@ def receipt_paths(intent, completed):
     if completed['checksum'] != digest(encoded(record)):
         raise ValueError('Receipt checksum mismatch')
     command, result = intent['command'], completed['result']
-    path = result.get('revision') if command == 'review' and isinstance(result, dict) else result
+    path = result.get('revision') if command in ('review', 'annotate') and isinstance(result, dict) else result
     pattern = rf'sources/({ID})/content\.raw' if command == 'capture' else rf'concepts/({ID})/r(?!000000)[0-9]{{6}}\.md'
     match = re.fullmatch(pattern, path) if isinstance(path, str) else None
     if not match:

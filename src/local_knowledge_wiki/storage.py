@@ -105,13 +105,15 @@ class Store:
         finally:
             os.close(fd)
 
-    def read(self, relative, max_bytes=None):
+    def read(self, relative, max_bytes=None, *, budget_bytes=None):
         with self.parent(relative) as (fd, name):
             handle = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
             with os.fdopen(handle, "rb") as stream:
                 if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                     raise WikiError(f"Not a regular file: {relative}", "unsafe_path")
                 limit = file_limit(relative) if max_bytes is None else max_bytes
+                if budget_bytes is not None:
+                    limit = min(limit, budget_bytes)
                 check_size(os.fstat(stream.fileno()).st_size, limit, relative)
                 if max_bytes is None and relative.endswith(".md"):
                     return bounded_markdown_read(stream, limit, relative)

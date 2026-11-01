@@ -35,7 +35,7 @@ def main():
         print(run(python, '-m', 'pip', 'check'), end='')
         # This fixed code checks the installed import, not any captured input.
         print(run(python, '-I', '-c', '''
-import json, sys, sysconfig
+import importlib, json, sys, sysconfig
 from pathlib import Path
 import local_knowledge_wiki
 prefix = Path(sys.prefix).resolve()
@@ -45,7 +45,10 @@ assert sys.prefix != sys.base_prefix
 assert package.is_relative_to(Path(sysconfig.get_path('purelib')).resolve()), package
 assert package.is_relative_to(prefix), package
 assert not package.is_relative_to(Path(sys.argv[2]).resolve()), package
-print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
+modules = {name: str(Path(importlib.import_module('local_knowledge_wiki.' + name).__file__).resolve())
+           for name in ('cli', 'annotations', 'context')}
+assert all(Path(path).is_relative_to(Path(sysconfig.get_path('purelib')).resolve()) for path in modules.values()), modules
+print(json.dumps({'installed_package': str(package), 'installed_modules': modules, 'venv': str(prefix)}))
 ''', isolated, project), end='')
 
         executable = isolated / 'bin/second-brain'
@@ -185,6 +188,34 @@ print(json.dumps({'installed_package': str(package), 'venv': str(prefix)}))
                               '--id', 'agent-source', '--actor', 'smoke/1', '--resource', 'synthetic:agent',
                               '--request-id', 'capture-1')) == saved
         assert (bundle_alias / '.lkw.lock').stat().st_ino == lock_inode
+        context_data = {'work_id': 'synthetic-task', 'recipients': ['all'],
+                        'completed': [{'id': 'checks', 'text': 'Ran synthetic checks', 'evidence': []}],
+                        'decisions': [], 'open_questions': [], 'lessons': []}
+        annotation_input = root / 'annotations.json'
+        annotation_input.write_text(json.dumps({'version': 1, 'context': context_data}))
+        created = agent('curate', 'handoff', '--body', body, '--source', 'agent-source',
+                        '--actor', 'smoke/1', '--annotations', annotation_input,
+                        '--request-id', 'handoff-create', '--expect-current', 'absent')
+        section_input = root / 'context-section.json'
+        section_input.write_text(json.dumps(context_data))
+        annotation_args = ('handoff', '--revision', 'r000001', '--section', 'context',
+                           '--file', section_input, '--actor', 'process:smoke', '--now',
+                           '2026-11-01T12:00:00Z', '--request-id', 'handoff-update')
+        changed = agent('annotate', *annotation_args)
+        assert changed['revision'] == 'concepts/handoff/r000002.md'
+        before_context = snapshot()
+        assert agent('annotate', *annotation_args) == changed
+        report_text = run(executable, 'context', bundle, '--scope', 'handoff',
+                          '--recipient', 'codex', '--now', '2026-11-01T12:00:00Z')
+        report = json.loads(report_text)
+        assert report['matched_total'] == 1 and not report['partial']
+        assert report['results'][0]['path'] == changed['revision']
+        assert report['results'][0]['data']['work_id'] == 'synthetic-task'
+        assert len(run(executable, 'context', bundle, '--scope', 'handoff', '--max-chars', '2048')) <= 2048
+        assert cli('show', 'handoff', '--revision', 'r000001')['path'] == created['revision']
+        assert snapshot() == before_context
+        assert cli('inspect-storage')['receipts']['states'] == {'self_consistent': 5}
+        print('Wheel work context: annotation input + immutable update + replay + bounded scoped read: PASS')
         print('Wheel explicit directory aliases: reads + input parents + replay + same lock: PASS')
         print('Wheel agent writes: request replay + CAS + structured parser errors: PASS')
         print('Wheel smoke: isolated import + CLI workflow + review + reads + byte preservation: PASS')

@@ -59,6 +59,8 @@ def effect_paths(command, payload, result):
     if not isinstance(path, str) or not re.fullmatch(
             r'concepts/' + re.escape(payload['id']) + r'/r(?!000000)[0-9]{6}\.md', path):
         raise ValueError('Unexpected revision result')
+    if command == 'annotate' and (not isinstance(result, dict) or set(result) != {'revision'}):
+        raise ValueError('Unexpected annotate result')
     if command == 'review' and (set(result) != {'revision', 'verified'} or not isinstance(result['verified'], list)):
         raise ValueError('Unexpected review result')
     return [path]
@@ -102,7 +104,7 @@ def execute(store, request_id, command, payload, precondition, mutate):
             previous = load(store, folder + '/intent.json')
             if (not isinstance(previous, dict) or set(previous) != set(intent)
                     or type(previous['version']) is not int or previous['version'] != 1
-                    or previous['command'] not in ('capture', 'curate', 'review')
+                    or previous['command'] not in ('capture', 'curate', 'review', 'annotate')
                     or not isinstance(previous['fingerprint'], str)
                     or not re.fullmatch(r'[0-9a-f]{64}', previous['fingerprint'])):
                 raise recovery
