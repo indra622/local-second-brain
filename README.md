@@ -182,6 +182,7 @@ It does not check facts. Open the knowledge folder's `index.md` to follow its li
 ## Scope and limits
 
 - **You guide the work.** There is no automatic memory, model-generated synthesis, or semantic search. The tool stores prepared notes and searches exact words. It has no GUI or MCP server and implements only part of OKF.
+- **Input limits.** Raw sources allow 256 MiB; note bodies allow 16 MiB. Metadata, indexes and receipts have separate byte limits. Oversized inputs are rejected without truncation. See [input byte limits](docs/reference.md#input-byte-limits).
 - **Local operation.** The CLI does not use the network at runtime. External agents have their own network and data policies.
 - **Review is a declaration.** Review records and freshness signals help you choose what to recheck; they do not authenticate reviewers or verify facts. See the [command and support reference](docs/reference.md).
 - **Optional Obsidian viewing.** You can follow the [viewer instructions](docs/getting-started.md#with-obsidian), but the GUI workflow has not been verified. Obsidian is not required.

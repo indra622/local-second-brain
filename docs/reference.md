@@ -190,7 +190,58 @@ invalid notes even when they did not match. An invalid index never falls back to
 Diagnostics offer a next action; a miss does not establish absence. States return exit 0;
 I/O/argument failures return 2 (operational errors are JSON on stderr; argparse syntax
 errors are text). The successful-output budget does not bound stderr, input size, parsing
-memory or runtime. Recall does not lock a bundle snapshot; avoid concurrent edits during recall.
+memory or runtime; the separate per-file input limits below apply. Recall does not lock a bundle snapshot; avoid concurrent edits during recall.
+
+## Input byte limits
+
+These fixed per-file limits apply independently of recall's `--max-chars` output
+budget. MiB means 1,048,576 bytes; the decimal limits below are exact.
+
+| Input | Maximum bytes |
+| --- | --- |
+| Explicit capture source; stored `content.raw`; other local evidence files | 268,435,456 (256 MiB) |
+| Prepared UTF-8 body; body of a stored Markdown note | 16,777,216 (16 MiB) |
+| YAML frontmatter, excluding opening/closing delimiter lines | 8,000,000 |
+| Source `provenance.json` metadata | 8,000,000 |
+| Root `index.md`, including frontmatter and body | 8,000,000 |
+| Request intent or result receipt | 8,000,000 |
+| Other stored Markdown file, including delimiters | 24,777,226 |
+
+Local evidence uses the stored file's limits: Markdown evidence has the Markdown
+and frontmatter/body limits; provenance and receipt evidence retain their smaller
+limits. Explicit capture copies any source format as raw bytes under the source
+limit, including a source whose original name ends in `.md`. No stdin convention
+is supported: `-` names a literal file. FIFOs, devices, directories and file symlinks
+are rejected; explicit directory-root aliases retain the documented behavior below.
+
+The raw-source allowance supports substantial documents and exports without using
+the much smaller note or recall-output budget. Notes have separate body and metadata
+allowances so review history and imported extension fields can remain intact. Larger
+inputs must be split deliberately outside the CLI; nothing is silently truncated.
+These limits bound individual reads and parser inputs, not total RAM, file counts,
+YAML expansion, processing time, or an entire search result set.
+
+Readers check the opened file with `fstat` before reading and use bounded reads even
+if it grows after that check. Markdown frontmatter is bounded before YAML parsing;
+its encoded bytes include line endings. Exact limits are accepted. UTF-8 is decoded
+strictly after reading, without cutting or repairing a partial multibyte character.
+Capture preserves raw bytes without decoding. Writers check serialized revisions,
+provenance, the next index and review result receipts before intent/artifact creation.
+Historical metadata and body serialization rules are unchanged within these limits.
+
+Ordinary oversized input returns exit 2 (`input_too_large` with action
+`reduce_input_size` in opt-in JSON error mode). Existing oversized/corrupt request
+receipts still return `recovery_required` during replay; do not clear them or infer
+that a failed request is safe to repeat. `check` reports unreadable notes as invalid;
+`inspect-storage` retains its separate bounded diagnostic/report behavior.
+
+Commands check macOS/Linux and required POSIX descriptor, no-follow and native
+`flock` capabilities before file operations. Unsupported execution returns exit 2
+(`unsupported_platform`, action `use_supported_platform` in opt-in JSON mode), with
+a readable explanation in legacy mode. Importing the package and `--help` remain
+usable without these capabilities. There is no CLI `--version` option. Capability
+checks cannot establish filesystem locking or durability guarantees. Simulated
+unsupported-platform tests are not actual Windows validation; Windows remains unsupported.
 
 ## Search and trust signals
 
@@ -249,6 +300,8 @@ traceback, in this mode. Guidance is not a promise that retrying is safe.
 | Code | Action |
 | --- | --- |
 | `arguments` | Correct command syntax. |
+| `input_too_large` | Reduce the input to its documented byte limit. |
+| `unsupported_platform` | Use macOS/Linux with the required POSIX capabilities. |
 | `invalid_input` | Correct IDs, metadata, query, timestamp or other domain input. |
 | `invalid_index` | Inspect the unavailable/malformed managed current index. |
 | `not_found` | Inspect missing input files or concepts/revisions. |

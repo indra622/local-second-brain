@@ -11,6 +11,7 @@ import re
 import stat
 
 from .storage import WikiError, identifier
+from .limits import RECEIPT_BYTES, check_size
 
 
 ROOT = '.lkw-requests'
@@ -64,13 +65,18 @@ def effect_paths(command, payload, result):
 
 
 def load(store, path):
-    raw = store.read(path)
-    if len(raw) > 8000000:
-        raise ValueError('Receipt is too large')
+    raw = store.read(path, max_bytes=RECEIPT_BYTES)
     value = json.loads(raw, parse_constant=lambda _: None)
     if raw != encoded(value):
         raise ValueError('Receipt is not canonical JSON')
     return value
+
+
+def completion_record(intent, result, artifacts):
+    record = {'intent': intent, 'result': result, 'artifacts': artifacts}
+    completed = encoded({**record, 'checksum': digest(encoded(record))})
+    check_size(len(completed), RECEIPT_BYTES, 'receipt result')
+    return completed
 
 
 def execute(store, request_id, command, payload, precondition, mutate):
@@ -128,10 +134,7 @@ def execute(store, request_id, command, payload, precondition, mutate):
         result = mutate()
         result = json.loads(encoded(result))
         artifacts = {p: digest(store.read(p)) for p in effect_paths(command, payload, result)}
-        record = {'intent': intent, 'result': result, 'artifacts': artifacts}
-        completed = encoded({**record, 'checksum': digest(encoded(record))})
-        if len(completed) > 8000000:
-            raise ValueError('Receipt result is too large')
+        completed = completion_record(intent, result, artifacts)
         store.create(folder + '/result.json', completed)
         sync_receipt(store, folder)
         return result

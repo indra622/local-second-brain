@@ -12,6 +12,8 @@ from pathlib import Path, PurePosixPath
 
 
 from .errors import WikiError
+from .limits import SOURCE_BYTES, bounded_markdown_read, bounded_read, check_size, file_limit
+from .platform import require_capabilities
 
 
 LOCK_MARKER = b"lkw:flock:v1\n"
@@ -48,10 +50,10 @@ def same_inode(left, right):
     return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
 
 
-def read_input(path):
+def read_input(path, max_bytes=SOURCE_BYTES):
     path = Path(path)
     with Store(path.parent) as store:
-        return store.read(path.name)
+        return store.read(path.name, max_bytes=max_bytes)
 
 
 def identifier(value):
@@ -71,6 +73,7 @@ class Store:
         self.fd = None
 
     def __enter__(self):
+        require_capabilities()
         try:
             root = self.root.resolve(strict=True)
         except RuntimeError as exc:
@@ -108,16 +111,14 @@ class Store:
             with os.fdopen(handle, "rb") as stream:
                 if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
                     raise WikiError(f"Not a regular file: {relative}", "unsafe_path")
-                if max_bytes is None:
-                    return stream.read()
-                if os.fstat(stream.fileno()).st_size > max_bytes:
-                    raise WikiError("Inspection file size limit exceeded")
-                data = stream.read(max_bytes + 1)
-                if len(data) > max_bytes:
-                    raise WikiError("Inspection file size limit exceeded")
-                return data
+                limit = file_limit(relative) if max_bytes is None else max_bytes
+                check_size(os.fstat(stream.fileno()).st_size, limit, relative)
+                if max_bytes is None and relative.endswith(".md"):
+                    return bounded_markdown_read(stream, limit, relative)
+                return bounded_read(stream, limit, relative)
 
     def create(self, relative, data):
+        check_size(len(data), file_limit(relative), relative)
         with self.parent(relative, create=True) as (fd, name):
             handle = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
                              0o644, dir_fd=fd)
@@ -178,6 +179,7 @@ class Store:
 
     @contextmanager
     def stage_index(self, data):
+        check_size(len(data), file_limit("index.md"), "index.md")
         handle = None
         for _ in range(10):
             name = f".lkw-index.{secrets.token_hex(16)}.tmp"
@@ -274,6 +276,7 @@ def render_entries(entries):
 
 
 def init(root):
+    require_capabilities()
     path = Path(root)
     if not path.exists():
         path.mkdir(parents=True)
@@ -300,7 +303,8 @@ def capture(root, source, source_id, actor, resource, at, request_id=None):
                 "resource": resource, "captured": {"by": actor, "at": at},
                 "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
     folder = f"sources/{source_id}"
-    provenance = (json.dumps(metadata, ensure_ascii=False, indent=2) + "\n").encode() if request_id is not None else None
+    provenance = (json.dumps(metadata, ensure_ascii=False, indent=2) + "\n").encode()
+    check_size(len(provenance), file_limit(folder + "/provenance.json"), "provenance metadata")
     with Store(root) as store, store.lock():
         current_index(store.read("index.md").decode("utf-8"))
         def precondition():
@@ -317,8 +321,7 @@ def capture(root, source, source_id, actor, resource, at, request_id=None):
             with store.parent(folder, create=True) as (fd, name):
                 os.mkdir(name, dir_fd=fd)
             store.create(folder + "/content.raw", data)
-            store.create(folder + "/provenance.json", provenance if provenance is not None else
-                         (json.dumps(metadata, ensure_ascii=False, indent=2) + "\n").encode())
+            store.create(folder + "/provenance.json", provenance)
             return folder + "/content.raw"
 
         payload = {"id": source_id, "actor": actor, "resource": resource,

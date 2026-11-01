@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlsplit
 import yaml
 
 from .storage import WikiError
+from .limits import BODY_BYTES, METADATA_BYTES, REVISION_BYTES, check_size
 
 
 class MetadataLoader(yaml.SafeLoader):
@@ -34,6 +35,7 @@ MetadataLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, u
 
 
 def parse(text):
+    check_size(len(text.encode("utf-8")), REVISION_BYTES, "revision")
     lines = text.split("\n")
     if not text.startswith(("---\n", "---\r\n")):
         raise WikiError("Missing YAML frontmatter")
@@ -41,13 +43,16 @@ def parse(text):
                 if lines[i] == "---" or (lines[i] == "---\r" and i < len(lines) - 1)), None)
     if end is None:
         raise WikiError("Unclosed YAML frontmatter")
+    check_size(len(("\n".join(lines[1:end]) + "\n").encode("utf-8")), METADATA_BYTES, "frontmatter")
+    body = "\n".join(lines[end + 1:])
+    check_size(len(body.encode("utf-8")), BODY_BYTES, "body")
     try:
         metadata = yaml.load("\n".join(lines[1:end]) + "\n", Loader=MetadataLoader)
     except (yaml.YAMLError, ValueError, RecursionError) as exc:
         raise WikiError(f"Invalid YAML: {exc}") from exc
     if not isinstance(metadata, dict):
         raise WikiError("Frontmatter must be a mapping")
-    return metadata, "\n".join(lines[end + 1:])
+    return metadata, body
 
 
 def yaml_key(value):
