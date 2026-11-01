@@ -14,7 +14,9 @@ REVISION_PATH = re.compile(r"concepts/([a-z0-9][a-z0-9-]{0,63})/(r[0-9]{6})\.md"
 def current_paths(store):
     try:
         return current_index(store.read("index.md").decode("utf-8"))[0]
-    except (FileNotFoundError, UnicodeError, WikiError):
+    except (FileNotFoundError, UnicodeError, WikiError) as exc:
+        if isinstance(exc, WikiError) and exc.code == "input_too_large":
+            raise
         return None
 
 

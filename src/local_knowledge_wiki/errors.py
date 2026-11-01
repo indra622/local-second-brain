@@ -7,6 +7,7 @@ import sys
 
 
 GUIDANCE = {
+    'input_too_large': 'reduce_input_size', 'unsupported_platform': 'use_supported_platform',
     'invalid_input': 'correct_input', 'arguments': 'correct_input',
     'invalid_index': 'inspect_index', 'unsafe_path': 'inspect_paths',
     'not_found': 'inspect_inputs', 'already_exists': 'inspect_existing',

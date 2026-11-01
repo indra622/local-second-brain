@@ -70,7 +70,9 @@ def recall(root, query, now, match='auto', limit=5, max_chars=12000):
     with Store(root) as store:
         try:
             current = current_index(store.read('index.md').decode('utf-8'))[0]
-        except (FileNotFoundError, UnicodeError, WikiError):
+        except (FileNotFoundError, UnicodeError, WikiError) as exc:
+            if isinstance(exc, WikiError) and exc.code == "input_too_large":
+                raise
             result.update(state='invalid_index', guidance='Inspect index.md and run check; current selection is unavailable. No historical substitution.')
             return result
         result['indexed'] = len(current)
@@ -82,7 +84,9 @@ def recall(root, query, now, match='auto', limit=5, max_chars=12000):
                 continue
             try:
                 note, _ = read_note(store, path, now, current)
-            except (OSError, WikiError):
+            except (OSError, WikiError) as exc:
+                if isinstance(exc, WikiError) and exc.code == "input_too_large":
+                    raise
                 result['excluded']['unavailable'] += 1
                 continue
             if note['metadata_errors'] == ['Note must be UTF-8']:

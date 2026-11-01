@@ -12,12 +12,14 @@ from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
 from .inspection import inspect_storage
+from .limits import BODY_BYTES, INDEX_BYTES, check_size
+from .platform import require_capabilities
 from .errors import ErrorParser, emit_error, machine_errors
 from .format import (inspect_bundle, nonempty, parse, serialize_revision, timestamp, validate,
                      validate_revision)
 from .reading import browse, current_paths, human, json_compatible, read_note, revision_path
 from .recall import recall, render
-from .requests import digest, encoded, execute, expected_current, validate_expected
+from .requests import completion_record, digest, encoded, execute, expected_current, validate_expected
 from .storage import (Store, WikiError, capture, current_index, identifier, init,
                       read_input, render_entries, single_line)
 
@@ -32,7 +34,7 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
     single_line(actor, "actor")
     if title is not None:
         single_line(title, "title")
-    body_bytes = read_input(body_file)
+    body_bytes = read_input(body_file, max_bytes=BODY_BYTES)
     body = body_bytes.decode("utf-8")
     if body.startswith("---\n") or body.startswith("---\r\n"):
         raise WikiError("Pass a prepared Markdown body without YAML frontmatter")
@@ -65,12 +67,13 @@ def curate(root, concept_id, body_file, sources, actor, now, kind, title, status
             expected_current(entries, concept_id, expect_current)
             if request_id is not None:
                 store.files()
+            write_revision(store, concept_id, meta, body, before, index, entries, start, end, data, dry_run=True)
 
         return execute(store, request_id, "curate", payload, precondition,
                        lambda: write_revision(store, concept_id, meta, body, before, index, entries, start, end, data))
 
 
-def write_revision(store, concept_id, meta, body, before, index, entries, start, end, data=None):
+def write_revision(store, concept_id, meta, body, before, index, entries, start, end, data=None, dry_run=False):
     """Caller holds the bundle lock and has validated inputs."""
     data = serialize_revision(meta, body) if data is None else data
     validate_revision(data, meta, body)
@@ -82,8 +85,12 @@ def write_revision(store, concept_id, meta, body, before, index, entries, start,
     if revision > 999999:
         raise WikiError("Revision limit reached")
     path = prefix + f"{revision:06}.md"
+    entries = dict(entries)
     entries[concept_id] = path
     after = (index[:start] + render_entries(entries) + index[end:]).encode()
+    check_size(len(after), INDEX_BYTES, "index.md")
+    if dry_run:
+        return path
     with store.stage_index(after):
         store.create(path, data)
         store.replace_index(before, after)
@@ -160,8 +167,12 @@ def review(root, concept_id, revision, actor, evidence, request_id=None, now=Non
                 raise WikiError("Review target must be the exact indexed current revision", "precondition_failed")
             if request_id is not None:
                 store.files()
-                if len(encoded(json_compatible(meta.get("verified", [])))) > 7000000:
-                    raise WikiError("Review records are too large for a request receipt")
+            path = write_revision(store, concept_id, meta, body, before, index, entries, start, end, data, dry_run=True)
+            if request_id is not None:
+                intent = {'version': 1, 'command': 'review',
+                          'fingerprint': digest(encoded({'command': 'review', 'payload': payload}))}
+                completion_record(intent, {'revision': path, 'verified': json_compatible(events)},
+                                  {path: digest(data)})
 
         events = meta.get("verified", [])
         events = [events] if isinstance(events, dict) else list(events)
@@ -284,6 +295,7 @@ def main(argv=None):
     p.add_argument("--now", help="Explicit-offset ISO8601 evaluation instant")
     args = parser.parse_args(argv)
     try:
+        require_capabilities()
         now = None
         if args.command != "review":
             now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
