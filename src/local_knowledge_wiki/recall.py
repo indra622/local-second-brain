@@ -53,10 +53,31 @@ def selected(value, omitted, depth=0):
     return text
 
 
-def recall(root, query, now, match='auto', limit=5, max_chars=12000):
+def bm25_scores(notes, terms, mode, term_counts):
+    """BM25-v1 over readable indexed notes, plus a distinct-title-term hint."""
+    size = len(notes)
+    average = sum(sum(counts.values()) for _, _, counts in notes) / size if size else 0
+    average = average or 1.0
+    frequencies = [sum(counts[i] > 0 for counts in term_counts) for i in range(len(terms))]
+    weights = [math.log1p((size - df + 0.5) / (df + 0.5)) for df in frequencies]
+    scores = []
+    for (_, note, counts), occurrences in zip(notes, term_counts):
+        length = sum(counts.values())
+        title = words(note['title']) if isinstance(note['title'], str) else []
+        normalization = 1.2 * (1 - 0.75 + 0.75 * length / average)
+        score = sum(weight * (count * 2.2 / (count + normalization)
+                              + (1.0 if any(matches(term, word, mode) for word in title) else 0.0))
+                    for term, count, weight in zip(terms, occurrences, weights) if count)
+        scores.append(score)
+    return scores
+
+
+def recall(root, query, now, match='auto', limit=5, max_chars=12000, rank='frequency'):
     terms = sorted(set(words(query)))
     if not terms:
         raise WikiError('Query needs at least one word')
+    if rank not in ('frequency', 'bm25'):
+        raise WikiError('Rank must be frequency or bm25')
     if match not in ('auto', 'exact', 'lexical'):
         raise WikiError('Match must be auto, exact or lexical')
     if not 1 <= limit <= 100 or not 2048 <= max_chars <= 1000000:
@@ -67,6 +88,9 @@ def recall(root, query, now, match='auto', limit=5, max_chars=12000):
               'indexed': 0, 'excluded': {'unavailable': 0, 'unsupported_revision': 0, 'invalid_utf8': 0},
               'invalid_metadata_notes': 0,
               'results': [], 'guidance': ''}
+    if rank == 'bm25':
+        result['ranking'] = {'method': 'bm25', 'version': 1, 'k1': 1.2, 'b': 0.75,
+                             'title_bonus': 1.0, 'corpus_notes': 0}
     with Store(root) as store:
         try:
             current = current_index(store.read('index.md').decode('utf-8'))[0]
@@ -97,12 +121,17 @@ def recall(root, query, now, match='auto', limit=5, max_chars=12000):
             counts = Counter(words((note['title'] if isinstance(note['title'], str) else '') + '\n' + note['body']))
             notes.append((identity, note, counts))
 
+    if rank == 'bm25':
+        result['ranking']['corpus_notes'] = len(notes)
+
     def retrieve(mode):
-        hits = []
-        for identity, note, counts in notes:
-            scores = [sum(count for word, count in counts.items() if matches(t, word, mode)) for t in terms]
-            if all(scores):
-                hits.append((sum(scores), identity, note))
+        term_counts = [[sum(count for word, count in counts.items() if matches(t, word, mode))
+                        for t in terms] for _, _, counts in notes]
+        scores = (bm25_scores(notes, terms, mode, term_counts) if rank == 'bm25'
+                  else [sum(counts) for counts in term_counts])
+        hits = [(score, identity, note)
+                for (identity, note, _), counts, score in zip(notes, term_counts, scores)
+                if all(counts)]
         return sorted(hits, key=lambda hit: (-hit[0], hit[2]['path']))
 
     mode = 'lexical' if match == 'lexical' else 'exact'

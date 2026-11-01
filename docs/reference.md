@@ -136,7 +136,7 @@ does not inherit reviews. See the bilingual [review contract](review-contract.md
 
 ## Bounded current recall
 
-`recall BUNDLE QUERY [--match auto|exact|lexical] [--limit N] [--max-chars N] [--now TIME]`
+`recall BUNDLE QUERY [--match auto|exact|lexical] [--limit N] [--max-chars N] [--rank frequency|bm25] [--now TIME]`
 is read-only and JSON-only. It has no `--format` option. Other commands retain their formats.
 It reads only CLI revisions selected by the current index, never the highest revision or
 historical substitutes. Imported generic notes remain accessible with search/check.
@@ -154,6 +154,38 @@ Unicode normalization, morphology, semantic search or source-text search occurs.
 unrelated `규칙성`/`결정체`; `불규칙한`/`미결정` do not match. One-syllable prefixes
 do not expand. Prefix matching is a candidate lookup, not proof of relevance.
 Exact-first can omit useful prefix candidates when an exact hit exists; request lexical deliberately.
+
+`--rank frequency` is the default and preserves the existing integer scores, order
+and JSON shape. `--rank bm25` changes only ranking and scores within the same AND
+candidates and matching mode. It adds `ranking` with `method: "bm25"`, `version: 1`,
+`k1: 1.2`, `b: 0.75`, `title_bonus: 1.0` and `corpus_notes`. This disclosure counts
+toward the same serialized output budget. BM25-v1 scores are finite floating-point
+values; ties still sort by path. The direct API appends optional `rank='frequency'`
+after the existing positional parameters. Legacy `search` is unchanged.
+
+BM25-v1 uses all readable indexed CLI notes for corpus statistics, including empty
+and invalid-metadata notes; unavailable, unsupported and invalid-UTF-8 notes remain
+excluded. Length is the number of casefolded title-plus-body word occurrences.
+For each distinct query term, `tf` sums matching word occurrences and `df` counts
+notes with a match in the selected exact or lexical mode. Prefix expansions are
+grouped per query term. Repeating a query term does not increase its weight.
+With `N` notes, mean length `avgdl` (or 1 when zero), and document length `dl`:
+
+```text
+idf = log(1 + (N - df + 0.5) / (df + 0.5))
+score = sum(idf * (tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * dl / avgdl)) + title_hit))
+```
+
+`title_hit` is 1 when that query term matches any title word, otherwise 0. It is a
+bounded topic hint, not a trust signal; repeated title words do not increase this
+extra contribution. The [BM25 defaults and positive IDF](https://lucene.apache.org/core/9_12_1/core/org/apache/lucene/search/similarities/BM25Similarity.html)
+provide the saturation/length parameters; the title hint is this tool's explicit
+addition. It helped focused-title cases in a small synthetic evaluation, but a
+misleading title also caused a regression. Body-only focused notes can still lose
+to repetition. This is not semantic retrieval or general relevance evidence.
+See [reproducible evaluation](retrieval-benchmark.md) for judgments and measurements.
+Ranking still scans full current-note bodies on every call; it adds no cache and
+promises no speedup. Scores depend on the current readable corpus, not just a hit.
 
 The default limit is 5 (allowed 1..100). The default budget is 12000 (allowed 2048..1000000).
 `--max-chars` bounds the **entire successful stdout**, including JSON syntax, escaping,
