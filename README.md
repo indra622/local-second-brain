@@ -83,6 +83,20 @@ and want to carry useful knowledge from one task to the next.
 The current product is an early-alpha command-line tool (CLI), operated by typing commands
 in a terminal. You choose what to save, which folder an agent may use, and what to accept. Start with an agent or follow the manual example below.
 
+## How the pieces work together
+
+[![Architecture: the user directs an external agent, which uses the CLI and local knowledge files; a kit guides the agent and an optional viewer opens the files.](docs/assets/architecture/v1/local-second-brain.en.png)](docs/assets/architecture/v1/local-second-brain.en.svg)
+
+**The external agent curates meaning; the CLI keeps that knowledge available for later use.** You set goals and access. The agent prepares Markdown outside the bundle, then uses the Python + PyYAML CLI to store, search, version and diagnose local files. The CLI calls no model or network. The dashed path shows authorized direct reading without the CLI.
+
+- **Originals:** `sources/<id>/content.raw` and `provenance.json` preserve source bytes and provenance.
+- **Revisions:** `concepts/<id>/rNNNNNN.md` keeps earlier notes alongside new versions.
+- **Navigation:** `index.md` combines CLI-managed current links with separate, agent-maintained human navigation. Open the files in a Markdown reader or optional Obsidian; no viewer is required.
+
+Explicitly supply the [knowledge kit and your profile](knowledge-kit/START.md) as agent instructions and preferences; installation does not create automatic memory.
+
+[Full-size vector](docs/assets/architecture/v1/local-second-brain.en.svg) / [Semantic source and regeneration](docs/assets/architecture/v1/README.md)
+
 ## For agents
 
 To have an agent install and verify the tool, give it this prompt. For manual setup,

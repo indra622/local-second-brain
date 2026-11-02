@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="930" height="540" viewBox="0 0 930 540" role="img" aria-labelledby="title desc" xml:lang="ko">
+<title id="title">Local Second Brain — 전체 구조</title>
+<desc id="desc">목표 전달 / 근거와 답변 / 명시적 활성화 / 허가한 명령 / 조회 결과 / JSON / 읽기 / 보존 / 허가 범위의 직접 읽기 / 파일 열람</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#475569"/></marker></defs>
+<rect width="930" height="540" rx="14" fill="#ffffff"/>
+<g font-family="Arial, Apple SD Gothic Neo, Noto Sans KR, sans-serif" fill="#172b4d">
+<g id="person"><rect x="30" y="70" width="220" height="110" rx="12" fill="#f1f5f9" stroke="#94a3b8"/>
+<text x="140" y="103" text-anchor="middle" font-size="20" font-weight="600">사용자</text>
+<text x="140" y="129" text-anchor="middle" font-size="16" font-weight="400">목표와 접근 범위 결정</text>
+</g>
+<g id="agent"><rect x="340" y="70" width="220" height="110" rx="12" fill="#edf2ff" stroke="#94a3b8"/>
+<text x="450" y="103" text-anchor="middle" font-size="20" font-weight="600">외부 AI 에이전트</text>
+<text x="450" y="129" text-anchor="middle" font-size="16" font-weight="400">의미 정리 / 연결 / 답변</text>
+</g>
+<g id="cli"><rect x="650" y="70" width="220" height="110" rx="12" fill="#edf2ff" stroke="#94a3b8"/>
+<text x="760" y="103" text-anchor="middle" font-size="20" font-weight="600">second-brain CLI</text>
+<text x="760" y="129" text-anchor="middle" font-size="16" font-weight="400">저장 / 검색 / 이력 / 진단</text>
+<text x="760" y="155" text-anchor="middle" font-size="16" font-weight="400">Python + PyYAML</text>
+</g>
+<g id="bundle"><rect x="650" y="370" width="220" height="110" rx="12" fill="#fff6e5" stroke="#94a3b8"/>
+<text x="760" y="403" text-anchor="middle" font-size="20" font-weight="600">로컬 지식 폴더</text>
+<text x="760" y="429" text-anchor="middle" font-size="16" font-weight="400">원문 / 노트 리비전</text>
+<text x="760" y="455" text-anchor="middle" font-size="16" font-weight="400">현재 index + 사람용 탐색</text>
+</g>
+<g id="kit"><rect x="30" y="370" width="220" height="110" rx="12" fill="#f7f0ff" stroke="#94a3b8"/>
+<text x="140" y="403" text-anchor="middle" font-size="20" font-weight="600">지식 키트 + 프로필</text>
+<text x="140" y="429" text-anchor="middle" font-size="16" font-weight="400">번들 밖의 문서와 설정</text>
+<text x="140" y="455" text-anchor="middle" font-size="16" font-weight="400">에이전트가 읽고 적용</text>
+</g>
+<g id="viewer"><rect x="340" y="370" width="220" height="110" rx="12" fill="#eaf8f5" stroke="#94a3b8"/>
+<text x="450" y="403" text-anchor="middle" font-size="20" font-weight="600">선택적 뷰어</text>
+<text x="450" y="429" text-anchor="middle" font-size="16" font-weight="400">Markdown / Obsidian</text>
+<text x="450" y="455" text-anchor="middle" font-size="16" font-weight="400">별도 GUI 제공 없음</text>
+</g>
+<g id="ask" data-from="person" data-to="agent"><path d="M250 103 H340" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><text x="295" y="91" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">목표</text></g>
+<g id="answer" data-from="agent" data-to="person"><path d="M340 149 H250" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><text x="295" y="174" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">답변</text></g>
+<g id="instruct" data-from="kit" data-to="agent"><path d="M140 370 V280 H450 V180" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><text x="295" y="269" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">명시적 활성화</text></g>
+<g id="invoke" data-from="agent" data-to="cli"><path d="M560 103 H650" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><text x="605" y="91" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">명령</text></g>
+<g id="result" data-from="cli" data-to="agent"><path d="M650 149 H560" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><text x="605" y="174" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">결과</text></g>
+<g id="persist" data-from="cli" data-to="bundle"><path d="M800 180 V370" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><text x="851" y="303" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">읽기 / 보존</text></g>
+<g id="read-files" data-from="agent" data-to="bundle"><path d="M505 180 V225 H710 V370" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="7 6"/><text x="627" y="214" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">허가 범위의 직접 읽기</text></g>
+<g id="open" data-from="viewer" data-to="bundle"><path d="M560 425 H650" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/><text x="605" y="413" text-anchor="middle" font-size="17" stroke="#ffffff" stroke-width="5" paint-order="stroke" stroke-linejoin="round">열람</text></g>
+<text x="465" y="520" text-anchor="middle" font-size="16">실선: 명령과 의존 관계   |   점선: CLI를 거치지 않는 읽기</text></g></svg>
