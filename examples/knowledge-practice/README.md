@@ -50,3 +50,5 @@ a CLI check passing or an agent's self-score with demonstrated meaning-centered 
 No real session or runtime test was run to produce these fixtures.
 
 For a fixture-free agent root, export the allowlisted product packet with scripts/export_knowledge_kit.py to a new external directory. Give only its entry, the separately filled profile, bundle and current released input; never expose this repository/evaluator/future stages as bootstrap.
+
+A real first run is available separately as [observed-v1](observed-v1/README.md), not input labels, a golden answer or agent bootstrap content. Read the [validation report](../../docs/knowledge-practice-validation.md) for mechanics/assessment limits.

@@ -44,3 +44,5 @@ Inspect summary.json and transcript.json, reuse-before.json/reuse-after.json, an
 for exact revisions and source bytes. Reuse is a deterministic copy, not LLM reasoning or
 fact checking. The later content change resets inherited review status. Follow the workflow
 for your own authorized task rather than treating a demo actor label as authenticated trust.
+
+Read the [observed two-session pilot](knowledge-practice-validation.md) for actual outputs and limits; it is not automatic memory or a human-rubric acceptance claim.

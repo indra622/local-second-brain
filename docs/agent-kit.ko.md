@@ -42,3 +42,5 @@ python examples/knowledge_reuse.py --output /tmp/my-new-second-brain-demo
 summary.json·transcript.json, reuse-before.json/reuse-after.json과 wiki/에서 정확한 리비전과
 원문 바이트를 확인한다. 재사용은 결정적 복사이며 LLM 판단이나 사실 검증이 아니다. 내용
 변경은 상속 검토를 초기화한다. demo actor를 인증된 신뢰로 보지 말고 실제 작업은 정본 절차를 따른다.
+
+실제 산출물과 한계는 [두 세션 관측 보고서](knowledge-practice-validation.ko.md)에 있다. 자동 기억이나 사람 rubric 통과 주장과 구분한다.
