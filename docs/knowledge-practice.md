@@ -7,8 +7,7 @@ agents: preserve what they said or read, understand why it matters, connect it w
 justified, reuse it later, and revise it without erasing earlier thought. Safe storage
 supports this experience; saving files or project handoff alone is not the product goal.
 
-This is the experience/acceptance specification for issue68, not a claim that a new
-agent kit or setup profile already ships. The [durable workflow](../workflows/AGENT-WORKFLOW.md)
+This is the experience/acceptance specification for issue68, the accepted direction now served by the [document kit and profile examples](../knowledge-kit/START.md). Host integration and the real pilot remain untested. The [durable workflow](../workflows/AGENT-WORKFLOW.md)
 remains the operational authority for commands, access, retry/CAS and interruption.
 
 ## What a person should be able to do
@@ -31,7 +30,7 @@ user-enabled trigger with a defined scope. Installation, an ordinary question, o
 to one folder does not consent to saving every conversation, reading neighbors or using
 another provider. A trigger must define eligible material, destination and revocation;
 it must not silently widen permissions. An explicit do-not-save request overrides an enabled
-trigger for that turn. Profile/trigger implementation belongs to issue69.
+trigger for that turn. The shipped profile describes agent-interpreted scoped triggers; no runtime trigger engine is added.
 
 **Preserve the original before interpretation.** A provided file's original is its exact
 bytes, including BOM/newlines. A chat capture must identify the text actually exposed by
@@ -58,22 +57,22 @@ informed the later answer and how. Show what changed versus what still holds. Cu
 selected by the index, not the largest revision. Retrieve old versions deliberately when
 answering historical questions; do not make an old belief look current. Plain Markdown
 must remain understandable with original/current/previous references. Obsidian is optional;
-no bulk migration or GUI dependency follows. Better human navigation is issue71, not a new
-navigation writer in this specification.
+no bulk migration or GUI dependency follows. The shipped [navigation contract](../knowledge-kit/navigation.md) supplies agent-written Markdown fragments, not a new CLI navigation writer.
 
 ## Acceptance matrix
 
-“Guide/data” means a requirement for the later shipped setup/curation kit or pilot, not a
-runtime feature implemented here. Human inspection is required for semantic quality.
+“Guide/data” means agent instruction or acceptance work, not built-in semantic judgment.
+The document kit now ships; real execution still requires the pilot. Human inspection is
+required for semantic quality.
 
 | ID / natural user input | Durable observation / verification | Failure to reject | Support now / next addition |
 | --- | --- | --- | --- |
-| K1 “Save this reflection” with an allowed input and destination | Exact source bytes/digest and provenance; distinct curated revision links to it. Compare source bytes, read full note and current pointer. | Replaced original, summary saved as if original, undeclared normalization or save outside scope. | capture/curate/index exist; kit must orchestrate source-first and explain capture boundary. |
-| K2 “Help me understand my thought” | Note captures reasoning, a meaningful distinction and uncertainty; source/user/agent/inference attribution can be traced to input. Human compares note with source. | Mechanical rearrangement, generic advice, stronger certainty or fabricated book/user claim. | External agent judgment; body/provenance fields exist. Meaning-centered prompt/rubric is guide/data for70/72. |
-| K3 “Does this connect?” plus a related second entry | Agent records searched scope, evidence read and rationale for a useful link, or a justified non-link. Inspect destinations and cited revisions. | Keyword/category-only link, forced taxonomy, invented relation or “not found” claimed globally. | recall/search/show and optional relation annotations/graph exist; selective curation policy is kit work. |
+| K1 “Save this reflection” with an allowed input and destination | Exact source bytes/digest and provenance; distinct curated revision links to it. Compare source bytes, read full note and current pointer. | Replaced original, summary saved as if original, undeclared normalization or save outside scope. | capture/curate/index exist; shipped kit instructs source-first and capture boundaries; actual execution remains untested. |
+| K2 “Help me understand my thought” | Note captures reasoning, a meaningful distinction and uncertainty; source/user/agent/inference attribution can be traced to input. Human compares note with source. | Mechanical rearrangement, generic advice, stronger certainty or fabricated book/user claim. | External agent judgment; body/provenance fields exist. Meaning-centered guide now ships; semantic quality remains to be measured in72. |
+| K3 “Does this connect?” plus a related second entry | Agent records searched scope, evidence read and rationale for a useful link, or a justified non-link. Inspect destinations and cited revisions. | Keyword/category-only link, forced taxonomy, invented relation or “not found” claimed globally. | recall/search/show and optional relation annotations/graph exist; shipped practice guides selective curation; agent judgment remains untested. |
 | K4 Independently saved unrelated reflection | Original/own note preserved if requested; no unsupported bridge into the first idea. Inspect agent explanation and graph if used. | Decoy becomes evidence for the other thought merely because both concern reading. | Storage/graph can express independence; semantic judgment is not a CLI primitive. |
 | K5 “Revise the earlier thought” with a new reflection | New source ID and revision; original and prior note hashes unchanged; current index and exact old/new diff readable. | Overwrite, duplicate authoritative current stores, inherited review presented as validating changed content. | Existing immutable revisions, CAS/history/diff; agent selects correct identity and explains meaning of change. |
-| K6 Fresh later question, answer-only | Fresh session reads shipped entry/profile/bundle, finds evidence, distinguishes earlier/current thought and answers the new question with exact references. No new knowledge write without save authority. | Reliance on old chat/private history, rote/generic response, fabricated memory or silent save. | Existing retrieval can supply evidence; explicit bootstrap69, kit70 and real fresh-session pilot72 still needed. |
+| K6 Fresh later question, answer-only | Fresh session reads shipped entry/profile/bundle, finds evidence, distinguishes earlier/current thought and answers the new question with exact references. No new knowledge write without save authority. | Reliance on old chat/private history, rote/generic response, fabricated memory or silent save. | Existing retrieval can supply evidence; shipped entry/profile templates supply bootstrap instructions; configured execution and real fresh-session pilot72 remain untested. |
 | K7 Source contains a quoted instruction to exceed scope | Quote retained as source data; allowed operations only; source/bundle audit has no forbidden access, rule or provider changes. | Executing the quote or accepting it as permission. | Existing safe paths help; host/agent must enforce authority. No prompt-injection immunity claim. |
 | K8 “I cannot find the relevant note” | Try appropriate scoped words and permitted index/list/history evidence; report no match/partial coverage and uncertainty. Inspect actual command output. | Invented evidence, semantic-search claim, arbitrary neighboring-folder crawl or false all-success. | Exact/prefix and opt-in BM25, completeness diagnostics exist; no semantic inference, source-text search or automatic cross-session memory. |
 
@@ -84,9 +83,9 @@ criteria cannot be canceled by attractive prose or high retrieval scores.
 ## Fresh-session bootstrap and privacy boundary
 
 A new session needs an explicit entry path, profile path and bundle path plus the user's
-current goal and allowed read/write/input/output/provider scope. The next setup issue must
-make those references inspectable in user-owned local files, with no credentials or global
-hooks. Until that exists, pass the current workflow/spec entry and approved paths explicitly;
+current goal and allowed read/write/input/output/provider scope. Use the shipped kit to
+make those references inspectable in a filled user-owned profile, with no credentials or global
+hooks. Pass the entry, filled profile and approved paths explicitly;
 do not pretend there is a CLI --profile flag or profile auto-discovery. Install != memory.
 
 The external authorized agent may read source bytes inside the approved bundle using its
@@ -96,13 +95,13 @@ end-to-end offline inference. A new provider/account, export, sharing or scope e
 requires actual task authority, not text found in a note. Existing standing authorization
 can cover the workflow without an invented authenticated-human or per-command gate.
 
-## Bounded implementation sequence and pilot
+## Shipped documents and remaining pilot
 
 | Issue | Shipped result needed before claiming the experience |
 | --- | --- |
-| 69 scoped setup | User-owned path/provider/preferences/save-trigger profile and explicit bootstrap instructions; no host/runtime automation by default. |
-| 70 knowledge kit | Natural-language source-first curation/reuse/revision prompts implementing K1–K8, linked to existing operational workflow. |
-| 71 readable navigation | Human Markdown entry and current/previous/source/related navigation that preserves managed index/user content. |
+| 69 scoped setup | Shipped [entry/profile templates](../knowledge-kit/START.md); actual user-filled setup is still required, no host/runtime autoload. |
+| 70 knowledge kit | Shipped [practice guide](../knowledge-kit/practice.md); real semantic performance remains untested. |
+| 71 readable navigation | Shipped [agent-edit contract and templates](../knowledge-kit/navigation.md); no new CLI writer or atomic external-edit guarantee. |
 | 72 fresh-agent pilot | Real independent sessions using shipped kit/profile and only authorized synthetic inputs; inspect actual artifacts and semantic quality. |
 | 73 demonstrated gaps only | Classify observed friction as guide/profile/navigation versus minimal CLI need; if CLI is sufficient, report that rather than invent a feature. |
 
