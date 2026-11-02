@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Local Second Brain — 전체 구조",
+    "locale": "ko",
+    "output": ".archify/architecture-local-second-brain-20261102-220200/local-second-brain.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/indra622/local-second-brain.git",
+      "revision": "0b40e8e58f5baa8de9d25d8f67de4b01379fe8bc"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "선택적 뷰어"
+        },
+        "backend": {
+          "label": "판단 / 실행"
+        },
+        "database": {
+          "label": "로컬 파일"
+        },
+        "security": {
+          "label": "작업 지침 / 설정"
+        },
+        "external": {
+          "label": "사용자"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "person",
+      "type": "external",
+      "label": "사용자",
+      "sublabel": "목표, 자료, 저장 여부 결정",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        150,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/START.ko.md",
+          "line": 23,
+          "end_line": 32
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "외부 AI 에이전트",
+      "sublabel": "의미 정리 / 연결 / 답변",
+      "pos": [
+        310,
+        40
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/practice.ko.md",
+          "line": 15,
+          "end_line": 43
+        },
+        {
+          "path": "knowledge-kit/practice.ko.md",
+          "line": 45,
+          "end_line": 66
+        },
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 9,
+          "end_line": 28
+        }
+      ],
+      "tag": "판단과 글쓰기 담당"
+    },
+    {
+      "id": "cli",
+      "type": "backend",
+      "label": "second-brain CLI",
+      "sublabel": "저장 / 검색 / 이력 / 진단",
+      "pos": [
+        660,
+        40
+      ],
+      "size": [
+        210,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/local_knowledge_wiki/cli.py",
+          "line": 32,
+          "end_line": 88
+        },
+        {
+          "path": "src/local_knowledge_wiki/cli.py",
+          "line": 299,
+          "end_line": 407
+        },
+        {
+          "path": "docs/architecture.md",
+          "line": 22,
+          "end_line": 43
+        }
+      ],
+      "tag": "Python + PyYAML"
+    },
+    {
+      "id": "bundle",
+      "type": "database",
+      "label": "로컬 지식 폴더",
+      "sublabel": "원문 / 노트 리비전 / index",
+      "pos": [
+        1020,
+        40
+      ],
+      "size": [
+        220,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/local_knowledge_wiki/storage.py",
+          "line": 280,
+          "end_line": 331
+        },
+        {
+          "path": "docs/architecture.md",
+          "line": 8,
+          "end_line": 20
+        },
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 5,
+          "end_line": 13
+        }
+      ],
+      "tag": "Markdown + 원본 파일"
+    },
+    {
+      "id": "kit",
+      "type": "security",
+      "label": "지식 키트 + 프로필",
+      "sublabel": "정리 절차 / 범위 / 개인 선호",
+      "pos": [
+        310,
+        270
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/START.ko.md",
+          "line": 5,
+          "end_line": 21
+        },
+        {
+          "path": "knowledge-kit/START.ko.md",
+          "line": 30,
+          "end_line": 49
+        }
+      ],
+      "tag": "에이전트가 읽는 문서"
+    },
+    {
+      "id": "viewer",
+      "type": "frontend",
+      "label": "사람이 읽는 화면",
+      "sublabel": "Markdown / Obsidian 선택",
+      "pos": [
+        1020,
+        270
+      ],
+      "size": [
+        220,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 5,
+          "end_line": 13
+        },
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 27,
+          "end_line": 34
+        }
+      ],
+      "tag": "별도 DB 없이 열람"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ask",
+      "from": "person",
+      "to": "agent",
+      "label": "목표 전달",
+      "variant": "emphasis"
+    },
+    {
+      "id": "answer",
+      "from": "agent",
+      "to": "person",
+      "label": "근거와 답변"
+    },
+    {
+      "id": "instruct",
+      "from": "kit",
+      "to": "agent",
+      "label": "명시적 활성화",
+      "variant": "security"
+    },
+    {
+      "id": "invoke",
+      "from": "agent",
+      "to": "cli",
+      "label": "허가한 명령",
+      "variant": "emphasis"
+    },
+    {
+      "id": "result",
+      "from": "cli",
+      "to": "agent",
+      "label": "조회 결과 / JSON"
+    },
+    {
+      "id": "persist",
+      "from": "cli",
+      "to": "bundle",
+      "label": "읽기 / 보존",
+      "variant": "emphasis"
+    },
+    {
+      "id": "read-files",
+      "from": "agent",
+      "to": "bundle",
+      "label": "허가 범위의 직접 읽기",
+      "variant": "dashed"
+    },
+    {
+      "id": "open",
+      "from": "viewer",
+      "to": "bundle",
+      "label": "파일 열람"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "쌓이고, 다음 작업에 쓰이는 지식",
+      "items": [
+        "원문 보존 → 의미 정리 → 근거 있는 연결 → 새 질문에 재사용 → 새 버전으로 수정",
+        "이전 대화 대신 저장한 원문과 노트를 읽어 작업을 이어간다. 새 세션에는 키트와 프로필을 명시한다."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "파일이 지식의 정본",
+      "items": [
+        "sources/<id>/content.raw + provenance.json: 원본 바이트와 출처",
+        "concepts/<id>/rNNNNNN.md: 본문, 근거, 연결과 이전 리비전",
+        "index.md: CLI의 현재 링크 + 별도 사람용 탐색 영역. 탐색 영역은 허가한 에이전트가 관리한다."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "에이전트와 CLI의 역할 분리",
+      "items": [
+        "에이전트가 허가한 자료를 읽고 번들 밖에 본문을 준비한다. CLI는 준비된 글을 검증하고 저장한다.",
+        "capture / curate / annotate / review; recall / search / show / history / diff",
+        "context / graph / health / eval-retrieval; check / inspect-storage",
+        "점선은 CLI를 거치지 않는 직접 읽기 경로다. 프로필은 CLI의 강제 권한 설정이 아니라 에이전트용 데이터다."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "현재 구현의 경계",
+      "items": [
+        "CLI는 모델이나 네트워크를 호출하지 않는다. 외부 에이전트의 모델 사용과 텍스트 전송은 별도 허가 범위다.",
+        "잠금, 재시도 ID, 현재 버전 비교로 쓰기를 보호한다. 전체 트랜잭션이나 자동 복구는 아니다.",
+        "관계와 신선도는 기록에 따른 진단이다. 의미 판단과 사실 확인을 자동으로 대신하지 않는다.",
+        "소개 사이트와 영상은 설명 자료다. 노트 편집 GUI, MCP 서버, 벡터 DB는 현재 구성에 없다."
+      ]
+    }
+  ]
+}

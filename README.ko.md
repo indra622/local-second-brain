@@ -83,6 +83,20 @@ AI와 자료를 조사하고, 프로젝트의 방향을 정하고, 반복해서 
 무엇을 저장할지, 에이전트가 어느 폴더를 쓸지, 결과를 받아들일지는
 사용자가 정합니다. 에이전트에게 설치를 맡기거나 아래 예제를 직접 따라 해 보세요.
 
+## 각 구성 요소가 함께 일하는 방식
+
+[![구조: 사용자의 목표에 따라 외부 에이전트가 CLI와 로컬 지식 파일을 사용합니다. 키트는 에이전트를 안내하고 선택적 뷰어는 파일을 엽니다.](docs/assets/architecture/v1/local-second-brain.ko.png)](docs/assets/architecture/v1/local-second-brain.ko.svg)
+
+**외부 에이전트가 의미를 정리하고, CLI가 그 지식을 다음 작업에도 쓸 수 있게 보관합니다.** 사용자가 목표와 접근 범위를 정합니다. 에이전트는 지식 폴더 밖에서 Markdown을 준비하고, Python + PyYAML CLI로 로컬 파일을 저장, 검색하며 버전과 상태를 관리합니다. CLI 자체는 모델이나 네트워크를 호출하지 않습니다. 점선은 허가 범위에서 CLI를 거치지 않고 직접 읽는 경로입니다.
+
+- **원문:** `sources/<id>/content.raw`와 `provenance.json`에 원본 바이트와 출처를 보존합니다.
+- **리비전:** `concepts/<id>/rNNNNNN.md`에 새 버전과 이전 노트를 함께 남깁니다.
+- **탐색:** `index.md`에는 CLI가 관리하는 현재 링크와 에이전트가 관리하는 별도 사람용 탐색 영역이 있습니다. Markdown 뷰어나 선택적으로 Obsidian에서 열 수 있으며, 특정 뷰어가 필수는 아닙니다.
+
+[지식 키트와 개인 프로필](knowledge-kit/START.ko.md)은 에이전트가 읽을 지침과 선호 데이터로 명시적으로 전달합니다. 설치만으로 자동 기억이 생기지는 않습니다.
+
+[원본 크기 벡터](docs/assets/architecture/v1/local-second-brain.ko.svg) / [의미 구조 원본과 재생성 방법](docs/assets/architecture/v1/README.md)
+
 ## 에이전트에게 설치 맡기기 (For agents)
 
 에이전트에게 설치와 검증을 맡기려면 아래 지시문을 그대로 전달하세요.

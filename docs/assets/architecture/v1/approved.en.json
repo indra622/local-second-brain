@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Local Second Brain — architecture",
+    "locale": "en",
+    "output": ".archify/local-second-brain.en.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/indra622/local-second-brain.git",
+      "revision": "0b40e8e58f5baa8de9d25d8f67de4b01379fe8bc"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "Optional viewer"
+        },
+        "backend": {
+          "label": "Judgment / execution"
+        },
+        "database": {
+          "label": "Local files"
+        },
+        "security": {
+          "label": "Guidance / preferences"
+        },
+        "external": {
+          "label": "User"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "person",
+      "type": "external",
+      "label": "User",
+      "sublabel": "Goals, material, save decisions",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        150,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/START.ko.md",
+          "line": 23,
+          "end_line": 32
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "External AI agent",
+      "sublabel": "Curate meaning / connect / answer",
+      "pos": [
+        310,
+        40
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/practice.ko.md",
+          "line": 15,
+          "end_line": 43
+        },
+        {
+          "path": "knowledge-kit/practice.ko.md",
+          "line": 45,
+          "end_line": 66
+        },
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 9,
+          "end_line": 28
+        }
+      ],
+      "tag": "Judgment and writing"
+    },
+    {
+      "id": "cli",
+      "type": "backend",
+      "label": "second-brain CLI",
+      "sublabel": "Store / query / history / diagnostics",
+      "pos": [
+        660,
+        200
+      ],
+      "size": [
+        210,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/local_knowledge_wiki/cli.py",
+          "line": 32,
+          "end_line": 88
+        },
+        {
+          "path": "src/local_knowledge_wiki/cli.py",
+          "line": 299,
+          "end_line": 407
+        },
+        {
+          "path": "docs/architecture.md",
+          "line": 22,
+          "end_line": 43
+        }
+      ],
+      "tag": "Python + PyYAML"
+    },
+    {
+      "id": "bundle",
+      "type": "database",
+      "label": "Local knowledge bundle",
+      "sublabel": "Originals / note revisions / index",
+      "pos": [
+        1020,
+        40
+      ],
+      "size": [
+        220,
+        84
+      ],
+      "sources": [
+        {
+          "path": "src/local_knowledge_wiki/storage.py",
+          "line": 280,
+          "end_line": 331
+        },
+        {
+          "path": "docs/architecture.md",
+          "line": 8,
+          "end_line": 20
+        },
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 5,
+          "end_line": 13
+        }
+      ],
+      "tag": "Markdown + original files"
+    },
+    {
+      "id": "kit",
+      "type": "security",
+      "label": "Knowledge kit + profile",
+      "sublabel": "Procedure / scope / preferences",
+      "pos": [
+        310,
+        270
+      ],
+      "size": [
+        200,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/START.ko.md",
+          "line": 5,
+          "end_line": 21
+        },
+        {
+          "path": "knowledge-kit/START.ko.md",
+          "line": 30,
+          "end_line": 49
+        }
+      ],
+      "tag": "Documents the agent reads"
+    },
+    {
+      "id": "viewer",
+      "type": "frontend",
+      "label": "Human reading view",
+      "sublabel": "Markdown / optional Obsidian",
+      "pos": [
+        1020,
+        270
+      ],
+      "size": [
+        220,
+        84
+      ],
+      "sources": [
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 5,
+          "end_line": 13
+        },
+        {
+          "path": "knowledge-kit/navigation.ko.md",
+          "line": 27,
+          "end_line": 34
+        }
+      ],
+      "tag": "Read without a separate database"
+    }
+  ],
+  "connections": [
+    {
+      "id": "ask",
+      "from": "person",
+      "to": "agent",
+      "label": "Goals",
+      "variant": "emphasis"
+    },
+    {
+      "id": "answer",
+      "from": "agent",
+      "to": "person",
+      "label": "Evidence and answer"
+    },
+    {
+      "id": "instruct",
+      "from": "kit",
+      "to": "agent",
+      "label": "Explicit activation",
+      "variant": "security"
+    },
+    {
+      "id": "invoke",
+      "from": "agent",
+      "to": "cli",
+      "label": "Authorized commands",
+      "variant": "emphasis"
+    },
+    {
+      "id": "result",
+      "from": "cli",
+      "to": "agent",
+      "label": "Query results / JSON"
+    },
+    {
+      "id": "persist",
+      "from": "cli",
+      "to": "bundle",
+      "label": "Read / preserve",
+      "variant": "emphasis"
+    },
+    {
+      "id": "read-files",
+      "from": "agent",
+      "to": "bundle",
+      "label": "Authorized direct read",
+      "variant": "dashed"
+    },
+    {
+      "id": "open",
+      "from": "viewer",
+      "to": "bundle",
+      "label": "Open files"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Knowledge that carries into later work",
+      "items": [
+        "Preserve originals, curate meaning, make justified connections, reuse for a new question, revise as a new version.",
+        "Continue from stored originals and notes rather than a prior conversation. Explicitly supply the kit and profile to a fresh session."
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Files are the durable record",
+      "items": [
+        "sources/<id>/content.raw + provenance.json: original bytes and provenance",
+        "concepts/<id>/rNNNNNN.md: body, evidence, links and previous revision",
+        "index.md: CLI-managed current links plus a separate human navigation area maintained by an authorized agent."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Separate agent and CLI roles",
+      "items": [
+        "The agent reads authorized material and prepares Markdown outside the bundle. The CLI validates and stores prepared writing.",
+        "capture / curate / annotate / review; recall / search / show / history / diff",
+        "context / graph / health / eval-retrieval; check / inspect-storage",
+        "The dashed path bypasses the CLI for direct reading. A profile is agent-interpreted data, not CLI-enforced permissions."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Current implementation boundaries",
+      "items": [
+        "The CLI calls no model or network. External agent model use and text transfer require separate authorization.",
+        "Locks, request IDs and current-revision comparisons protect writes, without full transactions or automatic recovery.",
+        "Relations and freshness diagnostics reflect recorded declarations. They do not replace semantic judgment or fact verification.",
+        "The showcase and videos explain the product. A note-editing GUI, MCP server and vector database are not part of the current system."
+      ]
+    }
+  ]
+}
