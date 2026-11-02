@@ -5,6 +5,8 @@ saved requests/revisions. Use a separate ID per task/workstream, not one global 
 handoff. Keep this prompt/prepared files outside the bundle; do not install global rules.
 Operational details: [durable workflow](../workflows/AGENT-WORKFLOW.md).
 
+For knowledge curation rather than task handoff, use [the knowledge kit](../knowledge-kit/START.md).
+
 ## Begin/resume
 
 Obtain scope from the user/prior task record; work_id is data, not a search filter.

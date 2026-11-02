@@ -23,6 +23,10 @@ For the broader preserve/curate/connect/reuse/revise experience and its quality 
 read [the knowledge-practice specification](knowledge-practice.md). It separates product
 requirements from today's CLI mechanics and the later fresh-agent pilot.
 
+For natural save/connect/revise/reuse requests, start at [the knowledge kit](../knowledge-kit/START.md).
+It includes a safe local profile, meaning-centered workflow and human navigation templates;
+profiles are read by your authorized agent, not a new CLI loader.
+
 ## Run the synthetic reuse demo
 
 With the project environment active, choose a new or empty output directory:

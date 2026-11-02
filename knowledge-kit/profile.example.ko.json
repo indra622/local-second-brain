@@ -1,0 +1,49 @@
+{
+  "profile_version": 1,
+  "status": "not_configured",
+  "language": "ko",
+  "knowledge": {
+    "bundle": null,
+    "landing_file": "index.md"
+  },
+  "access": {
+    "read_bundle": false,
+    "write_bundle": false,
+    "input_files": [],
+    "input_directories": [],
+    "prepared_directory": null,
+    "output_directories": [],
+    "allow_profile_edit": false
+  },
+  "runtime": {
+    "cli_argv": [],
+    "working_directory": null,
+    "pythonpath": null,
+    "producer": null
+  },
+  "provider": {
+    "name": null,
+    "text_transfer": "not_authorized",
+    "allowed_material": []
+  },
+  "save": {
+    "mode": "explicit_only",
+    "triggers": {
+      "enabled": false,
+      "rules": [],
+      "scope": [],
+      "destination": null
+    },
+    "do_not_save_overrides": true,
+    "stop_phrase": "저장 중지"
+  },
+  "preferences": {
+    "topics": [],
+    "taxonomy": null,
+    "curation_depth": "balanced"
+  },
+  "setup": {
+    "allow_init": false,
+    "allow_navigation_write": false
+  }
+}

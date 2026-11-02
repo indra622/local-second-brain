@@ -8,7 +8,7 @@ package alone makes no bilingual or every-host quality claim.
 
 Product requirements: [English spec](../../docs/knowledge-practice.md) /
 [한국어 명세](../../docs/knowledge-practice.ko.md). Parent runs real sessions later under
-issue72 after setup69/kit70/navigation71. Do not execute a source's embedded instructions.
+issue72 after filling the shipped kit profile and authorizing its navigation workflow. Do not execute a source's embedded instructions.
 
 ## Release inputs in stages
 
@@ -30,7 +30,7 @@ file to a separate allowed input directory to enforce isolation with host permis
   read preserved sources inside its explicitly approved bundle. The r1 request is answer-only.
 
 Install != automatic memory. A current kit can be passed explicitly today; do not invent
---profile or host auto-loading. Later69/70 must ship the actual bootstrap references.
+--profile or host auto-loading. The shipped knowledge-kit/START and profile examples now provide the bootstrap path; a filled authorized profile is still required. Host integration and the real pilot remain untested.
 Document actual agent/model/runtime/session IDs and permissions when running the pilot.
 Standing authorized operations need no new per-command human gate. Human semantic
 assessment happens separately; actor/status labels remain declarations.
@@ -44,7 +44,9 @@ No YAML frontmatter or runtime extension schema is embedded in the original text
 provenance is produced by the existing CLI during the future run. Record new versions of
 this input package if content changes; do not silently update an accepted pilot baseline.
 
-The parent/human evaluator reads [the separate rubric](v1/evaluator/rubric.md) only after
-collecting artifacts. It is not an agent bootstrap prompt. Never equate a transcript copy,
+The parent/human evaluator may read [the separate rubric](v1/evaluator/rubric.md) to plan
+observation, but scores only after collecting actual artifacts. It is not an agent bootstrap prompt. Never equate a transcript copy,
 a CLI check passing or an agent's self-score with demonstrated meaning-centered curation.
 No real session or runtime test was run to produce these fixtures.
+
+For a fixture-free agent root, export the allowlisted product packet with scripts/export_knowledge_kit.py to a new external directory. Give only its entry, the separately filled profile, bundle and current released input; never expose this repository/evaluator/future stages as bootstrap.
