@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "kind": "observed-not-golden",
+  "source_commit": "84617d63a94d7959c2e7096a3ad4812b519fbc1b",
+  "files": [
+    {
+      "public_path": "knowledge/index.md",
+      "original_logical_path": "knowledge/index.md",
+      "sha256": "d1fbb7345542e23f848e2b31901d43ddd311800a124f1bd1f0cc2c771779b166",
+      "bytes": 2427
+    },
+    {
+      "public_path": "knowledge/concepts/reading-bookmark-preparation/r000001.md",
+      "original_logical_path": "knowledge/concepts/reading-bookmark-preparation/r000001.md",
+      "sha256": "b6938e0cf8d239a0a30ab9cb6b7c2aaedd2b0d41958fe45f556a2651299088e0",
+      "bytes": 2657
+    },
+    {
+      "public_path": "knowledge/concepts/reading-understanding-counterexample/r000001.md",
+      "original_logical_path": "knowledge/concepts/reading-understanding-counterexample/r000001.md",
+      "sha256": "6d9f464a2b4c226538cbeb3a7320a5ce73a1dabb8f4c4f6b524edc4cc9eefd7e",
+      "bytes": 4361
+    },
+    {
+      "public_path": "knowledge/concepts/reading-understanding-self-explanation/r000001.md",
+      "original_logical_path": "knowledge/concepts/reading-understanding-self-explanation/r000001.md",
+      "sha256": "b99254c05264649d5565bd6d6d5657aef9fd6884e0b0f0641890d70f62bd09f9",
+      "bytes": 3135
+    },
+    {
+      "public_path": "knowledge/concepts/reading-understanding-self-explanation/r000002.md",
+      "original_logical_path": "knowledge/concepts/reading-understanding-self-explanation/r000002.md",
+      "sha256": "cf6ef5d0403918d06f9d45c566f53c696214e1e056fda4909d2d97a3655a172e",
+      "bytes": 5006
+    },
+    {
+      "public_path": "knowledge/sources/reading-reflection-01-source/content.raw",
+      "original_logical_path": "knowledge/sources/reading-reflection-01-source/content.raw",
+      "sha256": "f52a777763c94771b86464dc99aa976f66a606a595d939bbf87417e1863609b6",
+      "bytes": 746
+    },
+    {
+      "public_path": "knowledge/sources/reading-reflection-02-source/content.raw",
+      "original_logical_path": "knowledge/sources/reading-reflection-02-source/content.raw",
+      "sha256": "1bf1cc5382ec4b517cf2090eb8ebb8c6a96f23554b8cfe82bf4a828898d9db43",
+      "bytes": 775
+    },
+    {
+      "public_path": "knowledge/sources/reading-reflection-03-source/content.raw",
+      "original_logical_path": "knowledge/sources/reading-reflection-03-source/content.raw",
+      "sha256": "950e4cba883b58d33a55d66c671de4d273653cd799ab30d724733fef0fd15e34",
+      "bytes": 738
+    },
+    {
+      "public_path": "knowledge/sources/reading-reflection-04-source/content.raw",
+      "original_logical_path": "knowledge/sources/reading-reflection-04-source/content.raw",
+      "sha256": "506b1d69410a0306ed2ec1983951ab42ea6ae5244fd5ccf7c1e9264206b32bca",
+      "bytes": 947
+    },
+    {
+      "public_path": "B-answer.md",
+      "original_logical_path": "pilot/B/r1-answer.md",
+      "sha256": "d94ecdadf3302d1b9c84e50261d4181e6946cd8abee7372b0d75c12125b5562d",
+      "bytes": 4128
+    }
+  ],
+  "assessment": {
+    "public_path": "AI-assessment.json",
+    "original_logical_path": "review/pilot/scores.json",
+    "sha256": "25b157dadfff14cfbf3f33ce6704dbce978d680135fe848e6b2a2bb3173d9683",
+    "bytes": 3803,
+    "report_sha256": "e47fdf56061b64a8d7d11105927a30b9f9f3812fb5be3aee7ec344ab5d8ae220"
+  }
+}

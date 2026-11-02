@@ -111,3 +111,5 @@ The evaluator rubric is separate and must not be part of agent bootstrap. This P
 agent pilot; deterministic copying/CLI tests cannot demonstrate the product experience.
 One later pilot is evidence for that run, not every host or all users. Preserve redacted
 prompts, actual model/runtime/session identity, source/artifact hashes, failures and limits.
+
+One actual Korean-input two-session run is now [documented with preserved outputs](knowledge-practice-validation.md). This adds observed evidence, not all-host or formal human acceptance.
