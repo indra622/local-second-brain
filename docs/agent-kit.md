@@ -19,6 +19,10 @@ install hooks or global rules. Real host/model integration is not proved by a de
 CLI example. Local storage makes no runtime uploads; an external agent may send allowed
 inputs to its provider under its own policy. Authorize access and transfers explicitly.
 
+For the broader preserve/curate/connect/reuse/revise experience and its quality criteria,
+read [the knowledge-practice specification](knowledge-practice.md). It separates product
+requirements from today's CLI mechanics and the later fresh-agent pilot.
+
 ## Run the synthetic reuse demo
 
 With the project environment active, choose a new or empty output directory:

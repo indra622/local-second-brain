@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "synthetic": true,
+  "files": [
+    {
+      "path": "entry-01.txt",
+      "bytes": 746,
+      "sha256": "f52a777763c94771b86464dc99aa976f66a606a595d939bbf87417e1863609b6",
+      "encoding": "UTF-8 BOM",
+      "newlines": "CRLF"
+    },
+    {
+      "path": "entry-02.txt",
+      "bytes": 775,
+      "sha256": "1bf1cc5382ec4b517cf2090eb8ebb8c6a96f23554b8cfe82bf4a828898d9db43",
+      "encoding": "UTF-8",
+      "newlines": "LF"
+    },
+    {
+      "path": "entry-03.txt",
+      "bytes": 738,
+      "sha256": "950e4cba883b58d33a55d66c671de4d273653cd799ab30d724733fef0fd15e34",
+      "encoding": "UTF-8",
+      "newlines": "LF"
+    },
+    {
+      "path": "entry-04.txt",
+      "bytes": 947,
+      "sha256": "506b1d69410a0306ed2ec1983951ab42ea6ae5244fd5ccf7c1e9264206b32bca",
+      "encoding": "UTF-8",
+      "newlines": "LF"
+    },
+    {
+      "path": "later-question.ko.txt",
+      "bytes": 440,
+      "sha256": "a570a95d65e5a2bcabcf71b2c2d9709b9725160321e5b933d292dfc83b7712a4",
+      "encoding": "UTF-8",
+      "newlines": "LF"
+    },
+    {
+      "path": "requests.json",
+      "bytes": 3383,
+      "sha256": "6fac4e6b2d2d50f210c651e0a4880648b49a1edb817685555ac178d905aa00ff",
+      "encoding": "UTF-8",
+      "newlines": "LF"
+    }
+  ]
+}
