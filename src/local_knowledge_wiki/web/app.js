@@ -1,6 +1,7 @@
 'use strict';
-let data = null, selected = null, tab = 'body', revision = null, historical = false, view = 'home', drillIds = null;
+let data = null, selected = null, tab = 'body', revision = null, historical = false, view = 'home', drillSpec = null;
 const $ = id => document.getElementById(id);
+const owns = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const mobile = window.matchMedia('(max-width:850px)');
 $('knowledge-nav').open = !mobile.matches;
 mobile.addEventListener('change', () => { $('knowledge-nav').open = !mobile.matches; });
@@ -16,23 +17,49 @@ function freshText(n) { if(bad(n)) return '확인 기한 판정 불가'; return 
 function review(n) { if (bad(n)) return 'unknown'; const v = n.verified; return v && (!Array.isArray(v) || v.length) ? 'declared' : 'none'; }
 function reviewText(n) { return ({unknown:'검토 선언 확인 불가',declared:'검토 선언 있음 (미인증)',none:'검토 선언 없음'})[review(n)]; }
 function title(n, id) { return typeof n?.title === 'string' && n.title.trim() ? n.title : id; }
-function open(path) { const n = data.notes[path]; if (!n) return; selected = n.id; revision = path; historical = path !== data.current[n.id]; tab = 'body'; showView('explore'); renderList(); renderDetail(); $('detail').focus(); }
+function open(path) {
+  const n=data.notes[path];
+  if(n) drill({kind:'record',id:n.id},'선택한 기록','body',path);
+}
+function categoryIds(spec, model) {
+  if (!spec) return null;
+  if (spec.kind === 'record') return [spec.id];
+  if (spec.kind === 'group') return model.groups[spec.family][spec.key];
+  if (spec.kind === 'source') return [...new Set(model.sourceGroups[spec.key].flatMap(sid=>model.sourceOwners[sid] || []))];
+  return model[spec.kind];
+}
+function matchingIds() {
+  if(!data)return [];
+  const members=categoryIds(drillSpec,homeModel(data));
+  const query=$('query').value.trim().toLocaleLowerCase();
+  return Object.entries(data.current).filter(([id,path])=>{
+    const n=data.notes[path];
+    return (!members || members.includes(id))
+      && (!query || (title(n,id)+'\n'+(n?.body||'')).toLocaleLowerCase().includes(query))
+      && (!$('status').value || $('status').value===lifecycle(n))
+      && (!$('fresh').value || $('fresh').value===freshness(n))
+      && (!$('review').value || $('review').value===review(n));
+  }).map(([id])=>id);
+}
+function reconcileSelection() {
+  const ids=matchingIds();
+  if(!selected || !owns(data.current,selected) || !ids.includes(selected)) {
+    selected=ids[0]||null;revision=selected?data.current[selected]:null;historical=false;
+  } else if(!historical || !owns(data.notes,revision)) {
+    revision=data.current[selected];historical=false;
+  }
+}
 function renderList() {
-  const query = $('query').value.trim().toLocaleLowerCase(); const list = $('notes'); list.replaceChildren(); let found = 0;
-  for (const [id, path] of Object.entries(data.current)) {
-    const n = data.notes[path];
-    if (drillIds && !drillIds.has(id)) continue;
-    if (query && !(title(n,id) + '\n' + (n?.body || '')).toLocaleLowerCase().includes(query)) continue;
-    if ($('status').value && $('status').value !== lifecycle(n)) continue;
-    if ($('fresh').value && $('fresh').value !== freshness(n)) continue;
-    if ($('review').value && $('review').value !== review(n)) continue;
+  const list=$('notes');list.replaceChildren();const ids=matchingIds();
+  for (const id of ids) {
+    const path=data.current[id],n=data.notes[path];
     const b = button(title(n,id), () => { selected=id; revision=path; historical=false; renderList(); renderDetail();if(mobile.matches){$('knowledge-nav').open=false;$('detail').focus();$('detail').scrollIntoView();} });
     b.setAttribute('aria-pressed', String(selected === id));
     add(b,el('span', n ? `${statusText(n)} / ${freshText(n)}` : '현재 파일을 읽지 못했습니다', 'subtitle'));
-    list.append(b); found++;
+    list.append(b);
   }
-  $('count').textContent = `${found} / ${Object.keys(data.current).length}개`;
-  if (!found) list.append(el('p','이 화면에서 일치하는 노트가 없습니다. 원문과 과거 본문은 검색 범위에 포함되지 않습니다.','empty'));
+  $('count').textContent = `${ids.length} / ${Object.keys(data.current).length}개`;
+  if (!ids.length) list.append(el('p','이 화면에서 일치하는 노트가 없습니다. 원문과 과거 본문은 검색 범위에 포함되지 않습니다.','empty'));
 }
 function diffLines(before, after) {
   const a=before.split('\n'), b=after.split('\n');
@@ -97,11 +124,11 @@ function renderDetail(){const container=$('detail');container.replaceChildren();
   if(tab==='body'){panel.append(pre(n.body,'reading'));const d=el('details');add(d,el('summary','기록 위치와 메타데이터 / 검토 선언'),pre({path:n.path,...n.metadata}));panel.append(d);}
   if(tab==='history')historyPanel(n,panel);if(tab==='sources')sourcesPanel(n,panel);if(tab==='related')relatedPanel(n,panel);
 }
-async function refresh(){const b=$('refresh');b.disabled=true;b.textContent='읽는 중…';try{const response=await fetch('./api/snapshot',{cache:'no-store',signal:AbortSignal.timeout(20000)});const next=await response.json();if(!response.ok)throw new Error(next.error||'갱신 실패');if(!next.current||!next.notes)throw new Error('응답 형식을 확인할 수 없습니다.');data=next;if(!selected||!(selected in data.current)){selected=Object.keys(data.current)[0]||null;revision=selected?data.current[selected]:null;historical=false;}else if(!historical || !data.notes[revision]){revision=data.current[selected];historical=false;}
+async function refresh(){const b=$('refresh');b.disabled=true;b.textContent='읽는 중…';try{const response=await fetch('./api/snapshot',{cache:'no-store',signal:AbortSignal.timeout(20000)});const next=await response.json();if(!response.ok)throw new Error(next.error||'갱신 실패');if(!next.current||!next.notes)throw new Error('응답 형식을 확인할 수 없습니다.');data=next;reconcileSelection();
   $('error').hidden=true;$('scan').textContent='마지막 성공: '+new Date(data.completed_at).toLocaleString('ko-KR');$('coverage').textContent=`${data.bundle} / ${Object.keys(data.current).length}개의 지식${data.partial?' / 일부 기록을 읽지 못했습니다.':''}`;
   $('scan-technical').textContent=`스캔 시작 ${new Date(data.scanned_at).toLocaleString('ko-KR')} / ${data.partial?'미확인 파일 '+data.diagnostics.length+'건':'읽은 파일 바이트 재확인 완료'}. 동시 변경의 원자적 스냅샷은 아닙니다. 누락 기록: ${JSON.stringify(data.diagnostics)}`;renderList();renderDetail();renderHome();showView(view);
   }catch(error){$('error').textContent='새로 읽지 못했습니다. '+error.message+(data?' 마지막 성공 화면을 유지합니다.':' 아직 성공한 화면이 없습니다.');$('error').hidden=false;}finally{b.disabled=false;b.textContent='새로 읽기';}}
-for(const id of ['query','status','fresh','review'])$(id).addEventListener(id==='query'?'input':'change',()=>{if(data)renderList();});$('refresh').onclick=refresh;
+for(const id of ['query','status','fresh','review'])$(id).addEventListener(id==='query'?'input':'change',()=>{if(data){reconcileSelection();renderList();renderDetail();}});$('refresh').onclick=refresh;
 $('nav-home').onclick=()=>showView('home');
 $('nav-explore').onclick=()=>showView('explore');
 $('clear-drill').onclick=()=>drill(null,'전체 지식');
@@ -117,7 +144,7 @@ function deadline(n) {
 function homeModel(snapshot) {
   const entries = Object.entries(snapshot.current);
   const groups = {deadline:{overdue:[],before:[],none:[],unknown:[],invalid:[],missing:[]}, review:{declared:[],none:[],unknown:[]}, status:{draft:[],stable:[],deprecated:[],unknown:[]}};
-  const sourceIds = new Set(), sourceOwners = {}, attention = [], unsupported = [], unlinked = [];
+  const sourceIds = new Set(), sourceOwners = Object.create(null), attention = [], unsupported = [], unlinked = [];
   let currentRead = 0;
   for (const [id,path] of entries) {
     const n = snapshot.notes[path];
@@ -131,14 +158,14 @@ function homeModel(snapshot) {
     if (!(n.source_refs || []).length) unlinked.push(id);
     for (const sid of n.source_ids) {
       sourceIds.add(sid); (sourceOwners[sid] ||= []).push(id);
-      const s = snapshot.sources[sid];
+      const s = owns(snapshot.sources,sid)?snapshot.sources[sid]:null;
       if (!s || s.state !== 'available' || s.provenance_error || s.hash_matches_declaration !== true) needsAttention=true;
     }
     if (needsAttention) attention.push(id);
   }
   const sourceGroups = {available:[],nontext:[],unavailable:[],provenance:[]};
   for (const sid of sourceIds) {
-    const s=snapshot.sources[sid];
+    const s=owns(snapshot.sources,sid)?snapshot.sources[sid]:null;
     sourceGroups[s?.state==='available'?'available':s?.state==='non-utf8'?'nontext':'unavailable'].push(sid);
     if (!s || s.provenance_error || s.hash_matches_declaration !== true) sourceGroups.provenance.push(sid);
   }
@@ -158,15 +185,15 @@ function showView(next) {
   $('nav-explore').setAttribute('aria-pressed',String(view==='explore'));
   $('screen-title').textContent=view==='home'?'지식 현황':'지식 탐색';
 }
-function drill(ids,label,targetTab='body',path=null) {
+function drill(spec,label,targetTab='body',path=null) {
   if(!data) return;
-  drillIds=ids===null?null:new Set(ids);
+  drillSpec=spec;
   for(const id of ['query','status','fresh','review'])$(id).value='';
-  $('drill-banner').hidden=drillIds===null;
+  $('drill-banner').hidden=drillSpec===null;
   $('drill-label').textContent=label;
-  const first=ids===null?Object.keys(data.current)[0]:ids[0];
-  selected=first||null;revision=path||(first?data.current[first]:null);
+  selected=spec?.kind==='record'?spec.id:null;revision=path;
   historical=!!revision && revision!==data.current[selected];tab=targetTab;
+  reconcileSelection();
   showView('explore');renderList();renderDetail();
   if(mobile.matches)$('knowledge-nav').open=false;
   $('screen-title').scrollIntoView();$('detail').focus({preventScroll:true});
@@ -176,10 +203,10 @@ function panel(titleText, subtitle) {
   if(subtitle)box.append(el('p',subtitle,'panel-subtitle'));
   return box;
 }
-function distribution(titleText, subtitle, items, total) {
+function distribution(titleText, subtitle, items, total, family) {
   const box=panel(titleText,subtitle);
-  for(const [label,ids,tone] of items) {
-    const b=button('',()=>drill(ids,label));b.className='distribution-row';
+  for(const [label,ids,tone,key] of items) {
+    const b=button('',()=>drill({kind:'group',family,key},label));b.className='distribution-row';
     add(b,el('span',label),el('strong',ids.length));
     const track=el('span',undefined,'bar-track'),bar=el('span',undefined,'bar '+tone);
     bar.style.width=(total?100*ids.length/total:0)+'%';track.append(bar);b.append(track);box.append(b);
@@ -191,40 +218,39 @@ function renderHome() {
   if(!data)return;
   const model=homeModel(data),home=$('home');home.replaceChildren();
   const cards=el('div',undefined,'stat-grid');
-  function stat(key,label,value,description,ids,targetTab='body',tone='') {
-    const b=button('',()=>drill(ids,label,targetTab));b.className='stat-card '+tone;b.dataset.stat=key;
+  function stat(key,label,value,description,spec,targetTab='body',tone='') {
+    const b=button('',()=>drill(spec,label,targetTab));b.className='stat-card '+tone;b.dataset.stat=key;
     add(b,el('span',label,'stat-label'),el('strong',value,'stat-value'),el('span',description,'stat-description'));cards.append(b);
   }
   stat('current','현재 지식',model.currentCount,model.currentRead+'개 본문 확인 / '+(model.currentCount-model.currentRead)+'개 파일 미확인',null);
   stat('revisions','읽은 리비전',model.revisions,'현재 주제의 과거 기록 포함'+(data.partial?' / 일부 미확인':''),null,'history');
-  stat('overdue','확인 기한 지남',model.groups.deadline.overdue.length,'현재 기록 중 판정 가능한 기한 기준',model.groups.deadline.overdue,'body','amber');
-  stat('attention','확인이 필요한 기록',model.attention.length,'기한 초과, 형식 또는 출처 확인 필요',model.attention,'sources','amber');
+  stat('overdue','확인 기한 지남',model.groups.deadline.overdue.length,'현재 기록 중 판정 가능한 기한 기준',{kind:'group',family:'deadline',key:'overdue'},'body','amber');
+  stat('attention','확인이 필요한 기록',model.attention.length,'기한 초과, 형식 또는 출처 확인 필요',{kind:'attention'},'sources','amber');
   home.append(cards);
   const grid=el('div',undefined,'panel-grid');
   grid.append(distribution('확인 기한','현재 지식 기준 / 미지정과 판정 불가를 구분합니다.',[
-    ['기한 지남',model.groups.deadline.overdue,'amber'],['기한 전',model.groups.deadline.before,'teal'],['기한 미지정',model.groups.deadline.none,'muted'],['기한 판정 불가',model.groups.deadline.unknown,'muted'],['형식 확인 필요',model.groups.deadline.invalid,'amber'],['현재 파일 미확인',model.groups.deadline.missing,'red']],model.currentCount));
+    ['기한 지남',model.groups.deadline.overdue,'amber','overdue'],['기한 전',model.groups.deadline.before,'teal','before'],['기한 미지정',model.groups.deadline.none,'muted','none'],['기한 판정 불가',model.groups.deadline.unknown,'muted','unknown'],['형식 확인 필요',model.groups.deadline.invalid,'amber','invalid'],['현재 파일 미확인',model.groups.deadline.missing,'red','missing']],model.currentCount,'deadline'));
   grid.append(distribution('검토 선언','사람 인증이나 내용의 사실 확인 수가 아닙니다.',[
-    ['선언 있음',model.groups.review.declared,'teal'],['선언 없음',model.groups.review.none,'muted'],['선언 확인 불가',model.groups.review.unknown,'amber']],model.currentCount));
+    ['선언 있음',model.groups.review.declared,'teal','declared'],['선언 없음',model.groups.review.none,'muted','none'],['선언 확인 불가',model.groups.review.unknown,'amber','unknown']],model.currentCount,'review'));
   grid.append(distribution('기록 상태','현재 선택에 기록된 상태 / 생략 시 기존 기본값을 따릅니다.',[
-    ['초안',model.groups.status.draft,'blue'],['안정 상태 선언',model.groups.status.stable,'teal'],['사용 중단 선언',model.groups.status.deprecated,'muted'],['상태 확인 불가',model.groups.status.unknown,'amber']],model.currentCount));
+    ['초안',model.groups.status.draft,'blue','draft'],['안정 상태 선언',model.groups.status.stable,'teal','stable'],['사용 중단 선언',model.groups.status.deprecated,'muted','deprecated'],['상태 확인 불가',model.groups.status.unknown,'amber','unknown']],model.currentCount,'status'));
   home.append(grid);
   const lower=el('div',undefined,'lower-grid');
   const sources=panel('원문 연결 상태',`현재 지식에 연결된 고유 보존물 ${model.sourceCount}개 / 과거 전용 출처 제외`);
-  function sourceRow(label,ids,targetTab='sources',count=ids.length){const b=button('',()=>drill(ids,label,targetTab));b.className='source-row';add(b,el('span',label),el('strong',count));sources.append(b);}
-  const owners=sids=>[...new Set(sids.flatMap(sid=>model.sourceOwners[sid]||[]))];
-  sourceRow('텍스트 읽기 가능',owners(model.sourceGroups.available),'sources',model.sourceGroups.available.length);
-  sourceRow('텍스트 표시 불가',owners(model.sourceGroups.nontext),'sources',model.sourceGroups.nontext.length);
-  sourceRow('보존 원문 미확인',owners(model.sourceGroups.unavailable),'sources',model.sourceGroups.unavailable.length);
-  sourceRow('출처 기록 확인 필요',owners(model.sourceGroups.provenance),'sources',model.sourceGroups.provenance.length);
-  sourceRow('지원하지 않는 연결이 있는 지식',model.unsupported);
-  sourceRow('출처 연결 선언 없는 지식',model.unlinked);
+  function sourceRow(label,spec,count){const b=button('',()=>drill(spec,label,'sources'));b.className='source-row';add(b,el('span',label),el('strong',count));sources.append(b);}
+  sourceRow('텍스트 읽기 가능',{kind:'source',key:'available'},model.sourceGroups.available.length);
+  sourceRow('텍스트 표시 불가',{kind:'source',key:'nontext'},model.sourceGroups.nontext.length);
+  sourceRow('보존 원문 미확인',{kind:'source',key:'unavailable'},model.sourceGroups.unavailable.length);
+  sourceRow('출처 기록 확인 필요',{kind:'source',key:'provenance'},model.sourceGroups.provenance.length);
+  sourceRow('지원하지 않는 연결이 있는 지식',{kind:'unsupported'},model.unsupported.length);
+  sourceRow('출처 연결 선언 없는 지식',{kind:'unlinked'},model.unlinked.length);
   if(model.currentRead<model.currentCount)sources.append(el('p',`${model.currentCount-model.currentRead}개 현재 파일을 읽지 못해 원문 연결 현황도 일부 미확인입니다.`,'warning'));
   lower.append(sources);
   const recent=panel('최근 기록','작성 시각 선언순 / 읽은 리비전 기준, 과거 기록 포함');
   const help=el('details');add(help,el('summary','시간과 집계 기준'),el('p','생성 메타데이터의 해석 가능한 시각을 정렬합니다. 인증된 생성 시점이나 실제 이용 활동이 아닙니다. 오류가 있거나 시각을 알 수 없는 기록은 정렬에서 제외합니다. 확인 필요 수는 원문 내용의 오류를 뜻하지 않습니다.'));
   recent.append(help);
   for(const {note:n,time} of model.recent.slice(0,6)){
-    const row=button('',()=>drill([n.id],'최근 기록','body',n.path));row.className='recent-row';
+    const row=button('',()=>drill({kind:'record',id:n.id},'최근 기록','body',n.path));row.className='recent-row';
     add(row,el('span',title(n,n.id)),el('span',(n.current?'현재':'이전')+' / '+new Date(time).toLocaleString('ko-KR'),'subtitle'));recent.append(row);
   }
   recent.append(el('p',`시각 미확인 ${model.unknownTime}개 / 정렬 가능한 ${model.recent.length}개 중 최대 6개 표시`,'path'));

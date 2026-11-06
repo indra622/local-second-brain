@@ -79,3 +79,9 @@ usage events. There are no uptime, growth, cost or confidence metrics and no aut
 refresh. Failed refresh retains the last successful home as well as explorer.
 
 Run `node tests/test_webview_ui.cjs` for aggregation and refresh-selection regressions.
+
+Home categories are live filters: successful refresh re-evaluates deadline, review, status,
+source and attention membership from the new snapshot. Manual controls intersect that
+category. No matching result clears the detail pane. Deliberately opening a record or
+history creates an explicit record selection, retained only while it remains in the
+loaded scope; it is not a frozen category.
