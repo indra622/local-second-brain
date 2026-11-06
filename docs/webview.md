@@ -85,3 +85,8 @@ source and attention membership from the new snapshot. Manual controls intersect
 category. No matching result clears the detail pane. Deliberately opening a record or
 history creates an explicit record selection, retained only while it remains in the
 loaded scope; it is not a frozen category.
+
+Validated generation times are projected to ISO timestamps with their explicit offsets
+for the browser. Equivalent quoted/unquoted YAML timestamps therefore participate in
+the same recent ordering. Invalid or timezone-naive declarations remain unknown. This
+normalization does not rewrite stored metadata, unknown fields or source bytes.

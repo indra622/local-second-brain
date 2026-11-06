@@ -10,7 +10,7 @@ from importlib.resources import files
 from pathlib import Path
 
 from . import annotations
-from .format import local_target
+from .format import local_target, timestamp
 from .graph import markdown_links
 from .reading import REVISION_PATH, read_note
 from .storage import Store, WikiError, current_index, identifier
@@ -226,6 +226,15 @@ def snapshot(root, identity):
                 try:
                     note, _ = read_note(scan, revision, started, current)
                     note['metadata'] = bounded_metadata(note['metadata'])
+                    generated = note.get('generated')
+                    if isinstance(generated, dict) and 'at' in generated:
+                        try:
+                            normalized = timestamp(generated['at']).isoformat()
+                        except WikiError:
+                            pass
+                        else:
+                            note['metadata']['generated']['at'] = normalized
+                            note['generated'] = note['metadata']['generated']
                     note.update(id=concept_id, sha256=hashlib.sha256(scan.read(revision)).hexdigest())
                     note['status'] = note['status'] if not note['metadata_errors'] else 'unknown'
                     if note['metadata_errors']:

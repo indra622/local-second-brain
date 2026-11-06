@@ -3,6 +3,8 @@ import hashlib
 import http.client
 import json
 import os
+import shutil
+import subprocess
 from pathlib import Path
 import tempfile
 import threading
@@ -125,6 +127,57 @@ class WebviewTests(unittest.TestCase):
         n = self.get()['notes']['concepts/topic/r000002.md']
         self.assertEqual(n['metadata_errors'], [])
         self.assertEqual(n['status'], 'stable')
+
+    def timestamp_snapshot(self):
+        cases = {
+            'quoted': ('"2026-11-06T00:00:00+00:00"', '2026-11-06T00:00:00+00:00'),
+            'unquoted': ('2026-11-06T00:00:00+00:00', '2026-11-06T00:00:00+00:00'),
+            'offset': ('2026-11-06T09:00:00+09:00', '2026-11-06T09:00:00+09:00'),
+            'negative': ('"2026-11-05T18:30:00-05:30"', '2026-11-05T18:30:00-05:30'),
+            'lowercase': ('"2026-11-06t00:00:00z"', '2026-11-06T00:00:00+00:00'),
+            'yaml-space': ('2026-11-06 00:00:00+00:00', '2026-11-06T00:00:00+00:00'),
+            'fraction': ('2026-11-06T09:00:00.123456+09:00', '2026-11-06T09:00:00.123456+09:00'),
+            'quoted-fraction': ('"2026-11-06T00:00:00.123456Z"', '2026-11-06T00:00:00.123456+00:00'),
+            'naive': ('2026-11-06T00:00:00', None),
+            'quoted-naive': ('"2026-11-06T00:00:00"', None),
+            'invalid': ('"not-a-time"', None),
+            'calendar': ('"2026-02-30T00:00:00Z"', None),
+            'quoted-space': ('"2026-11-06 00:00:00+00:00"', None),
+        }
+        expected = {}
+        for name, (literal, normalized) in cases.items():
+            id = 'timestamp-' + name
+            self.curate(id)
+            path = self.bundle / f'concepts/{id}/r000001.md'
+            path.write_text('---\ntype: Concept\ngenerated:\n  by: test/1\n  at: ' + literal
+                            + '\n  x-opaque: 2026-11-06T00:00:00+00:00\nx-unknown: preserved\n---\npublic synthetic body')
+            expected[id] = normalized
+        before = self.bytes()
+        data = self.get()
+        self.assertEqual(before, self.bytes())
+        return data, expected
+
+    def test_valid_generation_times_normalized_without_changing_unknown_fields(self):
+        data, expected = self.timestamp_snapshot()
+        for id, normalized in expected.items():
+            with self.subTest(id=id):
+                note = data['notes'][data['current'][id]]
+                self.assertEqual(note['metadata']['x-unknown'], 'preserved')
+                self.assertEqual(note['metadata']['generated']['x-opaque'], '2026-11-06 00:00:00+00:00')
+                if normalized is None:
+                    self.assertTrue(note['metadata_errors'])
+                else:
+                    self.assertEqual(note['metadata_errors'], [])
+                    self.assertEqual(note['generated']['at'], normalized)
+                    self.assertEqual(note['metadata']['generated']['at'], normalized)
+
+    @unittest.skipUnless(shutil.which('node'), 'Node required for actual homeModel integration')
+    def test_generation_transport_reaches_actual_recent_model(self):
+        data, expected = self.timestamp_snapshot()
+        result = subprocess.run(['node', str(Path(__file__).with_name('check_webview_recent.cjs'))],
+                                input=json.dumps({'snapshot': data, 'expected': expected}),
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_raw_yaml_alias_expansion_fails_with_bounded_memory(self):
         import tracemalloc
