@@ -4,6 +4,11 @@
 
 **English** | [한국어](README.ko.md)
 
+## Optional local viewer
+
+Run `second-brain view /absolute/path/to/bundle` and open the printed loopback URL to
+monitor one CLI bundle without changing it. See [scope, safety and limits](docs/webview.md).
+
 ## Keep what you learn with AI. Use it beyond the chat.
 
 **Your own knowledge library, with sources attached and notes ready to reuse.**
@@ -195,7 +200,7 @@ It does not check facts. Open the knowledge folder's `index.md` to follow its li
 
 ## Scope and limits
 
-- **You guide the work.** There is no automatic memory, model-generated synthesis, or semantic search. The tool stores prepared notes and searches exact words. It has no GUI or MCP server and implements only part of OKF.
+- **You guide the work.** There is no automatic memory, model-generated synthesis, or semantic search. The tool stores prepared notes and searches exact words. An optional read-only local viewer is available; there is no editor or MCP server, and only part of OKF is implemented.
 - **Input limits.** Raw sources allow 256 MiB; note bodies allow 16 MiB. Metadata, indexes and receipts have separate byte limits. Oversized inputs are rejected without truncation. See [input byte limits](docs/reference.md#input-byte-limits).
 - **Local operation.** The CLI does not use the network at runtime. External agents have their own network and data policies.
 - **Review is a declaration.** Review records and freshness signals help you choose what to recheck; they do not authenticate reviewers or verify facts. See the [command and support reference](docs/reference.md).

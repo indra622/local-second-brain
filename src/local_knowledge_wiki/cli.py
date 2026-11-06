@@ -296,6 +296,9 @@ def main(argv=None):
                         help="Error interface; put before COMMAND (default legacy); json includes parser errors")
     commands = parser.add_subparsers(dest="command", required=True,
                                     parser_class=partial(ErrorParser, machine=machine))
+    p = commands.add_parser("view", help="Serve an explicit bundle read-only on loopback; Ctrl-C to stop")
+    p.add_argument("bundle")
+    p.add_argument("--port", type=int, default=8765, help="127.0.0.1 only; 0 selects an available port")
     p = commands.add_parser("init", help="Create an empty bundle")
     p.add_argument("bundle")
     p = commands.add_parser("capture", help="Copy source bytes and record provenance")
@@ -408,6 +411,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         require_capabilities()
+        if args.command == "view":
+            from .webview import serve
+            serve(args.bundle, args.port)
+            return 0
         now = None
         if args.command not in ("review", "annotate", "context", "graph", "health", "eval-retrieval"):
             now = timestamp(args.now) if getattr(args, "now", None) else datetime.now(timezone.utc)
