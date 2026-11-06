@@ -227,7 +227,7 @@ def snapshot(root, identity):
                     note, _ = read_note(scan, revision, started, current)
                     note['metadata'] = bounded_metadata(note['metadata'])
                     note.update(id=concept_id, sha256=hashlib.sha256(scan.read(revision)).hexdigest())
-                    note['status'] = note['metadata'].get('status', 'unknown')
+                    note['status'] = note['status'] if not note['metadata_errors'] else 'unknown'
                     if note['metadata_errors']:
                         note['stale'] = None
                     declared = note['metadata'].get('sources', [])

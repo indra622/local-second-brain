@@ -2,17 +2,17 @@
 version: alpha
 name: Local Second Brain monitor
 colors:
-  primary: "#176e69"
-  text: "#182b2b"
-  muted: "#4d6262"
-  background: "#f5f7f7"
-  surface: "#fdfefe"
-  border: "#718686"
-  warning: "#823b17"
+  primary: "#73cbb9"
+  text: "#e7e9ef"
+  muted: "#aab2c0"
+  background: "#111217"
+  surface: "#1b1d24"
+  border: "#596373"
+  warning: "#ffc078"
 typography:
   heading:
     fontFamily: system-ui
-    fontSize: 32px
+    fontSize: 24px
     fontWeight: 700
     lineHeight: 1.4
   body:
@@ -22,51 +22,57 @@ typography:
     lineHeight: 1.65
 rounded:
   control: 5px
-  panel: 10px
+  panel: 7px
 spacing:
   small: 8px
   medium: 16px
-  panel: 24px
+  panel: 20px
 ---
 
 ## Overview
 
-A quiet reading surface for the person who monitors an agent-maintained CLI bundle.
-Reuse the existing site's teal palette without its marketing layout. Content, source
-availability and uncertainty take priority over decorative charts or scores.
+A compact monitoring home precedes the existing knowledge explorer. Panel rows and
+snapshot distributions provide an operational overview without invented telemetry.
+The dark-neutral aesthetic takes inspiration from monitoring dashboards, not Grafana
+branding or a Grafana dependency. Reading and uncertainty remain primary.
 
 ## Colors
 
-Teal identifies selection and keyboard focus. Dark neutral text and muted explanatory
-text remain readable on the pale background. Warnings use text as well as color.
+Use a near-black background and charcoal panels. Teal indicates selection and known
+counts, amber indicates attention, and muted blue-gray indicates unspecified state.
+Every semantic color is accompanied by readable text. These are observed states, not
+confidence or health scores. The explorer shares the same normative palette.
 
 ## Typography
 
-Use local system fonts without network requests. Long Korean content uses generous
-line spacing. Technical metadata uses monospace inside collapsed details.
+Use local system fonts, a 24px page title, 16px body text, compact panel captions and
+large tabular counts. Technical metadata uses monospace behind disclosure controls.
 
 ## Layout
 
-A current-note sidebar and a reading pane share the desktop. On narrow screens, filters
-and notes precede the content. Revision comparison stacks vertically on mobile.
+Desktop home has four statistic panels, three distribution panels and source/recent
+record rows. Mobile uses a two-column statistic grid and stacked distribution panels.
+Top navigation switches Home and Explore. Explore retains the collapsible mobile list.
 
 ## Elevation & Depth
 
-Use subtle borders and tonal surfaces instead of shadows or animation.
+Subtle borders and tonal layers separate panels. Do not use hero blocks or animation.
 
 ## Shapes
 
-Small control radii and restrained panel corners match the existing product palette.
+Use 5px control corners and restrained 7px panel corners, consistent across views.
 
 ## Components
 
-All navigation uses native buttons, labeled inputs, selects and expandable details.
-Keyboard focus is visible. Refresh errors retain the last successful content. Metadata,
-hashes and paths belong behind expandable details; readable source content stays primary.
+Panels and distribution rows use native keyboard-focusable buttons to drill into the
+explorer. Native disclosures hold mechanics and declaration context. Visible refresh
+errors retain the last successful home and explorer. Unknown and partial states remain
+explicit. Recent rows use declared metadata times, never authenticated activity telemetry.
 
 ## Do's and Don'ts
 
-- Show missing, unknown and partial states explicitly.
-- Keep source text and interpreted note text distinct without authenticating actor names.
-- Do not render stored HTML, execute links or suggest editing actions.
-- Do not add invented metrics or decorative graphs.
+- Separate current concepts, loaded historical revisions and unique current source bindings.
+- Show unspecified deadlines, malformed records and unread files separately.
+- Keep preserved sources and interpreted note text distinct without authenticating actors.
+- Do not render stored HTML or execute links.
+- Do not add uptime, growth, cost, confidence or time-series without observed evidence.

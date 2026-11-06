@@ -66,3 +66,16 @@ regressions. The feature adds no editor, ingestion, migration or separate review
 store. [Design guidance](../DESIGN.md) describes the reading surface. Browser checks must
 use public synthetic data and an isolated profile; a successful HTTP fetch alone does
 not demonstrate rendered usability.
+
+## Status home
+
+The first view is a compact status dashboard. Its current-note distributions, unique
+current source bindings and recent records use the delivered snapshot only. Panels drill
+into the existing explorer. Loaded revisions include history for indexed concepts; they
+are not counted as current knowledge. Missing files and malformed records remain separate
+from unspecified deadlines. Review counts are declarations, not authenticated checks.
+Recent rows sort parseable declared generation times across loaded revisions, not observed
+usage events. There are no uptime, growth, cost or confidence metrics and no automatic
+refresh. Failed refresh retains the last successful home as well as explorer.
+
+Run `node tests/test_webview_ui.cjs` for aggregation and refresh-selection regressions.

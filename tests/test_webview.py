@@ -120,6 +120,12 @@ class WebviewTests(unittest.TestCase):
         with self.assertRaisesRegex(WikiError, 'collide'):
             bounded_metadata({1:'one','1':'two'})
 
+    def test_valid_implicit_status_preserves_shared_reader_default(self):
+        (self.bundle / 'concepts/topic/r000002.md').write_text('---\ntype: Concept\ntitle: Valid implicit status\n---\nbody')
+        n = self.get()['notes']['concepts/topic/r000002.md']
+        self.assertEqual(n['metadata_errors'], [])
+        self.assertEqual(n['status'], 'stable')
+
     def test_raw_yaml_alias_expansion_fails_with_bounded_memory(self):
         import tracemalloc
         header = ['type: Concept', 'base: &a [leaf]']
