@@ -53,3 +53,32 @@ The wheel check was not repeated for these documentation and verifier changes.
 The earlier wheel result above is historical. Package configuration and CLI code were
 unchanged. [Public-source field validation](field-validation.md) records the separate
 Codex exercise and the unsuccessful Obsidian GUI access attempt.
+
+## Maintenance policy
+
+Keep maintenance proportional to this small library and CLI. The supported runtime
+dependency range is `PyYAML>=6.0,<7`; `pyproject.toml` also declares the build requirements.
+There is no project lockfile. Preserve the library compatibility range rather than pinning
+all consumers to one development environment. For repeatable validation, record the source
+commit, Python and dependency versions, commands and results. A future application or
+release build can use a separate pinned environment without changing that compatibility
+contract. `pip check` checks installed dependency consistency, not reproducible builds.
+
+No lint or typecheck command is configured. If Ruff is already installed, record its
+version, configuration and diagnostics before classifying fixes. Do not install or update
+global tools implicitly, or treat an earlier review's diagnostic count as reproduced.
+Keep cosmetic lint work separate from correctness fixes. Use the relevant checks above
+for runtime changes; for documentation alone, check changed links and affected examples.
+
+Measure tracked checkout files separately from Git history or transfer size. On 2026-11-06,
+the tracked `site/` files totaled 4,786,636 bytes; its seven image/video files totaled
+4,731,773 bytes. These are worktree file sizes, not compressed clone costs. Preserve
+approved bilingual clips, reproducible sources, byte manifests and public URLs described
+in the [asset inventory](../site/assets/README.md). Consider other media hosting only if
+measured costs justify it and URL preservation is planned; do not rewrite history or
+relocate assets as routine cleanup. Run `python scripts/showcase/verify.py` when checking
+the existing public sample and asset contracts.
+
+The [file interface](reference.md#file-interface) documents compatibility names. Any
+future rename needs an explicit import, command and bundle migration plan; differing
+names alone are not a runtime defect.

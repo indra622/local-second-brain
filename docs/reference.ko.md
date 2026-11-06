@@ -460,7 +460,10 @@ PyPI 배포는 아직 없으므로 프로젝트 소스로 설치한다.
 
 ## 파일 인터페이스
 
-내부 Python 모듈은 `local_knowledge_wiki`를 유지한다. 기존 번들은 변환할 필요가 없다.
+배포명은 `local-second-brain`, 설치된 명령은 `second-brain`, Python import 이름은
+`local_knowledge_wiki`다. 번들 내부의 `.lkw.lock`, `.lkw-requests/`, `.lkw-index.*.tmp`는
+저장 호환성을 위해 유지한다. 서로 다른 인터페이스의 이름이므로 수동으로 바꾸지 않는다.
+기존 번들은 변환할 필요가 없다. 이름 변경을 제안하기 전에 [유지보수 정책](development.ko.md#유지보수-정책)을 확인한다.
 
 ## 작업 맥락 선언
 
