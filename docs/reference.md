@@ -527,7 +527,11 @@ No PyPI package release is available. Install from the source checkout.
 
 ## File interface
 
-The internal Python module remains `local_knowledge_wiki`; existing bundles need no migration.
+The distribution is `local-second-brain`, the installed command is `second-brain`, and
+the Python import remains `local_knowledge_wiki`. Bundle internals retain `.lkw.lock`,
+`.lkw-requests/` and `.lkw-index.*.tmp` names for storage compatibility. These names
+serve different interfaces; do not rename them manually. Existing bundles need no migration.
+See the [maintenance policy](development.md#maintenance-policy) before proposing a rename.
 
 ## Work context declarations
 
