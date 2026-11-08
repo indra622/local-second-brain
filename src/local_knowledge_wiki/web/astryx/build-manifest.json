@@ -16,7 +16,7 @@
   "source": {
     "package.json": "99f168f7bfa9fb71ce7d210e69e4a4074a0ed9e7387358f31c3eba04578b98fc",
     "package-lock.json": "11b1d4f461da36a251f26d1b68da6df3a170b7cb2c0243903bd8d659c97a5008",
-    "build.mjs": "12423a2048589e68b65a663ac17237b4caa3f526bf51cae6bf1f2ffadb7490fa",
+    "build.mjs": "c26dba749748a33e2179e875fe7578b62c52b42608e76eafbbef9b41295f5358",
     "index.html": "b958b789ca39a1f0ae820389f64c8e6cb3c2e86b865525395c077ff15d579448",
     "test.mjs": "9697d432638d12fb398f7fdc0a3c25d733d7ab112a1f917ffb9b2a3b5fd8a542",
     "licenses/astryx.txt": "a6855be541fc8f446acd1bc4f2f8efce1ace6dce71dba32fcd8da553ee54b473",
@@ -40,8 +40,8 @@
       "sha256": "1361b9a78579dd5e87647c75a8e536246ae7e25cf600f819cf639651eb121013"
     },
     "notices.txt": {
-      "bytes": 15241,
-      "sha256": "4e2e0d56cec59144999bd3fb1f73bcb096c3829761ee846ba8b89f03644b0483"
+      "bytes": 15240,
+      "sha256": "6f0672a7b076ea75f2bca9bd392e7288e522b670b532d727a36ef63798308789"
     }
   }
 }

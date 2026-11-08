@@ -25,7 +25,7 @@ try{
     if(!license.length){if(name.startsWith('@astryxdesign/'))notices.push(fs.readFileSync('licenses/astryx.txt','utf8'));else if(name==='@stylexjs/stylex')notices.push(fs.readFileSync('licenses/stylex.txt','utf8'));else throw Error('Missing license text for bundled '+name);}
     for(const file of license)notices.push(fs.readFileSync(path.join(dir,file),'utf8'));
   }
-  fs.writeFileSync(dist+'/notices.txt',notices.join('\n\n----------------\n\n')+'\n');
+  fs.writeFileSync(dist+'/notices.txt',notices.join('\n\n----------------\n\n').trimEnd()+'\n');
   const sourceFiles=['package.json','package-lock.json','build.mjs','index.html','test.mjs','licenses/astryx.txt','licenses/stylex.txt',...fs.readdirSync('src').sort().map(n=>'src/'+n)];
   const manifest={schema:1,packages:Object.fromEntries([...packages].map(([name,{meta}])=>[name,meta.version]).sort()),source:Object.fromEntries(sourceFiles.map(n=>[n,hash(n)])),assets:Object.fromEntries(['index.html','app.js','app.css','notices.txt'].map(n=>[n,{bytes:fs.statSync(dist+'/'+n).size,sha256:hash(dist+'/'+n)}]))};
   fs.writeFileSync(dist+'/build-manifest.json',JSON.stringify(manifest,null,2)+'\n');
