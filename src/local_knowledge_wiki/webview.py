@@ -333,6 +333,7 @@ class ViewerHandler(BaseHTTPRequestHandler):
             return self.reply(403)
         assets = {'/': ('index.html', 'text/html; charset=utf-8'),
                   '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
+                  '/map.js': ('map.js', 'text/javascript; charset=utf-8'),
                   '/style.css': ('style.css', 'text/css; charset=utf-8')}
         if self.path in assets:
             name, kind = assets[self.path]

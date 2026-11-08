@@ -1,10 +1,12 @@
 'use strict';
-let data = null, selected = null, tab = 'body', revision = null, historical = false, view = 'home', drillSpec = null;
+let data = null, selected = null, tab = 'body', revision = null, historical = false, view = 'home', drillSpec = null, topicFilter = '', mapSelected = null, mapFocus = null, mapHops = 0;
+let mapViewport = {x:0,y:0,w:1000,h:600};
+let layoutCache = {key:null,positions:null};
 const $ = id => document.getElementById(id);
 const owns = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 const mobile = window.matchMedia('(max-width:850px)');
 $('knowledge-nav').open = !mobile.matches;
-mobile.addEventListener('change', () => { $('knowledge-nav').open = !mobile.matches; });
+mobile.addEventListener('change', () => { $('knowledge-nav').open = !mobile.matches;if(data)renderHome(); });
 function el(tag, text, cls) { const e = document.createElement(tag); if (text !== undefined) e.textContent = String(text); if (cls) e.className = cls; return e; }
 function add(parent, ...children) { parent.append(...children); return parent; }
 function pre(text, cls) { return el('pre', typeof text === 'string' ? text : JSON.stringify(text, null, 2), cls); }
@@ -28,7 +30,7 @@ function categoryIds(spec, model) {
   if (spec.kind === 'source') return [...new Set(model.sourceGroups[spec.key].flatMap(sid=>model.sourceOwners[sid] || []))];
   return model[spec.kind];
 }
-function matchingIds() {
+function baseMatchingIds() {
   if(!data)return [];
   const members=categoryIds(drillSpec,homeModel(data));
   const query=$('query').value.trim().toLocaleLowerCase();
@@ -38,10 +40,18 @@ function matchingIds() {
       && (!query || (title(n,id)+'\n'+(n?.body||'')).toLocaleLowerCase().includes(query))
       && (!$('status').value || $('status').value===lifecycle(n))
       && (!$('fresh').value || $('fresh').value===freshness(n))
-      && (!$('review').value || $('review').value===review(n));
+      && (!$('review').value || $('review').value===review(n))
+      && (!topicFilter || JSON.stringify(KnowledgeMap.topic(n))===topicFilter);
   }).map(([id])=>id);
 }
+function matchingIds() {
+  const ids=baseMatchingIds();
+  if(!mapHops || !mapFocus)return ids;
+  const scope=KnowledgeMap.neighborhood(KnowledgeMap.model(data),mapFocus,mapHops,new Set(ids));
+  return ids.filter(id=>scope.has(id));
+}
 function reconcileSelection() {
+  if(mapFocus && !baseMatchingIds().includes(mapFocus)){mapFocus=null;mapHops=0;}
   const ids=matchingIds();
   if(!selected || !owns(data.current,selected) || !ids.includes(selected)) {
     selected=ids[0]||null;revision=selected?data.current[selected]:null;historical=false;
@@ -128,8 +138,9 @@ async function refresh(){const b=$('refresh');b.disabled=true;b.textContent='읽
   $('error').hidden=true;$('scan').textContent='마지막 성공: '+new Date(data.completed_at).toLocaleString('ko-KR');$('coverage').textContent=`${data.bundle} / ${Object.keys(data.current).length}개의 지식${data.partial?' / 일부 기록을 읽지 못했습니다.':''}`;
   $('scan-technical').textContent=`스캔 시작 ${new Date(data.scanned_at).toLocaleString('ko-KR')} / ${data.partial?'미확인 파일 '+data.diagnostics.length+'건':'읽은 파일 바이트 재확인 완료'}. 동시 변경의 원자적 스냅샷은 아닙니다. 누락 기록: ${JSON.stringify(data.diagnostics)}`;renderList();renderDetail();renderHome();showView(view);
   }catch(error){$('error').textContent='새로 읽지 못했습니다. '+error.message+(data?' 마지막 성공 화면을 유지합니다.':' 아직 성공한 화면이 없습니다.');$('error').hidden=false;}finally{b.disabled=false;b.textContent='새로 읽기';}}
-for(const id of ['query','status','fresh','review'])$(id).addEventListener(id==='query'?'input':'change',()=>{if(data){reconcileSelection();renderList();renderDetail();}});$('refresh').onclick=refresh;
-$('nav-home').onclick=()=>showView('home');
+for(const id of ['query','status','fresh','review'])$(id).addEventListener(id==='query'?'input':'change',()=>{if(data){reconcileSelection();renderList();renderDetail();renderHome();}});$('refresh').onclick=refresh;
+$('topic').onchange=()=>{topicFilter=$('topic').value;reconcileSelection();renderList();renderDetail();renderHome();};
+$('nav-home').onclick=()=>{if(selected && matchingIds().includes(selected))mapSelected=selected;renderHome();showView('home');};
 $('nav-explore').onclick=()=>showView('explore');
 $('clear-drill').onclick=()=>drill(null,'전체 지식');
 refresh();
@@ -188,13 +199,15 @@ function showView(next) {
 function drill(spec,label,targetTab='body',path=null) {
   if(!data) return;
   drillSpec=spec;
+  if(spec?.kind==='record')mapSelected=spec.id;
   for(const id of ['query','status','fresh','review'])$(id).value='';
+  topicFilter='';mapHops=0;mapFocus=null;
   $('drill-banner').hidden=drillSpec===null;
   $('drill-label').textContent=label;
   selected=spec?.kind==='record'?spec.id:null;revision=path;
   historical=!!revision && revision!==data.current[selected];tab=targetTab;
   reconcileSelection();
-  showView('explore');renderList();renderDetail();
+  showView('explore');renderList();renderDetail();renderHome();
   if(mobile.matches)$('knowledge-nav').open=false;
   $('screen-title').scrollIntoView();$('detail').focus({preventScroll:true});
 }
@@ -227,6 +240,7 @@ function renderHome() {
   stat('overdue','확인 기한 지남',model.groups.deadline.overdue.length,'현재 기록 중 판정 가능한 기한 기준',{kind:'group',family:'deadline',key:'overdue'},'body','amber');
   stat('attention','확인이 필요한 기록',model.attention.length,'기한 초과, 형식 또는 출처 확인 필요',{kind:'attention'},'sources','amber');
   home.append(cards);
+  renderMapHome(home);
   const grid=el('div',undefined,'panel-grid');
   grid.append(distribution('확인 기한','현재 지식 기준 / 미지정과 판정 불가를 구분합니다.',[
     ['기한 지남',model.groups.deadline.overdue,'amber','overdue'],['기한 전',model.groups.deadline.before,'teal','before'],['기한 미지정',model.groups.deadline.none,'muted','none'],['기한 판정 불가',model.groups.deadline.unknown,'muted','unknown'],['형식 확인 필요',model.groups.deadline.invalid,'amber','invalid'],['현재 파일 미확인',model.groups.deadline.missing,'red','missing']],model.currentCount,'deadline'));
@@ -234,8 +248,9 @@ function renderHome() {
     ['선언 있음',model.groups.review.declared,'teal','declared'],['선언 없음',model.groups.review.none,'muted','none'],['선언 확인 불가',model.groups.review.unknown,'amber','unknown']],model.currentCount,'review'));
   grid.append(distribution('기록 상태','현재 선택에 기록된 상태 / 생략 시 기존 기본값을 따릅니다.',[
     ['초안',model.groups.status.draft,'blue','draft'],['안정 상태 선언',model.groups.status.stable,'teal','stable'],['사용 중단 선언',model.groups.status.deprecated,'muted','deprecated'],['상태 확인 불가',model.groups.status.unknown,'amber','unknown']],model.currentCount,'status'));
-  home.append(grid);
+  const stateDetails=el('details',undefined,'state-details');add(stateDetails,el('summary','현재 상태 분포 자세히'),grid);home.append(stateDetails);
   const lower=el('div',undefined,'lower-grid');
+  renderMapSidePanels(lower,model);
   const sources=panel('원문 연결 상태',`현재 지식에 연결된 고유 보존물 ${model.sourceCount}개 / 과거 전용 출처 제외`);
   function sourceRow(label,spec,count){const b=button('',()=>drill(spec,label,'sources'));b.className='source-row';add(b,el('span',label),el('strong',count));sources.append(b);}
   sourceRow('텍스트 읽기 가능',{kind:'source',key:'available'},model.sourceGroups.available.length);
@@ -245,7 +260,7 @@ function renderHome() {
   sourceRow('지원하지 않는 연결이 있는 지식',{kind:'unsupported'},model.unsupported.length);
   sourceRow('출처 연결 선언 없는 지식',{kind:'unlinked'},model.unlinked.length);
   if(model.currentRead<model.currentCount)sources.append(el('p',`${model.currentCount-model.currentRead}개 현재 파일을 읽지 못해 원문 연결 현황도 일부 미확인입니다.`,'warning'));
-  lower.append(sources);
+  const sourceDetails=el('details',undefined,'source-records');add(sourceDetails,el('summary','원문 연결 상태 자세히'),sources);lower.append(sourceDetails);
   const recent=panel('최근 기록','작성 시각 선언순 / 읽은 리비전 기준, 과거 기록 포함');
   const help=el('details');add(help,el('summary','시간과 집계 기준'),el('p','생성 메타데이터의 해석 가능한 시각을 정렬합니다. 인증된 생성 시점이나 실제 이용 활동이 아닙니다. 오류가 있거나 시각을 알 수 없는 기록은 정렬에서 제외합니다. 확인 필요 수는 원문 내용의 오류를 뜻하지 않습니다.'));
   recent.append(help);
@@ -256,4 +271,118 @@ function renderHome() {
   recent.append(el('p',`시각 미확인 ${model.unknownTime}개 / 정렬 가능한 ${model.recent.length}개 중 최대 6개 표시`,'path'));
   if(!model.recent.length)recent.append(el('p','정렬 가능한 작성 시각 선언이 없습니다. 활동이 없었다는 뜻은 아닙니다.'));
   lower.append(recent);home.append(lower);
+}
+
+function mapGraph() { return KnowledgeMap.model(data); }
+function mapTopicOptions(select,graph) {
+  select.replaceChildren();const all=el('option','모든 주제');all.value='';select.append(all);
+  const topics=[...new Set([...graph.nodes.values()].map(n=>n.topic))].sort((a,b)=>String(a).localeCompare(String(b),'ko'));
+  for(const topic of topics){const o=el('option',topic===null?'주제 미지정':topic);o.value=JSON.stringify(topic);select.append(o);}
+  if(topicFilter && ![...select.options].some(o=>o.value===topicFilter)){const o=el('option',(JSON.parse(topicFilter)??'주제 미지정')+' (현재 없음)');o.value=topicFilter;select.append(o);}
+  select.value=topicFilter;
+}
+function updateMapFilters() {
+  reconcileSelection();renderList();renderDetail();renderHome();
+}
+function resetMap() {
+  drillSpec=null;topicFilter='';mapFocus=null;mapHops=0;mapViewport={x:0,y:0,w:1000,h:600};
+  for(const id of ['query','status','fresh','review'])$(id).value='';
+  $('drill-banner').hidden=true;updateMapFilters();
+}
+function selectMapNode(id,focus=false) {
+  if(!matchingIds().includes(id))return;
+  mapSelected=id;if(mapHops)mapFocus=id;selected=id;revision=data.current[id];historical=false;
+  renderList();renderDetail();renderHome();
+  if(focus){const node=[...document.querySelectorAll('.map-node')].find(n=>n.dataset.id===id);node?.focus();}
+}
+function svgElement(name,attributes={},text) {
+  const e=document.createElementNS('http://www.w3.org/2000/svg',name);
+  for(const [key,value] of Object.entries(attributes))e.setAttribute(key,String(value));
+  if(text!==undefined)e.textContent=text;return e;
+}
+function renderMapHome(home) {
+  const graph=mapGraph(),ids=matchingIds(),visible=new Set(ids);
+  if(!mapSelected || !visible.has(mapSelected))mapSelected=visible.has(selected)?selected:ids.slice().sort((a,b)=>graph.nodes.get(b)?.neighbors.size-graph.nodes.get(a)?.neighbors.size || a.localeCompare(b))[0]||null;
+  const key=JSON.stringify([[...graph.nodes.keys()],graph.edges.map(e=>[e.from,e.to,e.kind])]);
+  if(layoutCache.key!==key)layoutCache={key,positions:KnowledgeMap.positions(graph)};
+  const options=$('topic');mapTopicOptions(options,graph);
+  const section=el('section',undefined,'map-workspace');section.setAttribute('aria-label','현재 지식 지도');
+  const map=el('div',undefined,'map-panel');
+  const heading=el('div',undefined,'map-heading');
+  add(heading,add(el('div'),el('p','KNOWLEDGE OBSERVATORY','eyebrow'),el('h2','연결에서 생각을 찾아보세요')),el('span',`${ids.length} / ${graph.nodes.size}개 현재 지식`,'map-count'));
+  map.append(heading);
+  const filters=el('div',undefined,'map-filters');
+  const search=el('input');search.id='map-query';search.type='search';search.maxLength=200;search.placeholder='제목이나 본문에서 찾기';search.value=$('query').value;
+  search.oninput=()=>{const start=search.selectionStart;$('query').value=search.value;updateMapFilters();$('map-query').focus();$('map-query').setSelectionRange(start,start);};
+  const topic=el('select');topic.id='map-topic';mapTopicOptions(topic,graph);topic.onchange=()=>{topicFilter=topic.value;mapFocus=null;mapHops=0;updateMapFilters();$('map-topic').focus();};
+  add(filters,add(el('label','지식 찾기'),search),add(el('label','선언된 주제'),topic),button('필터 초기화',resetMap));map.append(filters);
+  const active=drillSpec?$('drill-label').textContent:'';
+  const controls=[active,$('status').value?statusText({status:$('status').value,metadata_errors:[]}):'',$('fresh').value?$('fresh').selectedOptions[0].textContent:'',$('review').value?$('review').selectedOptions[0].textContent:''].filter(Boolean);
+  if(controls.length)map.append(el('p','적용 중: '+controls.join(' / '),'map-filter-note'));
+  const drawing=el('details',undefined,'map-drawing');drawing.open=!mobile.matches;drawing.append(el('summary','관계 지도 펼치기'));
+  const toolbar=el('div',undefined,'map-toolbar');
+  function viewport(action){action();const s=$('knowledge-svg');if(s)s.setAttribute('viewBox',`${mapViewport.x} ${mapViewport.y} ${mapViewport.w} ${mapViewport.h}`);}
+  function zoom(factor){viewport(()=>{const w=Math.max(250,Math.min(2000,mapViewport.w*factor));const h=w*.6;mapViewport={x:mapViewport.x+(mapViewport.w-w)/2,y:mapViewport.y+(mapViewport.h-h)/2,w,h};});}
+  const zoomOut=button('−',()=>zoom(1.25));zoomOut.setAttribute('aria-label','지도 축소');const zoomIn=button('+',()=>zoom(.8));zoomIn.setAttribute('aria-label','지도 확대');
+  add(toolbar,zoomOut,zoomIn,button('화면 맞춤',()=>viewport(()=>{mapViewport={x:0,y:0,w:1000,h:600};})));
+  for(const [label,dx,dy] of [['왼쪽',-1,0],['위',0,-1],['아래',0,1],['오른쪽',1,0]]){const b=button(label,()=>viewport(()=>{mapViewport.x+=dx*mapViewport.w*.15;mapViewport.y+=dy*mapViewport.h*.15;}));b.className='map-pan';toolbar.append(b);}
+  const edges=graph.edges.filter(e=>visible.has(e.from)&&visible.has(e.to));
+  toolbar.append(el('span',`${edges.length}개 방향/종류별 관계`,'path'));drawing.append(toolbar);
+  const svg=svgElement('svg',{id:'knowledge-svg',viewBox:`${mapViewport.x} ${mapViewport.y} ${mapViewport.w} ${mapViewport.h}`,role:'group','aria-label':'현재 지식 관계 지도. 노드에서 방향키로 이동하고 Enter 또는 Space로 선택하세요.'});
+  const defs=svgElement('defs'),marker=svgElement('marker',{id:'relation-arrow',viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:5,markerHeight:5,orient:'auto-start-reverse'});marker.append(svgElement('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'context-stroke'}));defs.append(marker);svg.append(defs);
+  for(const edge of edges.slice(0,600)) {
+    const from=layoutCache.positions.get(edge.from),to=layoutCache.positions.get(edge.to),dx=to.x-from.x,dy=to.y-from.y,d=Math.max(1,Math.hypot(dx,dy));
+    const radius=10+Math.min(12,Math.sqrt(graph.nodes.get(edge.to).neighbors.size)*3);
+    const line=svgElement('line',{x1:from.x,y1:from.y,x2:to.x-dx/d*(radius+4),y2:to.y-dy/d*(radius+4),class:'map-edge'+(edge.declared?' declared':'')+((edge.from===mapSelected||edge.to===mapSelected)?' selected':''),'marker-end':'url(#relation-arrow)'});
+    line.append(svgElement('title',{},`${edge.from} → ${edge.to}: ${KnowledgeMap.kindLabel(edge.kind)} (${edge.evidence.length}개 근거)`));svg.append(line);
+  }
+  const selectedNeighbors=graph.nodes.get(mapSelected)?.neighbors || new Set();
+  const labels=KnowledgeMap.labels(graph,layoutCache.positions,ids, mapSelected);
+  for(const id of ids) {
+    const node=graph.nodes.get(id);if(!node)continue;
+    const p=layoutCache.positions.get(id),radius=10+Math.min(12,Math.sqrt(node.neighbors.size)*3),name=title(node.note,id);
+    const g=svgElement('g',{class:'map-node'+(id===mapSelected?' active':'')+(selectedNeighbors.has(id)?' neighbor':''),transform:`translate(${p.x} ${p.y})`,role:'button',tabindex:id===mapSelected?0:-1,'aria-label':`${name}, ${node.topic===null?'주제 미지정':node.topic}, 서로 다른 이웃 ${node.neighbors.size}개`,'aria-pressed':String(id===mapSelected),'data-id':id});
+    const shape=node.note?svgElement('circle',{r:radius}):svgElement('rect',{x:-radius,y:-radius,width:radius*2,height:radius*2,rx:2});shape.setAttribute('fill',KnowledgeMap.color(node.topic));g.append(shape);
+    g.append(svgElement('title',{},`${name}\n${node.topic===null?'주제 미지정':node.topic}\n이웃 ${node.neighbors.size}개${node.note?'':' / 현재 파일 미확인'}`));
+    const placement=labels.get(id);
+    const label=svgElement('text',{x:placement.x,y:placement.y,'text-anchor':placement.anchor,class:placement.quiet?'quiet-label':''},placement.text);g.append(label);
+    g.onclick=()=>selectMapNode(id,true);
+    g.onkeydown=event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();selectMapNode(id,true);}else if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(event.key)){event.preventDefault();const step=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1;selectMapNode(ids[(ids.indexOf(id)+step+ids.length)%ids.length],true);}};
+    svg.append(g);
+  }
+  let drag=null;
+  svg.onpointerdown=event=>{if(event.target.closest('.map-node'))return;drag={x:event.clientX,y:event.clientY,start:{...mapViewport}};svg.setPointerCapture(event.pointerId);};
+  svg.onpointermove=event=>{if(!drag)return;const rect=svg.getBoundingClientRect();mapViewport={...drag.start,x:drag.start.x-(event.clientX-drag.x)*drag.start.w/rect.width,y:drag.start.y-(event.clientY-drag.y)*drag.start.h/rect.height};svg.setAttribute('viewBox',`${mapViewport.x} ${mapViewport.y} ${mapViewport.w} ${mapViewport.h}`);};
+  svg.onpointerup=svg.onpointercancel=()=>{drag=null;};drawing.append(svg);map.append(drawing);
+  if(!ids.length)map.append(el('p','현재 필터에서 표시할 지식이 없습니다. 필터를 초기화해 범위를 넓힐 수 있습니다.','empty'));
+  map.append(el('p','원 크기: 읽은 전체 범위의 서로 다른 이웃 수 / 색: 선언된 주제, 회색은 미지정 / 실선: 본문 링크 / 점선: 선언된 관계 / 화살표: 참조 방향','map-legend'));
+  const outside=graph.references.filter(r=>visible.has(r.from)).length;
+  const scope=el('details',undefined,'map-scope');add(scope,el('summary',`지도의 읽기 범위: 지도 밖/미확인 참조 ${outside}개${graph.partialNotes.length||graph.invalidIds?' / 일부 미확인':''}`),el('p',`현재로 선택된 개념만 그립니다. 같은 태그, 제목 또는 공통 원문만으로 선을 만들지 않습니다. 과거/원문/외부/자기 참조는 선에서 제외합니다. 형식 또는 읽기 확인이 필요한 노트 ${graph.partialNotes.length}개, 지원하지 않는 ID ${graph.invalidIds}개. 연결선은 최대 600개 표시하며 현재 ${Math.min(edges.length,600)}/${edges.length}개입니다. 필터는 위치를 바꾸지 않습니다.`));map.append(scope);
+  const accessible=el('details',undefined,'map-list');add(accessible,el('summary',`키보드로 찾는 지식 목록 (${ids.length})`));
+  for(const id of ids){const n=graph.nodes.get(id);if(n){const b=button(title(n.note,id),()=>selectMapNode(id));b.setAttribute('aria-pressed',String(id===mapSelected));accessible.append(b);}}
+  map.append(accessible);section.append(map);section.append(mapSummary(graph,visible));home.append(section);
+}
+function mapSummary(graph,visible) {
+  const panel=el('aside',undefined,'map-detail');panel.id='map-detail';panel.tabIndex=-1;
+  const node=graph.nodes.get(mapSelected);
+  if(!node || !visible.has(node.id)){panel.append(el('h2','선택한 지식'),el('p','표시된 지식을 선택하면 본문 발췌와 실제 연결을 살펴볼 수 있습니다.'));return panel;}
+  const n=node.note;add(panel,el('p','SELECTED KNOWLEDGE','eyebrow'),el('h2',title(n,node.id)));
+  const topic=el('span',node.topic===null?'주제 미지정':node.topic,'topic-tag');topic.style.borderColor=KnowledgeMap.color(node.topic);panel.append(topic);
+  if(!n){panel.append(el('p','현재로 선택됐지만 파일을 읽지 못했습니다. 원문과 이력도 여기서는 미확인입니다.','warning'));return panel;}
+  add(panel,el('p',`${statusText(n)} / ${freshText(n)}`,'path'),el('p','본문 발췌','summary-label'));
+  const excerpt=n.body.split('\n').filter(line=>line.trim()&&!/^#/.test(line)).join('\n').slice(0,320);panel.append(el('p',excerpt||'표시할 본문이 없습니다.','map-excerpt'));
+  const nav=el('div',undefined,'map-detail-actions');for(const [label,target] of [['본문','body'],['원문과 맥락','sources'],['이전 기록','history'],['연결 근거','related']])nav.append(button(label,()=>drill({kind:'record',id:node.id},'지도에서 선택한 기록',target,n.path)));panel.append(nav);
+  panel.append(el('p',`서로 다른 이웃 ${node.neighbors.size}개 / 현재 필터에서 ${[...node.neighbors].filter(id=>visible.has(id)).length}개 표시`,'path'));
+  const hops=el('div',undefined,'hop-controls');for(const [label,h] of [['전체 범위',0],['1단계 이웃',1],['2단계 이웃',2]]){const b=button(label,()=>{if(h && drillSpec?.kind==='record'){drillSpec=null;$('drill-banner').hidden=true;}mapHops=h;mapFocus=h?node.id:null;updateMapFilters();});b.setAttribute('aria-pressed',String(mapHops===h));hops.append(b);}panel.append(hops);panel.append(el('p','이웃 범위는 현재 필터 안에서 참조 방향을 구분하지 않고 계산합니다.','path'));
+  const links=graph.edges.filter(e=>e.from===node.id||e.to===node.id);
+  const details=el('details',undefined,'map-evidence');details.open=!mobile.matches;details.append(el('summary',`관찰된 관계 ${links.length}개`));
+  for(const edge of links){const other=edge.from===node.id?edge.to:edge.from;const row=el('div',undefined,'neighbor-row');const go=button(title(graph.nodes.get(other).note,other),()=>{mapHops=0;mapFocus=null;selectMapNode(other);});go.disabled=!baseMatchingIds().includes(other);if(go.disabled)go.title='현재 필터 밖의 기록입니다. 필터를 초기화하면 선택할 수 있습니다.';add(row,go,el('p',`${edge.from===node.id?'이 기록에서 참조':'이 기록을 참조'} / ${edge.kind==='본문 링크'?'본문 링크':'선언된 '+KnowledgeMap.kindLabel(edge.kind)}`,'path'));const why=el('details');add(why,el('summary','기록된 근거'),pre(edge.evidence));row.append(why);details.append(row);}
+  if(!links.length)details.append(el('p','지원 범위에서 관찰된 선이 없습니다. 의미상 무관하다는 판정은 아닙니다.','path'));panel.append(details);
+  const refs=graph.references.filter(r=>r.from===node.id);if(refs.length){const d=el('details');add(d,el('summary',`지도 밖 또는 확인할 참조 ${refs.length}개`),pre(refs.map(r=>r.ref)));panel.append(d);}return panel;
+}
+function renderMapSidePanels(lower,model) {
+  const graph=mapGraph(),topics=new Map();for(const n of graph.nodes.values())topics.set(n.topic,(topics.get(n.topic)||0)+1);
+  const box=panel('선언된 주제','읽은 현재 범위 / 자동 분류 없음');
+  for(const [topic,count] of [...topics].sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0])))){const b=button('',()=>{topicFilter=JSON.stringify(topic);mapHops=0;mapFocus=null;updateMapFilters();});b.className='source-row';add(b,el('span',topic===null?'주제 미지정':topic),el('strong',count));box.append(b);}lower.append(box);
+  const attention=panel('다시 살펴볼 기록',`${model.attention.length}개 / 기한, 형식, 출처 확인`);for(const id of model.attention.slice(0,4))attention.append(button(title(data.notes[data.current[id]],id),()=>drill({kind:'record',id},'확인할 기록','sources')));lower.append(attention);
 }

@@ -90,3 +90,39 @@ Validated generation times are projected to ISO timestamps with their explicit o
 for the browser. Equivalent quoted/unquoted YAML timestamps therefore participate in
 the same recent ordering. Invalid or timezone-naive declarations remain unknown. This
 normalization does not rewrite stored metadata, unknown fields or source bytes.
+
+## Current knowledge map
+
+Home now centers an SVG map and a selected-current-note excerpt, with direct buttons to
+existing text, source/context, history and relationship evidence. Real status cards remain
+above it; topic, attention and recent panels sit below. On mobile the note summary comes
+first and the drawing is collapsed. No Canvas editor or general Obsidian adapter is added.
+
+Nodes are the delivered indexed current concept IDs, including unread-current placeholders.
+Only supported `related` records whose exact path is another loaded current path and whose
+state is `available` become edges. Body links are solid; the five declared relation types
+are dashed, with arrows in the recorded direction. Repeated references retain evidence but
+share an edge per direction/type. Distinct neighbors determine node size. Same title, topic,
+tag, source, or indirect shared link never creates an edge. Historical pins, source-only,
+external, unresolved and self references stay outside the drawing and remain inspectable.
+Malformed metadata cannot donate edges; read/parse uncertainty is disclosed. The parser is
+still the existing documented simple Markdown/annotation subset, not all Obsidian syntax.
+
+Positions are deterministic for the complete delivered structure and do not drift or change
+when filtering. Topic colors are a stable hash of a nonempty string `category`, falling back
+to string `topic` (at most 80 characters); otherwise the UI explicitly shows unspecified.
+Tags are not guessed to be topics. Topic text accompanies color; unread files use squares.
+Search, topic, live home-category drills, and one/two-hop scopes intersect across the map and
+Explorer. Hops follow observed incoming/outgoing neighbors without inferring semantic paths,
+and cannot bridge through filtered-out notes. Explicitly requesting neighbors from a pinned
+record clears only that single-record scope. Reset restores all filters; fit/zoom/pan only
+change the viewport. Mouse drag and buttons pan; SVG nodes support arrows and Enter/Space.
+The expandable knowledge list is a keyboard/mobile alternative with the same selected note.
+
+The existing 100-current limit remains. At most 600 directed/type edges are drawn, with the
+shown/known total disclosed; selected-note evidence and degree still use the delivered
+model. Dense-map labels prioritize the selection and its neighbors. Other names are shortened
+or quieted until focus/hover; accessible names, the selected summary and list titles remain full.
+No additional file reads, writes, model calls, semantic discovery or external graph library
+are involved. Failed refresh preserves the last successful graph as well as all other views.
+Run `node tests/test_knowledge_map.cjs` alongside the existing Python and Node suites.

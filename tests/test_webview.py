@@ -227,6 +227,7 @@ class WebviewTests(unittest.TestCase):
         self.assertIn("default-src 'none'", headers['Content-Security-Policy'])
         self.assertNotIn('Access-Control-Allow-Origin', headers)
         self.assertEqual(request('/api/snapshot')[0], 200)
+        self.assertEqual(request('/map.js')[0], 200)
         for h in [{'Host':'evil.test'}, {'Origin':'http://evil.test'}, {'Origin':'null'}, {'Sec-Fetch-Site':'cross-site'}]:
             self.assertEqual(request('/api/snapshot', headers=h)[0], 403)
         self.assertEqual(request('/api/snapshot', headers={'Origin':server.origin})[0], 200)
