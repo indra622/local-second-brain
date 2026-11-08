@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "packages": {
+    "@astryxdesign/core": "0.7.11",
+    "@astryxdesign/theme-neutral": "0.7.11",
+    "@formatjs/fast-memoize": "3.1.7",
+    "@formatjs/icu-messageformat-parser": "3.5.18",
+    "@formatjs/icu-skeleton-parser": "2.1.11",
+    "@stylexjs/stylex": "0.19.1",
+    "intl-messageformat": "11.2.15",
+    "lucide-react": "1.70.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "scheduler": "0.28.0"
+  },
+  "source": {
+    "package.json": "99f168f7bfa9fb71ce7d210e69e4a4074a0ed9e7387358f31c3eba04578b98fc",
+    "package-lock.json": "11b1d4f461da36a251f26d1b68da6df3a170b7cb2c0243903bd8d659c97a5008",
+    "build.mjs": "c26dba749748a33e2179e875fe7578b62c52b42608e76eafbbef9b41295f5358",
+    "index.html": "b958b789ca39a1f0ae820389f64c8e6cb3c2e86b865525395c077ff15d579448",
+    "test.mjs": "9697d432638d12fb398f7fdc0a3c25d733d7ab112a1f917ffb9b2a3b5fd8a542",
+    "licenses/astryx.txt": "a6855be541fc8f446acd1bc4f2f8efce1ace6dce71dba32fcd8da553ee54b473",
+    "licenses/stylex.txt": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93",
+    "src/main.jsx": "07396667df18f482d3491b0998a74000b8a7a20cbf9278de65b6a654f53ec242",
+    "src/selectors.mjs": "bcdc7659e660dfb1270402bef3b47405f4e524f507ed86ba59ae94f5587d00a4",
+    "src/shared-map.mjs": "f24bb64588c85c4718e9f1f7a0e89cb207870d3545ed92e0d79c053e89eba26b",
+    "src/style.css": "9c68013d54f38a9516ac105eb04fcc4eec1504df190884b64a5577b6810e29a1"
+  },
+  "assets": {
+    "index.html": {
+      "bytes": 373,
+      "sha256": "b958b789ca39a1f0ae820389f64c8e6cb3c2e86b865525395c077ff15d579448"
+    },
+    "app.js": {
+      "bytes": 530206,
+      "sha256": "f1c5789b8c18353292e219aa345bd774af87d98d96480e2c1069536a0f28c03a"
+    },
+    "app.css": {
+      "bytes": 287595,
+      "sha256": "1361b9a78579dd5e87647c75a8e536246ae7e25cf600f819cf639651eb121013"
+    },
+    "notices.txt": {
+      "bytes": 15240,
+      "sha256": "6f0672a7b076ea75f2bca9bd392e7288e522b670b532d727a36ef63798308789"
+    }
+  }
+}

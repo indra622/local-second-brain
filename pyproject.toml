@@ -22,3 +22,6 @@ second-brain = "local_knowledge_wiki.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+local_knowledge_wiki = ["web/*.html", "web/*.css", "web/*.js", "web/astryx/*.html", "web/astryx/*.js", "web/astryx/*.css", "web/astryx/*.txt", "web/astryx/*.json"]

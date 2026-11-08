@@ -1,0 +1,22 @@
+{
+  "name": "local-second-brain-astryx-comparison",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs",
+    "test": "node --test test.mjs"
+  },
+  "dependencies": {
+    "@astryxdesign/core": "0.7.11",
+    "@astryxdesign/theme-neutral": "0.7.11",
+    "@stylexjs/stylex": "0.19.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@astryxdesign/cli": "0.7.11",
+    "esbuild": "0.28.2"
+  }
+}

@@ -521,9 +521,15 @@ Only the marked current-version block in the root index is managed; surrounding 
 Editors do not honor this lock. Do not edit concurrently with a write command.
 Crash leftovers are preserved for manual inspection, not automatically deleted or repaired.
 
-There is no web UI, daemon, vector database, cloud backend, MCP server, computation execution,
+Beyond the optional local viewer below, there is no daemon, vector database, cloud backend, MCP server, computation execution,
 or attestation in this version.
 No PyPI package release is available. Install from the source checkout.
+
+## Optional local viewer
+
+`second-brain view BUNDLE [--port 8765]` starts an explicitly selected, read-only
+loopback viewer. See [webview scope and safety](webview.md). Other web/server integration
+and arbitrary Obsidian vaults remain outside this interface.
 
 ## File interface
 

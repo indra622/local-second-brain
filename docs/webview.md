@@ -1,0 +1,149 @@
+# Optional local monitoring view
+
+[한국어](webview.ko.md)
+
+From an installed environment, explicitly select one Local Second Brain CLI bundle:
+
+```sh
+second-brain view /absolute/path/to/bundle --port 8765
+```
+
+Open the printed `http://127.0.0.1:8765/` address in your browser. Use `--port 0` to
+choose an available port. Stop with Ctrl-C. The command does not open your browser,
+install anything or discover vaults. It serves one existing CLI bundle, not an arbitrary
+Obsidian vault. There are no required dependencies beyond Python and PyYAML, and no
+runtime model calls or external assets. Existing commands and storage formats are unchanged.
+
+The Korean-first view provides current-title/body substring search and lifecycle,
+review-declaration and freshness filters. Search covers the delivered current notes only,
+not raw sources or historical bodies. View actual revisions side by side, textual body
+and metadata differences, preserved sources/provenance and supported links or declared
+relations. Equal bodies do not prove a review event; inspect the declarations. Source and
+note attribution remains explicit text/declarations, not authenticated authorship.
+
+Manual refresh shows scan time and the last successful refresh. A failed refresh keeps
+the last successful screen with a visible failure notice. Current selection follows the
+index after refresh unless you deliberately opened history. Current does not mean true
+or up to date. Missing deadlines remain unknown; actor and review fields are declarations.
+
+## Scope and safety
+
+The server binds only `127.0.0.1`. It accepts the exact printed Host and, when present,
+the same Origin; cross-site fetches, permissive CORS and write methods are not supported.
+Use the numeric loopback URL, not `localhost`. There is no network bind or public-origin
+option. Portal/reverse-proxy delivery is not validated in v01; do not expose the port or
+rewrite security headers to make it public. URL assets are relative, but this alone does
+not establish proxy compatibility. Stop the viewer when it is not needed. This is a local
+reading tool, not an authentication boundary against other programs on your computer.
+
+Only fixed UI assets and one snapshot API are served. No arbitrary file endpoint exists.
+Stored Markdown, HTML, scripts, URLs and source text remain text; navigation buttons can
+only open loaded revisions. Source bytes are read only when a declared ID and resource
+resolve to the matching canonical `sources/ID/content.raw`; unsupported or resource-only
+references stay unverified, without guessed file reads. No URLs are fetched.
+
+Reads reuse descriptor-based Store access without locks or writes. Symlinks in the root,
+selected concept directories or read paths are refused. No lock, cache, index, receipt or
+`.obsidian` file is created. Files and index are checked again before returning a scan;
+this detects observed movement but is not a multi-file atomic transaction. Stop or retry
+if another writer moves data. A root replacement requires restarting the viewer.
+
+Each scan admits at most 100 indexed concepts, 256 revisions, 128 sources, 512 entries
+per selected directory, 512 KiB per file, 8 MiB total input and 12 MiB response. Metadata
+conversion has a 4096-visit / 16-depth bound before YAML aliases can expand. Exceeding a
+read or output limit fails the refresh rather than silently reporting zero. Missing
+current files and bounded related-link output have explicit partial/unknown states.
+Unindexed concepts and unrelated directories are not scanned. Link parsing shares the
+[graph parser's documented subset](graph.md#read-scope-and-parser); lack of a displayed
+edge does not establish a semantic non-relationship. Related links are not fetched to
+prove absence outside the loaded scope. Raw non-UTF-8 source files show availability and
+hash information without pretending to decode them.
+
+## Validation
+
+Run `python -m unittest discover -s tests -p test_webview.py -v` for boundary and read-only
+regressions. The feature adds no editor, ingestion, migration or separate review-event
+store. [Design guidance](../DESIGN.md) describes the reading surface. Browser checks must
+use public synthetic data and an isolated profile; a successful HTTP fetch alone does
+not demonstrate rendered usability.
+
+## Status home
+
+The first view is a compact status dashboard. Its current-note distributions, unique
+current source bindings and recent records use the delivered snapshot only. Panels drill
+into the existing explorer. Loaded revisions include history for indexed concepts; they
+are not counted as current knowledge. Missing files and malformed records remain separate
+from unspecified deadlines. Review counts are declarations, not authenticated checks.
+Recent rows sort parseable declared generation times across loaded revisions, not observed
+usage events. There are no uptime, growth, cost or confidence metrics and no automatic
+refresh. Failed refresh retains the last successful home as well as explorer.
+
+Run `node tests/test_webview_ui.cjs` for aggregation and refresh-selection regressions.
+
+Home categories are live filters: successful refresh re-evaluates deadline, review, status,
+source and attention membership from the new snapshot. Manual controls intersect that
+category. No matching result clears the detail pane. Deliberately opening a record or
+history creates an explicit record selection, retained only while it remains in the
+loaded scope; it is not a frozen category.
+
+Validated generation times are projected to ISO timestamps with their explicit offsets
+for the browser. Equivalent quoted/unquoted YAML timestamps therefore participate in
+the same recent ordering. Invalid or timezone-naive declarations remain unknown. This
+normalization does not rewrite stored metadata, unknown fields or source bytes.
+
+## Current knowledge map
+
+Home now centers an SVG map and a selected-current-note excerpt, with direct buttons to
+existing text, source/context, history and relationship evidence. Real status cards remain
+above it; topic, attention and recent panels sit below. On mobile the note summary comes
+first and the drawing is collapsed. No Canvas editor or general Obsidian adapter is added.
+
+Nodes are the delivered indexed current concept IDs, including unread-current placeholders.
+Only supported `related` records whose exact path is another loaded current path and whose
+state is `available` become edges. Body links are solid; the five declared relation types
+are dashed, with arrows in the recorded direction. Repeated references retain evidence but
+share an edge per direction/type. Distinct neighbors determine node size. Same title, topic,
+tag, source, or indirect shared link never creates an edge. Historical pins, source-only,
+external, unresolved and self references stay outside the drawing and remain inspectable.
+Malformed metadata cannot donate edges; read/parse uncertainty is disclosed. The parser is
+still the existing documented simple Markdown/annotation subset, not all Obsidian syntax.
+
+Positions are deterministic for the complete delivered structure and do not drift or change
+when filtering. Topic colors are a stable hash of a nonempty string `category`, falling back
+to string `topic` (at most 80 characters); otherwise the UI explicitly shows unspecified.
+Tags are not guessed to be topics. Topic text accompanies color; unread files use squares.
+Search, topic, live home-category drills, and one/two-hop scopes intersect across the map and
+Explorer. Hops follow observed incoming/outgoing neighbors without inferring semantic paths,
+and cannot bridge through filtered-out notes. Explicitly requesting neighbors from a pinned
+record clears only that single-record scope. Reset restores all filters; fit/zoom/pan only
+change the viewport. Mouse drag and buttons pan; SVG nodes support arrows and Enter/Space.
+The expandable knowledge list is a keyboard/mobile alternative with the same selected note.
+
+The existing 100-current limit remains. At most 600 directed/type edges are drawn, with the
+shown/known total disclosed; selected-note evidence and degree still use the delivered
+model. Dense-map labels prioritize the selection and its neighbors. Other names are shortened
+or quieted until focus/hover; accessible names, the selected summary and list titles remain full.
+No additional file reads, writes, model calls, semantic discovery or external graph library
+are involved. Failed refresh preserves the last successful graph as well as all other views.
+Run `node tests/test_knowledge_map.cjs` alongside the existing Python and Node suites.
+
+## Opt-in Astryx comparison
+
+The default `/` remains the classic home/explorer. Its “Astryx 비교 홈” link opens
+`/astryx/`, a bounded React/Astryx comparison with real Theme and controls, overview,
+search/topic filtering, the same pure KnowledgeMap projection/layout and a selected-note
+summary/list. It is dark-only and does not port all classic filters or graph controls.
+Source/history links explicitly return to the existing Explorer at a validated loaded
+concept/revision/panel. Missing records have no pretend source/history action. Returning
+to `/` restores the classic choice without data changes. Neither route uses an iframe.
+
+Python users still need only the existing runtime requirements. All experimental JS/CSS,
+licenses and notices ship in the wheel; no Node/npm, dynamic font/CDN or build download is
+needed at runtime. The server's fixed path list, loopback, Host/Origin, CSP and read-only
+snapshot contracts remain intact. Invalid handoff state is refused without arbitrary file
+or URL navigation. Refresh failure retains the last successful comparison snapshot.
+
+Developer source, exact lockfile and [build/rebuild instructions](../frontend/astryx/README.md)
+are committed alongside prebuilt assets. Node is a build-time tool only. The package does
+not by itself prove better accessibility or usability; engineering checks and any later
+user quality assessment are separate.
