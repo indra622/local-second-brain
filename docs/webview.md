@@ -126,3 +126,24 @@ or quieted until focus/hover; accessible names, the selected summary and list ti
 No additional file reads, writes, model calls, semantic discovery or external graph library
 are involved. Failed refresh preserves the last successful graph as well as all other views.
 Run `node tests/test_knowledge_map.cjs` alongside the existing Python and Node suites.
+
+## Opt-in Astryx comparison
+
+The default `/` remains the classic home/explorer. Its “Astryx 비교 홈” link opens
+`/astryx/`, a bounded React/Astryx comparison with real Theme and controls, overview,
+search/topic filtering, the same pure KnowledgeMap projection/layout and a selected-note
+summary/list. It is dark-only and does not port all classic filters or graph controls.
+Source/history links explicitly return to the existing Explorer at a validated loaded
+concept/revision/panel. Missing records have no pretend source/history action. Returning
+to `/` restores the classic choice without data changes. Neither route uses an iframe.
+
+Python users still need only the existing runtime requirements. All experimental JS/CSS,
+licenses and notices ship in the wheel; no Node/npm, dynamic font/CDN or build download is
+needed at runtime. The server's fixed path list, loopback, Host/Origin, CSP and read-only
+snapshot contracts remain intact. Invalid handoff state is refused without arbitrary file
+or URL navigation. Refresh failure retains the last successful comparison snapshot.
+
+Developer source, exact lockfile and [build/rebuild instructions](../frontend/astryx/README.md)
+are committed alongside prebuilt assets. Node is a build-time tool only. The package does
+not by itself prove better accessibility or usability; engineering checks and any later
+user quality assessment are separate.

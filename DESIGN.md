@@ -37,6 +37,12 @@ explicit link exploration from Obsidian, and restrained warm readability from Mi
 Flexoki. It does not copy branding or install those products. Every visible relationship
 comes from the delivered CLI snapshot, never semantic similarity or shared topics.
 
+The default remains the vanilla/SVG view. The explicit `/astryx/` comparison uses real
+Astryx React controls and a built neutral Theme with these same palette tokens overridden
+through supported CSS properties. It is dark-only and intentionally has fewer controls;
+source/history links explicitly hand off to the existing explorer. No library adoption
+alone establishes an accessibility or usability improvement.
+
 ## Colors
 
 Warm ink backgrounds and paper-toned text support long reading. Teal marks selection,

@@ -228,6 +228,9 @@ class WebviewTests(unittest.TestCase):
         self.assertNotIn('Access-Control-Allow-Origin', headers)
         self.assertEqual(request('/api/snapshot')[0], 200)
         self.assertEqual(request('/map.js')[0], 200)
+        for asset in ['/astryx/', '/astryx/app.js', '/astryx/app.css', '/astryx/notices.txt']:
+            self.assertEqual(request(asset)[0], 200)
+        self.assertEqual(request('/astryx/../../pyproject.toml')[0], 404)
         for h in [{'Host':'evil.test'}, {'Origin':'http://evil.test'}, {'Origin':'null'}, {'Sec-Fetch-Site':'cross-site'}]:
             self.assertEqual(request('/api/snapshot', headers=h)[0], 403)
         self.assertEqual(request('/api/snapshot', headers={'Origin':server.origin})[0], 200)

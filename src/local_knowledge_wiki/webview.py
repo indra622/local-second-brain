@@ -334,7 +334,11 @@ class ViewerHandler(BaseHTTPRequestHandler):
         assets = {'/': ('index.html', 'text/html; charset=utf-8'),
                   '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
                   '/map.js': ('map.js', 'text/javascript; charset=utf-8'),
-                  '/style.css': ('style.css', 'text/css; charset=utf-8')}
+                  '/style.css': ('style.css', 'text/css; charset=utf-8'),
+                  '/astryx/': ('astryx/index.html', 'text/html; charset=utf-8'),
+                  '/astryx/app.js': ('astryx/app.js', 'text/javascript; charset=utf-8'),
+                  '/astryx/app.css': ('astryx/app.css', 'text/css; charset=utf-8'),
+                  '/astryx/notices.txt': ('astryx/notices.txt', 'text/plain; charset=utf-8')}
         if self.path in assets:
             name, kind = assets[self.path]
             return self.reply(200, files('local_knowledge_wiki').joinpath('web', name).read_bytes(), kind)

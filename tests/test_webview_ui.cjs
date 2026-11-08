@@ -1,10 +1,13 @@
 // Pure snapshot aggregation and refresh transitions; browser rendering is checked separately.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const nodes={};const node=id=>nodes[id]??={value:'',hidden:true,addEventListener(){},setAttribute(){},scrollIntoView(){},focus(){}};
-const box={document:{getElementById:node},window:{matchMedia:()=>({matches:false,addEventListener(){}})},AbortSignal,console};
+const box={document:{getElementById:node},window:{matchMedia:()=>({matches:false,addEventListener(){}})},AbortSignal,URLSearchParams,console};
 vm.createContext(box);
 const code=fs.readFileSync('src/local_knowledge_wiki/web/app.js','utf8').replace('\nrefresh();\n','\n');
 vm.runInContext(code,box);
+const handoffData={current:{constructor:'concepts/constructor/r000002.md'},notes:{'concepts/constructor/r000001.md':{id:'constructor'},'concepts/constructor/r000002.md':{id:'constructor'}}};box.handoffData=handoffData;
+assert.equal(vm.runInContext("readHandoff('#note=constructor&revision=r000001&panel=history',handoffData).path",box),'concepts/constructor/r000001.md');
+for(const hash of ['#note=../outside&revision=r000001&panel=body','#note=constructor&revision=r000009&panel=body','#note=constructor&revision=r000001&panel=https://evil.test','#note=constructor&note=other&revision=r000001&panel=body']){box.hash=hash;assert.ok(vm.runInContext('readHandoff(hash,handoffData).error',box));}
 const note=(id,extra={})=>({id,path:id+'1',status:'draft',metadata_errors:[],metadata:{},source_ids:[],source_refs:[],stale:null,stale_after:null,verified:null,generated:{at:'2026-11-06T00:00:00Z'},...extra});
 const snapshot={current:{a:'a1',b:'b1',c:'c1',d:'d1'},notes:{a1:note('a',{status:'stable',stale:true,verified:[{by:'process:test'}],source_ids:['shared'],source_refs:[{state:'canonical-binding'}]}),b1:note('b',{source_ids:['shared'],source_refs:[{state:'canonical-binding'}]}),c1:note('c',{metadata_errors:['invalid'],generated:{at:'not-time'}}),old:note('a',{path:'old',source_ids:['historical-only']})},sources:{shared:{state:'available',hash_matches_declaration:true},'historical-only':{state:'unavailable'}},diagnostics:[{state:'missing-current'}],partial:true};
 box.input=snapshot;

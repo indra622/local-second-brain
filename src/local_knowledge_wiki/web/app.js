@@ -1,5 +1,6 @@
 'use strict';
 let data = null, selected = null, tab = 'body', revision = null, historical = false, view = 'home', drillSpec = null, topicFilter = '', mapSelected = null, mapFocus = null, mapHops = 0;
+let handoffPending = true;
 let mapViewport = {x:0,y:0,w:1000,h:600};
 let layoutCache = {key:null,positions:null};
 const $ = id => document.getElementById(id);
@@ -22,6 +23,28 @@ function title(n, id) { return typeof n?.title === 'string' && n.title.trim() ? 
 function open(path) {
   const n=data.notes[path];
   if(n) drill({kind:'record',id:n.id},'선택한 기록','body',path);
+}
+function readHandoff(hash,snapshot) {
+  if(typeof hash!=='string'||!hash.includes('note='))return null;
+  const fail={error:'요청한 기록을 현재 읽기 범위에서 확인하지 못했습니다. 현재 목록을 표시합니다.'};
+  if(hash.length>512)return fail;
+  const values=new URLSearchParams(hash.slice(1));
+  if([...values].length!==3||['note','revision','panel'].some(key=>values.getAll(key).length!==1))return fail;
+  const id=values.get('note'),rev=values.get('revision'),panel=values.get('panel');
+  if(!/^[a-z0-9][a-z0-9-]{0,63}$/.test(id)||!/^r[0-9]{6}$/.test(rev)||rev==='r000000'||!['body','sources','history','related'].includes(panel)||!owns(snapshot.current,id))return fail;
+  const path=`concepts/${id}/${rev}.md`;
+  if(!owns(snapshot.notes,path)||snapshot.notes[path].id!==id)return fail;
+  return {id,path,panel};
+}
+function applyHandoff() {
+  if(!handoffPending)return;
+  handoffPending=false;
+  const target=readHandoff(window.location?.hash||'',data);
+  if(!target)return;
+  if(target.error){$('handoff-notice').textContent=target.error;$('handoff-notice').hidden=false;return;}
+  selected=target.id;mapSelected=target.id;revision=target.path;historical=revision!==data.current[selected];
+  drillSpec={kind:'record',id:selected};tab=target.panel;view='explore';
+  $('drill-banner').hidden=false;$('drill-label').textContent='Astryx에서 선택한 정확한 기록';
 }
 function categoryIds(spec, model) {
   if (!spec) return null;
@@ -134,7 +157,7 @@ function renderDetail(){const container=$('detail');container.replaceChildren();
   if(tab==='body'){panel.append(pre(n.body,'reading'));const d=el('details');add(d,el('summary','기록 위치와 메타데이터 / 검토 선언'),pre({path:n.path,...n.metadata}));panel.append(d);}
   if(tab==='history')historyPanel(n,panel);if(tab==='sources')sourcesPanel(n,panel);if(tab==='related')relatedPanel(n,panel);
 }
-async function refresh(){const b=$('refresh');b.disabled=true;b.textContent='읽는 중…';try{const response=await fetch('./api/snapshot',{cache:'no-store',signal:AbortSignal.timeout(20000)});const next=await response.json();if(!response.ok)throw new Error(next.error||'갱신 실패');if(!next.current||!next.notes)throw new Error('응답 형식을 확인할 수 없습니다.');data=next;reconcileSelection();
+async function refresh(){const b=$('refresh');b.disabled=true;b.textContent='읽는 중…';try{const response=await fetch('./api/snapshot',{cache:'no-store',signal:AbortSignal.timeout(20000)});const next=await response.json();if(!response.ok)throw new Error(next.error||'갱신 실패');if(!next.current||!next.notes)throw new Error('응답 형식을 확인할 수 없습니다.');data=next;applyHandoff();reconcileSelection();
   $('error').hidden=true;$('scan').textContent='마지막 성공: '+new Date(data.completed_at).toLocaleString('ko-KR');$('coverage').textContent=`${data.bundle} / ${Object.keys(data.current).length}개의 지식${data.partial?' / 일부 기록을 읽지 못했습니다.':''}`;
   $('scan-technical').textContent=`스캔 시작 ${new Date(data.scanned_at).toLocaleString('ko-KR')} / ${data.partial?'미확인 파일 '+data.diagnostics.length+'건':'읽은 파일 바이트 재확인 완료'}. 동시 변경의 원자적 스냅샷은 아닙니다. 누락 기록: ${JSON.stringify(data.diagnostics)}`;renderList();renderDetail();renderHome();showView(view);
   }catch(error){$('error').textContent='새로 읽지 못했습니다. '+error.message+(data?' 마지막 성공 화면을 유지합니다.':' 아직 성공한 화면이 없습니다.');$('error').hidden=false;}finally{b.disabled=false;b.textContent='새로 읽기';}}
